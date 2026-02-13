@@ -19,11 +19,17 @@ terraform {
   }
 
   required_providers {
-    aws = {
-      source  = "hashicorp/aws"
+    google = {
+      source  = "hashicorp/google"
       version = "~> 5.0"
     }
   }
+}
+
+provider "google" {
+  project = var.project_id
+  region  = var.region
+  zone    = var.zone
 }
 
 # ---------------------------------------------------------------------------
@@ -33,17 +39,19 @@ module "nvrs" {
   source = "../../"
 
   # Core settings
+  project_id   = var.project_id
   region       = var.region
+  zone         = var.zone
   environment  = "dev"
   project_name = var.project_name
 
   # Gateway
-  gateway_instance_type = var.gateway_instance_type
-  ssh_key_name          = var.ssh_key_name
-  allowed_ssh_cidrs     = var.allowed_ssh_cidrs
+  gateway_machine_type = var.gateway_machine_type
+  ssh_public_key       = var.ssh_public_key
+  allowed_ssh_cidrs    = var.allowed_ssh_cidrs
 
   # Database
-  db_instance_class = var.db_instance_class
+  db_tier = var.db_tier
 
   # WireGuard
   wireguard_port = var.wireguard_port

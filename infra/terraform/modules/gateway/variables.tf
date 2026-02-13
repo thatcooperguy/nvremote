@@ -7,50 +7,44 @@ variable "project_name" {
   type        = string
 }
 
+variable "project_id" {
+  description = "GCP project ID"
+  type        = string
+}
+
 variable "environment" {
   description = "Deployment environment (dev, staging, prod)"
   type        = string
 }
 
-variable "instance_type" {
-  description = "EC2 instance type for the gateway"
-  type        = string
-  default     = "t3.micro"
-}
-
-variable "ssh_key_name" {
-  description = "Name of the EC2 key pair for SSH access"
+variable "region" {
+  description = "GCP region"
   type        = string
 }
 
-variable "wireguard_port" {
-  description = "UDP port for WireGuard VPN"
-  type        = number
-  default     = 51820
-}
-
-variable "subnet_id" {
-  description = "ID of the public subnet for the gateway instance"
+variable "zone" {
+  description = "GCP zone for the gateway instance"
   type        = string
 }
 
-variable "vpc_id" {
-  description = "ID of the VPC"
+variable "machine_type" {
+  description = "GCE machine type for the gateway"
+  type        = string
+  default     = "e2-small"
+}
+
+variable "network" {
+  description = "Self link of the VPC network"
   type        = string
 }
 
-variable "gateway_sg_id" {
-  description = "Security group ID for the gateway"
+variable "subnetwork" {
+  description = "Self link of the subnetwork"
   type        = string
 }
 
-variable "api_sg_id" {
-  description = "Security group ID for the API"
-  type        = string
-}
-
-variable "db_endpoint" {
-  description = "RDS database endpoint (host:port)"
+variable "db_host" {
+  description = "Cloud SQL database private IP address"
   type        = string
 }
 
@@ -59,13 +53,24 @@ variable "db_name" {
   type        = string
 }
 
-variable "db_secret_arn" {
-  description = "ARN of the Secrets Manager secret containing DB credentials"
+variable "db_user" {
+  description = "Database username"
   type        = string
 }
 
-variable "log_retention_days" {
-  description = "Number of days to retain CloudWatch logs"
+variable "db_password" {
+  description = "Database password"
+  type        = string
+  sensitive   = true
+}
+
+variable "wireguard_port" {
+  description = "UDP port for WireGuard VPN"
   type        = number
-  default     = 30
+  default     = 51820
+}
+
+variable "ssh_public_key" {
+  description = "SSH public key for access to the gateway instance"
+  type        = string
 }

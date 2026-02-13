@@ -1,42 +1,47 @@
 ##############################################################################
 # NVIDIA Remote Stream (NVRS) - Prod Environment
-# Uses S3 + DynamoDB backend for remote state with locking.
+# Uses GCS backend for remote state with locking.
 ##############################################################################
 
 terraform {
   required_version = ">= 1.5"
 
-  backend "s3" {
-    bucket         = "nvrs-terraform-state-prod"
-    key            = "prod/terraform.tfstate"
-    region         = "us-east-1"
-    encrypt        = true
-    dynamodb_table = "nvrs-terraform-locks-prod"
+  backend "gcs" {
+    bucket = "nvrs-terraform-state-prod"
+    prefix = "prod/terraform.tfstate"
   }
 
   required_providers {
-    aws = {
-      source  = "hashicorp/aws"
+    google = {
+      source  = "hashicorp/google"
       version = "~> 5.0"
     }
   }
+}
+
+provider "google" {
+  project = var.project_id
+  region  = var.region
+  zone    = var.zone
 }
 
 module "nvrs" {
   source = "../../"
 
   # Core settings
+  project_id   = var.project_id
   region       = var.region
+  zone         = var.zone
   environment  = "prod"
   project_name = "nvrs"
 
   # Gateway (production-sized instances)
-  gateway_instance_type = var.gateway_instance_type
-  ssh_key_name          = var.ssh_key_name
-  allowed_ssh_cidrs     = var.allowed_ssh_cidrs
+  gateway_machine_type = var.gateway_machine_type
+  ssh_public_key       = var.ssh_public_key
+  allowed_ssh_cidrs    = var.allowed_ssh_cidrs
 
   # Database (production-sized instances)
-  db_instance_class = var.db_instance_class
+  db_tier = var.db_tier
 
   # WireGuard
   wireguard_port = var.wireguard_port
@@ -48,26 +53,38 @@ module "nvrs" {
 # ---------------------------------------------------------------------------
 # Variables (prod-specific defaults)
 # ---------------------------------------------------------------------------
+variable "project_id" {
+  description = "GCP project ID"
+  type        = string
+  default     = "gridbusiness-220920"
+}
+
 variable "region" {
-  description = "AWS region"
+  description = "GCP region"
   type        = string
-  default     = "us-east-1"
+  default     = "us-west1"
 }
 
-variable "gateway_instance_type" {
-  description = "EC2 instance type for the gateway"
+variable "zone" {
+  description = "GCP zone"
   type        = string
-  default     = "t3.small"
+  default     = "us-west1-b"
 }
 
-variable "db_instance_class" {
-  description = "RDS instance class for PostgreSQL"
+variable "gateway_machine_type" {
+  description = "GCE machine type for the gateway"
   type        = string
-  default     = "db.t3.small"
+  default     = "e2-medium"
 }
 
-variable "ssh_key_name" {
-  description = "Name of the EC2 key pair for SSH access"
+variable "db_tier" {
+  description = "Cloud SQL instance tier for PostgreSQL"
+  type        = string
+  default     = "db-g1-small"
+}
+
+variable "ssh_public_key" {
+  description = "SSH public key for access to the gateway instance"
   type        = string
 }
 
@@ -102,13 +119,23 @@ output "api_url" {
   value       = module.nvrs.api_url
 }
 
-output "db_endpoint" {
-  description = "Prod database endpoint"
-  value       = module.nvrs.db_endpoint
+output "db_connection_name" {
+  description = "Prod Cloud SQL connection name"
+  value       = module.nvrs.db_connection_name
+}
+
+output "db_ip" {
+  description = "Prod Cloud SQL private IP"
+  value       = module.nvrs.db_ip
   sensitive   = true
 }
 
 output "wireguard_endpoint" {
   description = "Prod WireGuard endpoint"
   value       = module.nvrs.wireguard_endpoint
+}
+
+output "ssh_command" {
+  description = "SSH command to connect to the prod gateway"
+  value       = module.nvrs.ssh_command
 }

@@ -2,14 +2,16 @@
 # Copy this file to terraform.tfvars and fill in production values.
 # NEVER commit terraform.tfvars with real values to version control.
 
-region = "us-east-1"
+project_id = "gridbusiness-220920"
+region     = "us-west1"
+zone       = "us-west1-b"
 
 # Production instance sizes
-gateway_instance_type = "t3.small"
-db_instance_class     = "db.t3.small"
+gateway_machine_type = "e2-medium"
+db_tier              = "db-g1-small"
 
 # SSH access -- restrict to your office/VPN CIDR only
-ssh_key_name      = "nvrs-prod-key"
+ssh_public_key    = "ssh-rsa AAAA... user@host"
 allowed_ssh_cidrs = ["203.0.113.0/28"]
 
 # WireGuard port

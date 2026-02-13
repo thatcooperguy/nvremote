@@ -1,15 +1,11 @@
 ##############################################################################
 # NVIDIA Remote Stream (NVRS) - Database Module
-# RDS PostgreSQL instance with Secrets Manager password management.
+# Cloud SQL PostgreSQL instance with private networking.
 ##############################################################################
 
 locals {
   name_prefix = "${var.project_name}-${var.environment}"
   db_name     = "${replace(var.project_name, "-", "_")}_${var.environment}"
-
-  common_tags = {
-    Module = "database"
-  }
 }
 
 # -----------------------------------------------------------------------------
@@ -22,120 +18,72 @@ resource "random_password" "db_password" {
 }
 
 # -----------------------------------------------------------------------------
-# AWS Secrets Manager - Store DB Credentials
+# Cloud SQL PostgreSQL Instance
 # -----------------------------------------------------------------------------
-resource "aws_secretsmanager_secret" "db_credentials" {
-  name                    = "${local.name_prefix}/database/credentials"
-  description             = "RDS PostgreSQL credentials for ${var.project_name} ${var.environment}"
-  recovery_window_in_days = var.environment == "prod" ? 30 : 0
+resource "google_sql_database_instance" "main" {
+  name                = "${local.name_prefix}-postgres"
+  project             = var.project_id
+  region              = var.region
+  database_version    = "POSTGRES_15"
+  deletion_protection = false
 
-  tags = local.common_tags
-}
+  settings {
+    tier              = var.tier
+    disk_size         = 10
+    disk_type         = "PD_SSD"
+    disk_autoresize   = true
+    availability_type = var.environment == "prod" ? "REGIONAL" : "ZONAL"
 
-resource "aws_secretsmanager_secret_version" "db_credentials" {
-  secret_id = aws_secretsmanager_secret.db_credentials.id
+    ip_configuration {
+      ipv4_enabled    = false
+      private_network = var.network_id
+    }
 
-  secret_string = jsonencode({
-    username = var.db_username
-    password = random_password.db_password.result
-    host     = aws_db_instance.main.address
-    port     = aws_db_instance.main.port
-    dbname   = local.db_name
-    engine   = "postgres"
-  })
-}
+    backup_configuration {
+      enabled                        = true
+      start_time                     = "03:00"
+      point_in_time_recovery_enabled = var.environment == "prod" ? true : false
+      transaction_log_retention_days = var.environment == "prod" ? 7 : 3
+    }
 
-# -----------------------------------------------------------------------------
-# DB Subnet Group
-# -----------------------------------------------------------------------------
-resource "aws_db_subnet_group" "main" {
-  name        = "${local.name_prefix}-db-subnet-group"
-  description = "Subnet group for ${local.name_prefix} RDS instance"
-  subnet_ids  = var.private_subnet_ids
+    database_flags {
+      name  = "log_connections"
+      value = "on"
+    }
 
-  tags = merge(local.common_tags, {
-    Name = "${local.name_prefix}-db-subnet-group"
-  })
-}
+    database_flags {
+      name  = "log_disconnections"
+      value = "on"
+    }
 
-# -----------------------------------------------------------------------------
-# DB Parameter Group
-# -----------------------------------------------------------------------------
-resource "aws_db_parameter_group" "main" {
-  name        = "${local.name_prefix}-pg15-params"
-  family      = "postgres15"
-  description = "Custom parameter group for ${local.name_prefix} PostgreSQL 15"
+    database_flags {
+      name  = "log_statement"
+      value = "ddl"
+    }
 
-  parameter {
-    name  = "log_connections"
-    value = "1"
-  }
-
-  parameter {
-    name  = "log_disconnections"
-    value = "1"
-  }
-
-  parameter {
-    name  = "log_statement"
-    value = "ddl"
-  }
-
-  parameter {
-    name         = "shared_preload_libraries"
-    value        = "pg_stat_statements"
-    apply_method = "pending-reboot"
-  }
-
-  tags = merge(local.common_tags, {
-    Name = "${local.name_prefix}-pg15-params"
-  })
-
-  lifecycle {
-    create_before_destroy = true
+    user_labels = {
+      project     = var.project_name
+      environment = var.environment
+      managed_by  = "terraform"
+    }
   }
 }
 
 # -----------------------------------------------------------------------------
-# RDS PostgreSQL Instance
+# Database
 # -----------------------------------------------------------------------------
-resource "aws_db_instance" "main" {
-  identifier = "${local.name_prefix}-postgres"
+resource "google_sql_database" "main" {
+  name     = local.db_name
+  project  = var.project_id
+  instance = google_sql_database_instance.main.name
+}
 
-  engine         = "postgres"
-  engine_version = "15"
-  instance_class = var.instance_class
-
-  db_name  = local.db_name
-  username = var.db_username
+# -----------------------------------------------------------------------------
+# Database User
+# -----------------------------------------------------------------------------
+resource "google_sql_user" "main" {
+  name     = "nvrs_admin"
+  project  = var.project_id
+  instance = google_sql_database_instance.main.name
   password = random_password.db_password.result
-
-  allocated_storage     = var.allocated_storage
-  max_allocated_storage = var.max_allocated_storage
-  storage_type          = "gp3"
-  storage_encrypted     = true
-
-  db_subnet_group_name   = aws_db_subnet_group.main.name
-  vpc_security_group_ids = [var.db_sg_id]
-  parameter_group_name   = aws_db_parameter_group.main.name
-
-  multi_az            = var.environment == "prod" ? true : false
-  publicly_accessible = false
-
-  backup_retention_period = var.environment == "prod" ? 14 : 3
-  backup_window           = "03:00-04:00"
-  maintenance_window      = "sun:04:30-sun:05:30"
-
-  deletion_protection       = var.environment == "prod" ? true : false
-  skip_final_snapshot       = var.environment != "prod"
-  final_snapshot_identifier = var.environment == "prod" ? "${local.name_prefix}-final-snapshot" : null
-
-  performance_insights_enabled          = true
-  performance_insights_retention_period = 7
-
-  enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
-
-  tags = merge(local.common_tags, {
-    Name = "${local.name_prefix}-postgres"
-  })
 }

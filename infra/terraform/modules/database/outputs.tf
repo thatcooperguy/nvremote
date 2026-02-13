@@ -2,37 +2,28 @@
 # NVIDIA Remote Stream (NVRS) - Database Module Outputs
 ##############################################################################
 
-output "db_endpoint" {
-  description = "RDS endpoint in host:port format"
-  value       = "${aws_db_instance.main.address}:${aws_db_instance.main.port}"
+output "instance_ip" {
+  description = "Private IP address of the Cloud SQL instance"
+  value       = google_sql_database_instance.main.private_ip_address
 }
 
-output "db_address" {
-  description = "RDS hostname"
-  value       = aws_db_instance.main.address
+output "connection_name" {
+  description = "Cloud SQL connection name (project:region:instance)"
+  value       = google_sql_database_instance.main.connection_name
 }
 
-output "db_port" {
-  description = "RDS port"
-  value       = aws_db_instance.main.port
-}
-
-output "db_name" {
+output "database_name" {
   description = "Name of the database"
-  value       = aws_db_instance.main.db_name
+  value       = google_sql_database.main.name
 }
 
-output "db_instance_id" {
-  description = "RDS instance identifier"
-  value       = aws_db_instance.main.identifier
+output "user_name" {
+  description = "Database username"
+  value       = google_sql_user.main.name
 }
 
-output "db_secret_arn" {
-  description = "ARN of the Secrets Manager secret containing DB credentials"
-  value       = aws_secretsmanager_secret.db_credentials.arn
-}
-
-output "db_secret_name" {
-  description = "Name of the Secrets Manager secret containing DB credentials"
-  value       = aws_secretsmanager_secret.db_credentials.name
+output "user_password" {
+  description = "Database user password"
+  value       = random_password.db_password.result
+  sensitive   = true
 }

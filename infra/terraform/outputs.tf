@@ -12,12 +12,23 @@ output "api_url" {
   value       = var.domain_name != "" ? "https://${var.domain_name}" : "https://${module.gateway.public_ip}:443"
 }
 
-output "db_endpoint" {
-  description = "RDS PostgreSQL endpoint (host:port)"
-  value       = module.database.db_endpoint
+output "db_connection_name" {
+  description = "Cloud SQL connection name"
+  value       = module.database.connection_name
+}
+
+output "db_ip" {
+  description = "Cloud SQL private IP address"
+  value       = module.database.instance_ip
+  sensitive   = true
 }
 
 output "wireguard_endpoint" {
   description = "WireGuard VPN connection endpoint (ip:port)"
   value       = "${module.gateway.public_ip}:${var.wireguard_port}"
+}
+
+output "ssh_command" {
+  description = "SSH command to connect to the gateway instance"
+  value       = "ssh ubuntu@${module.gateway.public_ip}"
 }

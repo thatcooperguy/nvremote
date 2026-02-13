@@ -1,21 +1,23 @@
 # NVIDIA Remote Stream (NVRS) - Example Variable Values
 # Copy this file to terraform.tfvars and fill in your values.
 
-region       = "us-east-1"
+project_id   = "gridbusiness-220920"
+region       = "us-west1"
+zone         = "us-west1-b"
 environment  = "dev"
 project_name = "nvrs"
 
-# EC2 instance type for the WireGuard gateway
-gateway_instance_type = "t3.micro"
+# GCE machine type for the WireGuard gateway
+gateway_machine_type = "e2-small"
 
-# RDS instance class for PostgreSQL
-db_instance_class = "db.t3.micro"
+# Cloud SQL instance tier for PostgreSQL
+db_tier = "db-f1-micro"
 
 # Optional custom domain (leave empty to use the gateway public IP)
 domain_name = ""
 
-# Name of an existing EC2 key pair for SSH access
-ssh_key_name = "my-key-pair"
+# SSH public key for gateway access
+ssh_public_key = "ssh-rsa AAAA... user@host"
 
 # CIDR blocks allowed to SSH into the gateway
 allowed_ssh_cidrs = ["203.0.113.0/32"]

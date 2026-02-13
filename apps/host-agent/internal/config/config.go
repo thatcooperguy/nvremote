@@ -20,35 +20,57 @@ const (
 // Config holds all configuration for the host agent.
 type Config struct {
 	// ControlPlaneURL is the base URL of the NVRemoteStream control plane API.
-	ControlPlaneURL string `mapstructure:"control_plane_url"`
+	ControlPlaneURL string `mapstructure:"control_plane_url" yaml:"control_plane_url"`
 
 	// BootstrapToken is a one-time token used to register this host with the control plane.
-	BootstrapToken string `mapstructure:"bootstrap_token"`
+	BootstrapToken string `mapstructure:"bootstrap_token" yaml:"bootstrap_token"`
 
 	// HostName is the human-readable name for this host machine.
-	HostName string `mapstructure:"host_name"`
+	HostName string `mapstructure:"host_name" yaml:"host_name"`
 
-	// NvstreamerPath is the file path to the nvstreamer.exe binary.
-	NvstreamerPath string `mapstructure:"nvstreamer_path"`
+	// StreamerPath is the file path to the crazystream-host.exe binary.
+	StreamerPath string `mapstructure:"streamer_path" yaml:"streamer_path"`
 
-	// NvstreamerPorts holds the port configuration for nvstreamer streams.
-	NvstreamerPorts PortConfig `mapstructure:"nvstreamer_ports"`
+	// StunServers is a list of STUN servers used for ICE candidate gathering.
+	// Each entry should be in "host:port" format.
+	StunServers []string `mapstructure:"stun_servers" yaml:"stun_servers"`
 
-	// GatewayEndpoint is the WireGuard gateway address (host:port).
-	GatewayEndpoint string `mapstructure:"gateway_endpoint"`
+	// TurnServer is the TURN relay server address (host:port) for fallback connectivity.
+	TurnServer string `mapstructure:"turn_server" yaml:"turn_server"`
+
+	// TurnUsername is the username for TURN server authentication.
+	TurnUsername string `mapstructure:"turn_username" yaml:"turn_username"`
+
+	// TurnCredential is the credential (password) for TURN server authentication.
+	TurnCredential string `mapstructure:"turn_credential" yaml:"turn_credential"`
 
 	// DataDir is the directory where the agent stores state files (keys, registration, etc.).
-	DataDir string `mapstructure:"data_dir"`
+	DataDir string `mapstructure:"data_dir" yaml:"data_dir"`
 
 	// LogLevel controls the logging verbosity (debug, info, warn, error).
-	LogLevel string `mapstructure:"log_level"`
+	LogLevel string `mapstructure:"log_level" yaml:"log_level"`
+
+	// --- Deprecated fields (kept for backward compatibility during migration) ---
+
+	// NvstreamerPath is the file path to the nvstreamer.exe binary.
+	// Deprecated: Use StreamerPath instead.
+	NvstreamerPath string `mapstructure:"nvstreamer_path" yaml:"nvstreamer_path"`
+
+	// NvstreamerPorts holds the port configuration for nvstreamer streams.
+	// Deprecated: Ports are now negotiated per-session via P2P ICE.
+	NvstreamerPorts PortConfig `mapstructure:"nvstreamer_ports" yaml:"nvstreamer_ports"`
+
+	// GatewayEndpoint is the WireGuard gateway address (host:port).
+	// Deprecated: Connectivity is now handled via P2P ICE, not WireGuard tunnels.
+	GatewayEndpoint string `mapstructure:"gateway_endpoint" yaml:"gateway_endpoint"`
 }
 
 // PortConfig holds the port numbers used by nvstreamer for different stream types.
+// Deprecated: Ports are now negotiated per-session via P2P ICE.
 type PortConfig struct {
-	Video int `mapstructure:"video"`
-	Audio int `mapstructure:"audio"`
-	Input int `mapstructure:"input"`
+	Video int `mapstructure:"video" yaml:"video"`
+	Audio int `mapstructure:"audio" yaml:"audio"`
+	Input int `mapstructure:"input" yaml:"input"`
 }
 
 // Load reads configuration from the given file path, falling back to the default
@@ -59,6 +81,10 @@ func Load(configPath string) (*Config, error) {
 	// Set defaults.
 	v.SetDefault("data_dir", DefaultDataDir)
 	v.SetDefault("log_level", "info")
+	v.SetDefault("streamer_path", `C:\Program Files\CrazyStream\crazystream-host.exe`)
+	v.SetDefault("stun_servers", []string{"stun.l.google.com:19302"})
+
+	// Deprecated defaults (kept for backward compatibility).
 	v.SetDefault("nvstreamer_path", `C:\Program Files\NVIDIA\nvstreamer\nvstreamer.exe`)
 	v.SetDefault("nvstreamer_ports.video", 8443)
 	v.SetDefault("nvstreamer_ports.audio", 8444)
@@ -78,16 +104,23 @@ func Load(configPath string) (*Config, error) {
 
 	// Bind specific environment variables to config keys.
 	envBindings := map[string]string{
-		"control_plane_url":    "NVRS_CONTROL_PLANE_URL",
-		"bootstrap_token":      "NVRS_BOOTSTRAP_TOKEN",
-		"host_name":            "NVRS_HOST_NAME",
-		"nvstreamer_path":      "NVRS_NVSTREAMER_PATH",
+		"control_plane_url": "NVRS_CONTROL_PLANE_URL",
+		"bootstrap_token":   "NVRS_BOOTSTRAP_TOKEN",
+		"host_name":         "NVRS_HOST_NAME",
+		"streamer_path":     "NVRS_STREAMER_PATH",
+		"stun_servers":      "NVRS_STUN_SERVERS",
+		"turn_server":       "NVRS_TURN_SERVER",
+		"turn_username":     "NVRS_TURN_USERNAME",
+		"turn_credential":   "NVRS_TURN_CREDENTIAL",
+		"data_dir":          "NVRS_DATA_DIR",
+		"log_level":         "NVRS_LOG_LEVEL",
+
+		// Deprecated bindings (kept for backward compatibility).
+		"nvstreamer_path":        "NVRS_NVSTREAMER_PATH",
 		"nvstreamer_ports.video": "NVRS_NVSTREAMER_PORTS_VIDEO",
 		"nvstreamer_ports.audio": "NVRS_NVSTREAMER_PORTS_AUDIO",
 		"nvstreamer_ports.input": "NVRS_NVSTREAMER_PORTS_INPUT",
-		"gateway_endpoint":     "NVRS_GATEWAY_ENDPOINT",
-		"data_dir":             "NVRS_DATA_DIR",
-		"log_level":            "NVRS_LOG_LEVEL",
+		"gateway_endpoint":       "NVRS_GATEWAY_ENDPOINT",
 	}
 	for key, env := range envBindings {
 		_ = v.BindEnv(key, env)
@@ -114,6 +147,13 @@ func Load(configPath string) (*Config, error) {
 			return nil, fmt.Errorf("getting hostname: %w", err)
 		}
 		cfg.HostName = hostname
+	}
+
+	// Migration: if StreamerPath is not explicitly set but NvstreamerPath is,
+	// the user hasn't migrated yet. StreamerPath takes priority if set.
+	if cfg.StreamerPath == "" && cfg.NvstreamerPath != "" {
+		// Don't auto-migrate; the user should explicitly set streamer_path.
+		// StreamerPath will use its default from viper.
 	}
 
 	if err := cfg.Validate(); err != nil {

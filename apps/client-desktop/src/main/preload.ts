@@ -57,67 +57,192 @@ const authApi = {
 };
 
 // ---------------------------------------------------------------------------
-// WireGuard tunnel
+// Viewer (native crazystream-viewer addon)
 // ---------------------------------------------------------------------------
 
-const wireguardApi = {
-  generateKeyPair: (): Promise<{
+interface ViewerStartConfig {
+  sessionId: string;
+  codec: string;
+  windowHandle: Buffer;
+  gamingMode: 'competitive' | 'balanced' | 'cinematic';
+  maxBitrate?: number;
+  targetFps?: number;
+}
+
+const viewerApi = {
+  start: (config: ViewerStartConfig): Promise<IpcResult> =>
+    ipcRenderer.invoke('viewer:start', config),
+
+  stop: (): Promise<IpcResult> =>
+    ipcRenderer.invoke('viewer:stop'),
+
+  stats: (): Promise<{
     success: boolean;
-    publicKey?: string;
-    privateKey?: string;
-    error?: string;
-  }> => ipcRenderer.invoke('wireguard:generate-keypair'),
-
-  connect: (config: {
-    privateKey: string;
-    address: string;
-    dns: string;
-    peerPublicKey: string;
-    peerEndpoint: string;
-    allowedIps: string;
-  }): Promise<IpcResult> => ipcRenderer.invoke('wireguard:connect', config),
-
-  disconnect: (): Promise<IpcResult> =>
-    ipcRenderer.invoke('wireguard:disconnect'),
-
-  status: (): Promise<{
-    success: boolean;
-    status?: {
-      connected: boolean;
-      interfaceName: string | null;
-      latestHandshake: string | null;
-      transferRx: number;
-      transferTx: number;
+    stats?: {
+      bitrate: number;
+      fps: number;
+      packetLoss: number;
+      jitter: number;
+      rtt: number;
+      codec: string;
+      resolution: { width: number; height: number };
+      connectionType: string;
+      decodeTimeMs: number;
+      renderTimeMs: number;
+      gamingMode: string;
     };
     error?: string;
-  }> => ipcRenderer.invoke('wireguard:status'),
+  }> => ipcRenderer.invoke('viewer:stats'),
+
+  setQuality: (preset: string): Promise<IpcResult> =>
+    ipcRenderer.invoke('viewer:set-quality', preset),
+
+  setGamingMode: (mode: string): Promise<IpcResult> =>
+    ipcRenderer.invoke('viewer:set-gaming-mode', mode),
+
+  available: (): Promise<{ available: boolean }> =>
+    ipcRenderer.invoke('viewer:available'),
 };
 
 // ---------------------------------------------------------------------------
-// Geronimo streaming client
+// P2P / ICE signaling
 // ---------------------------------------------------------------------------
 
-const geronimoApi = {
-  launch: (config: {
-    hostIp: string;
-    ports: { video: number; audio: number; input: number };
-  }): Promise<{ success: boolean; pid?: number; error?: string }> =>
-    ipcRenderer.invoke('geronimo:launch', config),
+interface IceCandidate {
+  type: 'host' | 'srflx' | 'relay';
+  ip: string;
+  port: number;
+  protocol: string;
+  priority: number;
+  foundation: string;
+}
 
-  kill: (): Promise<IpcResult> =>
-    ipcRenderer.invoke('geronimo:kill'),
+interface SessionOptions {
+  codecs: string[];
+  gamingMode: 'competitive' | 'balanced' | 'cinematic';
+  maxBitrate?: number;
+  targetFps?: number;
+}
+
+interface SessionInfo {
+  sessionId: string;
+  hostId: string;
+  codec: string;
+  gamingMode: 'competitive' | 'balanced' | 'cinematic';
+}
+
+const p2pApi = {
+  connectSignaling: (accessToken: string): Promise<IpcResult> =>
+    ipcRenderer.invoke('p2p:connect-signaling', accessToken),
+
+  disconnectSignaling: (): Promise<IpcResult> =>
+    ipcRenderer.invoke('p2p:disconnect-signaling'),
+
+  requestSession: (
+    hostId: string,
+    options: SessionOptions,
+  ): Promise<{
+    success: boolean;
+    session?: SessionInfo;
+    error?: string;
+  }> => ipcRenderer.invoke('p2p:request-session', hostId, options),
+
+  gatherCandidates: (stunServers: string[]): Promise<{
+    success: boolean;
+    candidates?: IceCandidate[];
+    error?: string;
+  }> => ipcRenderer.invoke('p2p:gather-candidates', stunServers),
+
+  addRemoteCandidate: (candidate: IceCandidate): Promise<IpcResult> =>
+    ipcRenderer.invoke('p2p:add-remote-candidate', candidate),
+
+  connect: (config: { dtlsFingerprint: string }): Promise<{
+    success: boolean;
+    connectionType?: string;
+    error?: string;
+  }> => ipcRenderer.invoke('p2p:connect', config),
+
+  disconnect: (): Promise<IpcResult> =>
+    ipcRenderer.invoke('p2p:disconnect'),
 
   status: (): Promise<{
-    running: boolean;
-    pid: number | null;
-    exitCode: number | null;
-  }> => ipcRenderer.invoke('geronimo:status'),
+    signalingConnected: boolean;
+    sessionId: string | null;
+  }> => ipcRenderer.invoke('p2p:status'),
 
-  onExit: (callback: (exitCode: number) => void): (() => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, code: number) =>
-      callback(code);
-    ipcRenderer.on('geronimo:exit', handler);
-    return () => ipcRenderer.removeListener('geronimo:exit', handler);
+  // Event listeners for P2P lifecycle events forwarded from main process
+  onSessionAccepted: (
+    callback: (info: {
+      sessionId: string;
+      codec: string;
+      capabilities: {
+        maxBitrate: number;
+        maxFps: number;
+        maxResolution: { width: number; height: number };
+        supportedCodecs: string[];
+      };
+      dtlsFingerprint: string;
+      stunServers: string[];
+    }) => void
+  ): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, info: Parameters<typeof callback>[0]) =>
+      callback(info);
+    ipcRenderer.on('p2p:session-accepted', handler);
+    return () => ipcRenderer.removeListener('p2p:session-accepted', handler);
+  },
+
+  onConnected: (
+    callback: (info: { sessionId: string; connectionType: string }) => void
+  ): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      info: { sessionId: string; connectionType: string }
+    ) => callback(info);
+    ipcRenderer.on('p2p:connected', handler);
+    return () => ipcRenderer.removeListener('p2p:connected', handler);
+  },
+
+  onDisconnected: (callback: () => void): (() => void) => {
+    const handler = () => callback();
+    ipcRenderer.on('p2p:disconnected', handler);
+    return () => ipcRenderer.removeListener('p2p:disconnected', handler);
+  },
+
+  onSessionEnded: (
+    callback: (data: { reason: string }) => void
+  ): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      data: { reason: string }
+    ) => callback(data);
+    ipcRenderer.on('p2p:session-ended', handler);
+    return () => ipcRenderer.removeListener('p2p:session-ended', handler);
+  },
+
+  onSessionError: (
+    callback: (data: { error: string }) => void
+  ): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      data: { error: string }
+    ) => callback(data);
+    ipcRenderer.on('p2p:session-error', handler);
+    return () => ipcRenderer.removeListener('p2p:session-error', handler);
+  },
+
+  onRemoteCandidate: (callback: (candidate: IceCandidate) => void): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      candidate: IceCandidate
+    ) => callback(candidate);
+    ipcRenderer.on('p2p:remote-candidate', handler);
+    return () => ipcRenderer.removeListener('p2p:remote-candidate', handler);
+  },
+
+  onRemoteIceComplete: (callback: () => void): (() => void) => {
+    const handler = () => callback();
+    ipcRenderer.on('p2p:remote-ice-complete', handler);
+    return () => ipcRenderer.removeListener('p2p:remote-ice-complete', handler);
   },
 };
 
@@ -182,8 +307,8 @@ const trayApi = {
 const api = {
   window: windowApi,
   auth: authApi,
-  wireguard: wireguardApi,
-  geronimo: geronimoApi,
+  viewer: viewerApi,
+  p2p: p2pApi,
   connection: connectionApi,
   deepLink: deepLinkApi,
   tray: trayApi,

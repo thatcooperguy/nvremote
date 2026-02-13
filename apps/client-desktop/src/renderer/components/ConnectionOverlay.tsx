@@ -1,27 +1,18 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { colors, radius, spacing, typography, zIndex, shadows } from '../styles/theme';
 import { Button } from './Button';
 import { useConnectionStore } from '../store/connectionStore';
 import { useHostStore } from '../store/hostStore';
+import { useStreamStats } from '../hooks/useStreamStats';
 
 export function ConnectionOverlay(): React.ReactElement {
   const [isMinimized, setIsMinimized] = useState(false);
-  const [stats, setStats] = useState({ latencyMs: 0, bitrateMbps: 0, fps: 0 });
+  const stats = useStreamStats();
   const disconnect = useConnectionStore((s) => s.disconnect);
   const selectedHost = useHostStore((s) => s.selectedHost);
-  const tunnelStatus = useConnectionStore((s) => s.tunnelStatus);
-
-  // Simulate stats updates (in production, these come from Geronimo)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setStats({
-        latencyMs: Math.round(10 + Math.random() * 15),
-        bitrateMbps: Math.round((20 + Math.random() * 30) * 10) / 10,
-        fps: Math.round(58 + Math.random() * 4),
-      });
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
+  const connectionType = useConnectionStore((s) => s.connectionType);
+  const codec = useConnectionStore((s) => s.codec);
+  const gamingMode = useConnectionStore((s) => s.gamingMode);
 
   const handleDisconnect = useCallback(async () => {
     await disconnect();
@@ -35,13 +26,17 @@ export function ConnectionOverlay(): React.ReactElement {
 
   if (isMinimized) return <></>;
 
+  const latencyMs = stats?.rtt ?? 0;
+  const bitrateMbps = stats ? stats.bitrate / 1000 : 0;
+  const fps = stats?.fps ?? 0;
+
   return (
     <div style={styles.overlay}>
       <div style={styles.container}>
         {/* Connection Indicator */}
         <div style={styles.statusBar}>
           <div style={styles.connectedDot} />
-          <span style={styles.connectedLabel}>Connected</span>
+          <span style={styles.connectedLabel}>Streaming</span>
         </div>
 
         {/* Host Info */}
@@ -54,13 +49,23 @@ export function ConnectionOverlay(): React.ReactElement {
 
         {/* Stats Grid */}
         <div style={styles.statsGrid}>
-          <StatCard label="Latency" value={`${stats.latencyMs}ms`} status={getLatencyStatus(stats.latencyMs)} />
-          <StatCard label="Bitrate" value={`${stats.bitrateMbps} Mbps`} status="good" />
-          <StatCard label="FPS" value={`${stats.fps}`} status={stats.fps >= 55 ? 'good' : 'warning'} />
+          <StatCard label="Latency" value={`${latencyMs}ms`} status={getLatencyStatus(latencyMs)} />
+          <StatCard label="Bitrate" value={`${bitrateMbps.toFixed(1)} Mbps`} status="good" />
+          <StatCard label="FPS" value={`${fps}`} status={fps >= 55 ? 'good' : 'warning'} />
           <StatCard
-            label="Tunnel"
-            value={tunnelStatus === 'connected' ? 'Active' : 'N/A'}
-            status={tunnelStatus === 'connected' ? 'good' : 'neutral'}
+            label="Connection"
+            value={connectionType === 'p2p' ? 'P2P' : connectionType === 'relay' ? 'Relay' : 'N/A'}
+            status={connectionType === 'p2p' ? 'good' : connectionType === 'relay' ? 'warning' : 'neutral'}
+          />
+          <StatCard
+            label="Codec"
+            value={stats?.codec || codec || 'N/A'}
+            status="neutral"
+          />
+          <StatCard
+            label="Mode"
+            value={gamingMode.charAt(0).toUpperCase() + gamingMode.slice(1)}
+            status="neutral"
           />
         </div>
 
@@ -133,7 +138,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: radius.xl,
     boxShadow: shadows.lg,
     minWidth: 420,
-    maxWidth: 500,
+    maxWidth: 520,
     animation: 'scaleIn 300ms ease',
   },
   statusBar: {
@@ -171,7 +176,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   statsGrid: {
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
+    gridTemplateColumns: '1fr 1fr 1fr',
     gap: spacing.sm,
     width: '100%',
   },

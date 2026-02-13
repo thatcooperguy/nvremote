@@ -10,62 +10,103 @@ interface IpcResult<T = unknown> {
 }
 
 // ---------------------------------------------------------------------------
-// WireGuard types
+// Stream Stats types
 // ---------------------------------------------------------------------------
 
-interface WgKeyPairResult {
+interface StreamStatsResult {
+  bitrate: number;
+  fps: number;
+  packetLoss: number;
+  jitter: number;
+  rtt: number;
+  codec: string;
+  resolution: { width: number; height: number };
+  connectionType: string;
+  decodeTimeMs: number;
+  renderTimeMs: number;
+  gamingMode: string;
+}
+
+// ---------------------------------------------------------------------------
+// Viewer types
+// ---------------------------------------------------------------------------
+
+interface ViewerStartConfig {
+  sessionId: string;
+  codec: string;
+  windowHandle: Buffer;
+  gamingMode: 'competitive' | 'balanced' | 'cinematic';
+  maxBitrate?: number;
+  targetFps?: number;
+}
+
+interface ViewerStatsResponse {
   success: boolean;
-  publicKey?: string;
-  privateKey?: string;
+  stats?: StreamStatsResult;
   error?: string;
 }
 
-interface WgConnectConfig {
-  privateKey: string;
-  address: string;
-  dns: string;
-  peerPublicKey: string;
-  peerEndpoint: string;
-  allowedIps: string;
+// ---------------------------------------------------------------------------
+// P2P / ICE types
+// ---------------------------------------------------------------------------
+
+interface IceCandidate {
+  type: 'host' | 'srflx' | 'relay';
+  ip: string;
+  port: number;
+  protocol: string;
+  priority: number;
+  foundation: string;
 }
 
-interface TunnelStatusResult {
-  connected: boolean;
-  interfaceName: string | null;
-  latestHandshake: string | null;
-  transferRx: number;
-  transferTx: number;
+interface SessionOptions {
+  codecs: string[];
+  gamingMode: 'competitive' | 'balanced' | 'cinematic';
+  maxBitrate?: number;
+  targetFps?: number;
 }
 
-interface WgStatusResponse {
+interface SessionInfo {
+  sessionId: string;
+  hostId: string;
+  codec: string;
+  gamingMode: 'competitive' | 'balanced' | 'cinematic';
+}
+
+interface SessionRequestResult {
   success: boolean;
-  status?: TunnelStatusResult;
+  session?: SessionInfo;
   error?: string;
 }
 
-// ---------------------------------------------------------------------------
-// Geronimo types
-// ---------------------------------------------------------------------------
+interface GatherCandidatesResult {
+  success: boolean;
+  candidates?: IceCandidate[];
+  error?: string;
+}
 
-interface GeronimoLaunchConfig {
-  hostIp: string;
-  ports: {
-    video: number;
-    audio: number;
-    input: number;
+interface P2PConnectResult {
+  success: boolean;
+  connectionType?: string;
+  error?: string;
+}
+
+interface P2PStatusResult {
+  signalingConnected: boolean;
+  sessionId: string | null;
+}
+
+interface SessionAcceptedInfo {
+  sessionId: string;
+  codec: string;
+  capabilities: {
+    maxBitrate: number;
+    maxFps: number;
+    maxResolution: { width: number; height: number };
+    supportedCodecs: string[];
   };
-}
-
-interface GeronimoLaunchResult {
-  success: boolean;
-  pid?: number;
-  error?: string;
-}
-
-interface GeronimoStatusResult {
-  running: boolean;
-  pid: number | null;
-  exitCode: number | null;
+  dtlsFingerprint: string;
+  stunServers: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -100,18 +141,31 @@ interface NvrsApi {
     ) => () => void;
   };
 
-  wireguard: {
-    generateKeyPair: () => Promise<WgKeyPairResult>;
-    connect: (config: WgConnectConfig) => Promise<IpcResult>;
-    disconnect: () => Promise<IpcResult>;
-    status: () => Promise<WgStatusResponse>;
+  viewer: {
+    start: (config: ViewerStartConfig) => Promise<IpcResult>;
+    stop: () => Promise<IpcResult>;
+    stats: () => Promise<ViewerStatsResponse>;
+    setQuality: (preset: string) => Promise<IpcResult>;
+    setGamingMode: (mode: string) => Promise<IpcResult>;
+    available: () => Promise<{ available: boolean }>;
   };
 
-  geronimo: {
-    launch: (config: GeronimoLaunchConfig) => Promise<GeronimoLaunchResult>;
-    kill: () => Promise<IpcResult>;
-    status: () => Promise<GeronimoStatusResult>;
-    onExit: (cb: (exitCode: number) => void) => () => void;
+  p2p: {
+    connectSignaling: (accessToken: string) => Promise<IpcResult>;
+    disconnectSignaling: () => Promise<IpcResult>;
+    requestSession: (hostId: string, options: SessionOptions) => Promise<SessionRequestResult>;
+    gatherCandidates: (stunServers: string[]) => Promise<GatherCandidatesResult>;
+    addRemoteCandidate: (candidate: IceCandidate) => Promise<IpcResult>;
+    connect: (config: { dtlsFingerprint: string }) => Promise<P2PConnectResult>;
+    disconnect: () => Promise<IpcResult>;
+    status: () => Promise<P2PStatusResult>;
+    onSessionAccepted: (cb: (info: SessionAcceptedInfo) => void) => () => void;
+    onConnected: (cb: (info: { sessionId: string; connectionType: string }) => void) => () => void;
+    onDisconnected: (cb: () => void) => () => void;
+    onSessionEnded: (cb: (data: { reason: string }) => void) => () => void;
+    onSessionError: (cb: (data: { error: string }) => void) => () => void;
+    onRemoteCandidate: (cb: (candidate: IceCandidate) => void) => () => void;
+    onRemoteIceComplete: (cb: () => void) => () => void;
   };
 
   connection: {

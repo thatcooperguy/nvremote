@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+
+	"github.com/nvidia/nvstreamer/host-agent/internal/p2p"
 )
 
 const (
@@ -35,13 +37,17 @@ type MessageType string
 const (
 	// Inbound message types (from control plane to host).
 	MsgSessionRequest MessageType = "session:request"
+	MsgSessionOffer   MessageType = "session:offer"
 	MsgSessionEnd     MessageType = "session:end"
 	MsgConfigUpdate   MessageType = "config:update"
+	MsgIceCandidate   MessageType = "ice:candidate"
+	MsgIceComplete    MessageType = "ice:complete"
 
 	// Outbound message types (from host to control plane).
 	MsgHostHeartbeat  MessageType = "host:heartbeat"
 	MsgHostStatus     MessageType = "host:status"
 	MsgSessionAccept  MessageType = "session:accept"
+	MsgSessionAnswer  MessageType = "session:answer"
 	MsgSessionReject  MessageType = "session:reject"
 )
 
@@ -51,26 +57,40 @@ type WSMessage struct {
 	Payload json.RawMessage `json:"payload"`
 }
 
-// SessionRequest is the payload for session:request messages.
+// SessionRequest is the payload for session:request messages (legacy).
 type SessionRequest struct {
 	SessionID string `json:"session_id"`
 	UserID    string `json:"user_id"`
 	UserName  string `json:"user_name"`
 }
 
-// SessionAcceptPayload is sent when the host accepts a session request.
+// SessionAcceptPayload is sent when the host accepts a session request (legacy).
 type SessionAcceptPayload struct {
 	SessionID     string `json:"session_id"`
 	StreamPorts   []int  `json:"stream_ports"`
 	TunnelAddress string `json:"tunnel_address"`
 }
 
+// IceCandidateMessage is the payload for ice:candidate messages.
+type IceCandidateMessage struct {
+	SessionID string        `json:"session_id"`
+	Candidate p2p.IceCandidate `json:"candidate"`
+}
+
+// IceCompleteMessage is the payload for ice:complete messages.
+type IceCompleteMessage struct {
+	SessionID string `json:"session_id"`
+}
+
 // ConnectSignaling establishes and maintains a persistent WebSocket connection to the
 // control plane for real-time signaling. It automatically reconnects on failures
 // using exponential backoff.
 //
+// The sigHandler is used to process P2P session signaling messages (session:offer,
+// ice:candidate, ice:complete).
+//
 // This function blocks until ctx is cancelled.
-func ConnectSignaling(ctx context.Context, url string, hostID string, token string) error {
+func ConnectSignaling(ctx context.Context, url string, hostID string, token string, sigHandler *p2p.SignalingHandler) error {
 	attempt := 0
 
 	for {
@@ -82,7 +102,7 @@ func ConnectSignaling(ctx context.Context, url string, hostID string, token stri
 
 		slog.Info("connecting to signaling WebSocket", "url", url, "attempt", attempt)
 
-		err := runSignalingSession(ctx, url, hostID, token)
+		err := runSignalingSession(ctx, url, hostID, token, sigHandler)
 		if err != nil {
 			slog.Warn("WebSocket session ended", "error", err)
 		}
@@ -109,7 +129,7 @@ func ConnectSignaling(ctx context.Context, url string, hostID string, token stri
 
 // runSignalingSession handles a single WebSocket connection lifetime.
 // It returns when the connection is lost or an unrecoverable error occurs.
-func runSignalingSession(ctx context.Context, url string, hostID string, token string) error {
+func runSignalingSession(ctx context.Context, url string, hostID string, token string, sigHandler *p2p.SignalingHandler) error {
 	// Set up the WebSocket dialer with authorization header.
 	header := http.Header{}
 	header.Set("Authorization", "Bearer "+token)
@@ -162,7 +182,7 @@ func runSignalingSession(ctx context.Context, url string, hostID string, token s
 			return fmt.Errorf("reading WebSocket message: %w", err)
 		}
 
-		if err := handleMessage(ctx, conn, message); err != nil {
+		if err := handleMessage(ctx, conn, message, sigHandler); err != nil {
 			slog.Error("error handling WebSocket message", "error", err)
 			// Non-fatal; continue reading.
 		}
@@ -171,7 +191,7 @@ func runSignalingSession(ctx context.Context, url string, hostID string, token s
 
 // handleMessage processes an incoming WebSocket message and dispatches it
 // to the appropriate handler based on type.
-func handleMessage(ctx context.Context, conn *websocket.Conn, raw []byte) error {
+func handleMessage(ctx context.Context, conn *websocket.Conn, raw []byte, sigHandler *p2p.SignalingHandler) error {
 	var msg WSMessage
 	if err := json.Unmarshal(raw, &msg); err != nil {
 		return fmt.Errorf("unmarshalling WebSocket message: %w", err)
@@ -180,11 +200,21 @@ func handleMessage(ctx context.Context, conn *websocket.Conn, raw []byte) error 
 	slog.Debug("received WebSocket message", "type", msg.Type)
 
 	switch msg.Type {
+	case MsgSessionOffer:
+		return handleSessionOffer(ctx, conn, msg.Payload, sigHandler)
+
 	case MsgSessionRequest:
+		// Legacy handler for backward compatibility with older control plane versions.
 		return handleSessionRequest(ctx, conn, msg.Payload)
 
+	case MsgIceCandidate:
+		return handleIceCandidateMessage(msg.Payload, sigHandler)
+
+	case MsgIceComplete:
+		return handleIceCompleteMessage(msg.Payload, sigHandler)
+
 	case MsgSessionEnd:
-		return handleSessionEnd(msg.Payload)
+		return handleSessionEnd(msg.Payload, sigHandler)
 
 	case MsgConfigUpdate:
 		return handleConfigUpdate(msg.Payload)
@@ -195,23 +225,74 @@ func handleMessage(ctx context.Context, conn *websocket.Conn, raw []byte) error 
 	}
 }
 
-// handleSessionRequest processes an incoming session request from a client.
-// The default policy is to accept all sessions; in production this would check
-// against a configurable policy engine.
+// handleSessionOffer processes a session:offer message by delegating to the
+// P2P SignalingHandler. This is the primary entry point for new streaming sessions.
+func handleSessionOffer(ctx context.Context, conn *websocket.Conn, payload json.RawMessage, sigHandler *p2p.SignalingHandler) error {
+	var offer p2p.SessionOffer
+	if err := json.Unmarshal(payload, &offer); err != nil {
+		return fmt.Errorf("unmarshalling session offer: %w", err)
+	}
+
+	slog.Info("received session offer",
+		"sessionId", offer.SessionID,
+		"userId", offer.UserID,
+		"codecs", offer.Codecs,
+	)
+
+	if err := sigHandler.HandleSessionOffer(conn, offer); err != nil {
+		slog.Error("failed to handle session offer", "error", err)
+		return err
+	}
+
+	return nil
+}
+
+// handleIceCandidateMessage processes an ice:candidate message from the remote client.
+func handleIceCandidateMessage(payload json.RawMessage, sigHandler *p2p.SignalingHandler) error {
+	var msg IceCandidateMessage
+	if err := json.Unmarshal(payload, &msg); err != nil {
+		return fmt.Errorf("unmarshalling ice:candidate message: %w", err)
+	}
+
+	slog.Debug("received remote ICE candidate",
+		"sessionId", msg.SessionID,
+		"type", msg.Candidate.Type,
+		"ip", msg.Candidate.IP,
+		"port", msg.Candidate.Port,
+	)
+
+	return sigHandler.HandleIceCandidate(msg.SessionID, msg.Candidate)
+}
+
+// handleIceCompleteMessage processes an ice:complete message indicating the remote
+// side has finished gathering ICE candidates.
+func handleIceCompleteMessage(payload json.RawMessage, sigHandler *p2p.SignalingHandler) error {
+	var msg IceCompleteMessage
+	if err := json.Unmarshal(payload, &msg); err != nil {
+		return fmt.Errorf("unmarshalling ice:complete message: %w", err)
+	}
+
+	slog.Info("received ICE complete signal", "sessionId", msg.SessionID)
+
+	return sigHandler.HandleIceComplete(msg.SessionID)
+}
+
+// handleSessionRequest processes an incoming session request from a client (legacy).
+// This is kept for backward compatibility with control planes that haven't migrated
+// to the session:offer flow.
 func handleSessionRequest(ctx context.Context, conn *websocket.Conn, payload json.RawMessage) error {
 	var req SessionRequest
 	if err := json.Unmarshal(payload, &req); err != nil {
 		return fmt.Errorf("unmarshalling session request: %w", err)
 	}
 
-	slog.Info("received session request",
+	slog.Info("received legacy session request",
 		"sessionId", req.SessionID,
 		"userId", req.UserID,
 		"userName", req.UserName,
 	)
 
-	// Default policy: accept the session.
-	// In production, this would consult a policy engine or prompt the local user.
+	// Legacy policy: accept the session with default ports.
 	acceptPayload := SessionAcceptPayload{
 		SessionID:   req.SessionID,
 		StreamPorts: []int{8443, 8444, 8445},
@@ -221,7 +302,7 @@ func handleSessionRequest(ctx context.Context, conn *websocket.Conn, payload jso
 }
 
 // handleSessionEnd processes a session termination notification.
-func handleSessionEnd(payload json.RawMessage) error {
+func handleSessionEnd(payload json.RawMessage, sigHandler *p2p.SignalingHandler) error {
 	var data struct {
 		SessionID string `json:"session_id"`
 		Reason    string `json:"reason"`
@@ -234,6 +315,13 @@ func handleSessionEnd(payload json.RawMessage) error {
 		"sessionId", data.SessionID,
 		"reason", data.Reason,
 	)
+
+	// Notify the signaling handler to clean up the session.
+	if sigHandler != nil {
+		if err := sigHandler.HandleSessionEnd(data.SessionID); err != nil {
+			slog.Warn("error handling session end in signaling handler", "error", err)
+		}
+	}
 
 	return nil
 }

@@ -13,15 +13,15 @@ import (
 
 	"github.com/nvidia/nvstreamer/host-agent/internal/config"
 	"github.com/nvidia/nvstreamer/host-agent/internal/heartbeat"
-	"github.com/nvidia/nvstreamer/host-agent/internal/nvstreamer"
+	"github.com/nvidia/nvstreamer/host-agent/internal/p2p"
 	"github.com/nvidia/nvstreamer/host-agent/internal/registration"
-	"github.com/nvidia/nvstreamer/host-agent/internal/tunnel"
+	"github.com/nvidia/nvstreamer/host-agent/internal/streamer"
 )
 
 const (
-	serviceName        = "NVRemoteStreamAgent"
-	serviceDisplayName = "NVIDIA Remote Stream Agent"
-	serviceDescription = "Host agent for NVIDIA Remote Stream - manages WireGuard tunnels and nvstreamer lifecycle"
+	serviceName        = "CrazyStreamAgent"
+	serviceDisplayName = "CrazyStream Host Agent"
+	serviceDescription = "Host agent for CrazyStream - manages crazystream-host process and P2P session signaling"
 )
 
 // agent implements kardianos/service.Interface for Windows service lifecycle.
@@ -56,10 +56,10 @@ func (a *agent) run() {
 
 func main() {
 	var (
-		configPath = flag.String("config", "", "path to config file (default: C:\\ProgramData\\NVRemoteStream\\agent.yaml)")
-		doInstall  = flag.Bool("install", false, "install as Windows service")
+		configPath  = flag.String("config", "", "path to config file (default: C:\\ProgramData\\NVRemoteStream\\agent.yaml)")
+		doInstall   = flag.Bool("install", false, "install as Windows service")
 		doUninstall = flag.Bool("uninstall", false, "uninstall Windows service")
-		doRun      = flag.Bool("run", false, "run in foreground (non-service mode)")
+		doRun       = flag.Bool("run", false, "run in foreground (non-service mode)")
 	)
 	flag.Parse()
 
@@ -133,24 +133,32 @@ func main() {
 	}
 }
 
-// runAgent performs the core agent lifecycle: register, set up tunnel, monitor, heartbeat.
+// runAgent performs the core agent lifecycle:
+//  1. Detect crazystream-host binary
+//  2. Register with control plane (or load existing registration)
+//  3. Start crazystream-host process in standby mode
+//  4. Start heartbeat + WebSocket signaling with P2P session handling
+//  5. On shutdown: stop streamer, clean up
 func runAgent(ctx context.Context, cfg *config.Config) error {
-	slog.Info("starting NVIDIA Remote Stream agent",
+	slog.Info("starting CrazyStream host agent",
 		"controlPlane", cfg.ControlPlaneURL,
 		"hostname", cfg.HostName,
 	)
 
-	// Step 1: Detect nvstreamer.
-	info, err := nvstreamer.Detect(cfg.NvstreamerPath)
+	// Step 1: Create streamer manager and detect the crazystream-host binary.
+	streamerMgr := streamer.NewManager(cfg)
+
+	info, err := streamerMgr.Detect()
 	if err != nil {
-		slog.Warn("nvstreamer not detected, will retry after registration", "error", err)
-	} else {
-		slog.Info("nvstreamer detected",
-			"path", info.Path,
-			"version", info.Version,
-			"running", info.Running,
-		)
+		return fmt.Errorf("crazystream-host not found: %w (ensure crazystream-host.exe is installed at %s)", err, cfg.StreamerPath)
 	}
+
+	slog.Info("crazystream-host detected",
+		"path", info.Path,
+		"version", info.Version,
+		"codecs", info.Codecs,
+		"gpu", info.GPUName,
+	)
 
 	// Step 2: Register with control plane (or load existing registration).
 	reg, err := registration.LoadRegistration(cfg.DataDir)
@@ -160,45 +168,38 @@ func runAgent(ctx context.Context, cfg *config.Config) error {
 		if err != nil {
 			return fmt.Errorf("registration failed: %w", err)
 		}
-		slog.Info("registration successful",
-			"hostId", reg.HostID,
-			"tunnelIp", reg.TunnelIP,
-		)
+		slog.Info("registration successful", "hostId", reg.HostID)
 	} else {
-		slog.Info("loaded existing registration",
-			"hostId", reg.HostID,
-			"tunnelIp", reg.TunnelIP,
-		)
+		slog.Info("loaded existing registration", "hostId", reg.HostID)
 	}
 
-	// Step 3: Set up WireGuard tunnel.
-	privKey, pubKey, err := tunnel.LoadOrGenerateKeyPair(cfg.DataDir)
-	if err != nil {
-		return fmt.Errorf("failed to load/generate WireGuard keypair: %w", err)
+	// Step 3: Start crazystream-host in standby mode.
+	// Unlike the old flow, there is no WireGuard tunnel to set up.
+	// P2P connectivity is established per-session via ICE signaling.
+	if err := streamerMgr.Start(); err != nil {
+		slog.Error("failed to start crazystream-host", "error", err)
+		// Non-fatal: continue and report status via heartbeat.
+		// The control plane will see "degraded-no-streamer" status.
+	} else {
+		slog.Info("crazystream-host started in standby mode")
 	}
-	slog.Info("WireGuard keypair ready", "publicKey", pubKey)
 
-	if err := tunnel.SetupTunnel(reg, privKey); err != nil {
-		return fmt.Errorf("failed to set up WireGuard tunnel: %w", err)
-	}
+	// Ensure streamer is stopped on shutdown.
 	defer func() {
-		if err := tunnel.TeardownTunnel(); err != nil {
-			slog.Error("failed to tear down tunnel", "error", err)
+		slog.Info("shutting down crazystream-host")
+		if err := streamerMgr.Stop(); err != nil {
+			slog.Error("failed to stop crazystream-host", "error", err)
 		}
 	}()
-	slog.Info("WireGuard tunnel established")
 
-	// Step 4: Ensure nvstreamer is running.
-	if info == nil || !info.Running {
-		if err := nvstreamer.EnsureRunning(cfg.NvstreamerPath); err != nil {
-			slog.Error("failed to start nvstreamer", "error", err)
-			// Non-fatal: we continue and report status via heartbeat.
-		}
-	}
+	// Step 4: Create the P2P signaling handler.
+	sigHandler := p2p.NewSignalingHandler(streamerMgr, cfg.StunServers)
 
 	// Step 5: Start heartbeat and WebSocket signaling.
-	slog.Info("starting heartbeat loop")
-	heartbeat.StartHeartbeat(ctx, cfg, reg.HostID)
+	// The heartbeat loop reports streamer status and capabilities.
+	// The WebSocket connection handles session:offer, ice:candidate, and ice:complete messages.
+	slog.Info("starting heartbeat and signaling loops")
+	heartbeat.StartHeartbeat(ctx, cfg, reg.HostID, streamerMgr, sigHandler)
 
 	slog.Info("agent shut down cleanly")
 	return nil

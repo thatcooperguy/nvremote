@@ -1,24 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { colors, layout, typography } from '../styles/theme';
 
-declare global {
-  interface Window {
-    nvrs: {
-      window: {
-        minimize: () => void;
-        maximize: () => void;
-        close: () => void;
-        isMaximized: () => Promise<boolean>;
-        onMaximizedChange: (callback: (isMaximized: boolean) => void) => () => void;
-      };
-      auth: Record<string, unknown>;
-      geronimo: Record<string, unknown>;
-      wireguard: Record<string, unknown>;
-      connection: Record<string, unknown>;
-      tray: Record<string, unknown>;
-    };
-  }
-}
+// Window type augmentation is in types/nvrs.d.ts
 
 export function TitleBar(): React.ReactElement {
   const [isMaximized, setIsMaximized] = useState(false);
@@ -39,8 +22,8 @@ export function TitleBar(): React.ReactElement {
       <div style={styles.accentLine} />
       <div style={styles.content} className="drag-region">
         <div style={styles.logoSection} className="no-drag">
-          <NvidiaLogo />
-          <span style={styles.title}>NVIDIA Remote Stream</span>
+          <CrazyStreamLogo />
+          <span style={styles.title}>CrazyStream</span>
         </div>
 
         <div style={styles.windowControls} className="no-drag">
@@ -86,7 +69,7 @@ export function TitleBar(): React.ReactElement {
   );
 }
 
-function NvidiaLogo(): React.ReactElement {
+function CrazyStreamLogo(): React.ReactElement {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
       <rect width="24" height="24" rx="4" fill={colors.accent.default} />
@@ -99,7 +82,7 @@ function NvidiaLogo(): React.ReactElement {
         fontWeight="bold"
         fontFamily={typography.fontFamily}
       >
-        N
+        CS
       </text>
     </svg>
   );

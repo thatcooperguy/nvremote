@@ -94,8 +94,8 @@ model Host {
   status            HostStatus @default(OFFLINE)
   publicIp          String?
   privateIp         String?
-  tunnelIp          String?
-  gatewayId         String?
+  tunnelIp          String?  // DEPRECATED: Was used for WireGuard tunnel addressing. No longer assigned for P2P sessions. Keep nullable; will be removed in a future migration.
+  gatewayId         String?  // DEPRECATED: Was used to associate with a WireGuard gateway. No longer used with P2P ICE signaling. Keep nullable; will be removed in a future migration.
   gpuInfo           String?
   nvstreamerVersion String?
   nvstreamerPorts   Json?
@@ -123,7 +123,7 @@ model Session {
   startedAt DateTime      @default(now())
   endedAt   DateTime?
   clientIp  String?
-  metadata  Json?
+  metadata  Json?     // Now stores P2P connection details: codec, codecs[], gamingMode, maxBitrate, targetFps, resolution, connectionType (p2p|relay), p2pEstablishedAt. Previously stored WireGuard clientPublicKey/clientTunnelIp/hostTunnelIp.
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   host Host @relation(fields: [hostId], references: [id], onDelete: Cascade)

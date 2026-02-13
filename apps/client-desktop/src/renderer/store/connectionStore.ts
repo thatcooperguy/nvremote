@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { apiClient } from '../services/api';
 import { useSessionStore } from './sessionStore';
+import { useAuthStore } from './authStore';
 import type { Host } from '../components/HostCard';
 
 // ---------------------------------------------------------------------------
@@ -9,42 +9,31 @@ import type { Host } from '../components/HostCard';
 
 export type ConnectionStatus =
   | 'disconnected'
+  | 'requesting'
+  | 'signaling'
+  | 'ice-gathering'
   | 'connecting'
-  | 'connected'
-  | 'reconnecting'
+  | 'streaming'
   | 'error';
 
-export type TunnelStatus =
-  | 'disconnected'
-  | 'connecting'
-  | 'connected'
-  | 'error';
+export type GamingMode = 'competitive' | 'balanced' | 'cinematic';
 
 // ---------------------------------------------------------------------------
-// API response shapes
+// Stream stats type (mirroring the native viewer stats)
 // ---------------------------------------------------------------------------
 
-interface WireguardConnectInfo {
-  clientAddress: string;   // 10.101.x.y/32
-  serverPublicKey: string; // base64
-  serverEndpoint: string;  // ip:port
-  allowedIps: string;      // 10.100.0.0/16
-  dns: string;             // 10.100.0.1
-}
-
-interface GeronimoConnectInfo {
-  hostIp: string;
-  ports: {
-    video: number;
-    audio: number;
-    input: number;
-  };
-}
-
-interface ConnectionApiResponse {
-  sessionId: string;
-  wireguard: WireguardConnectInfo;
-  geronimo: GeronimoConnectInfo;
+export interface StreamStats {
+  bitrate: number;
+  fps: number;
+  packetLoss: number;
+  jitter: number;
+  rtt: number;
+  codec: string;
+  resolution: { width: number; height: number };
+  connectionType: string;
+  decodeTimeMs: number;
+  renderTimeMs: number;
+  gamingMode: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -53,85 +42,129 @@ interface ConnectionApiResponse {
 
 interface ConnectionState {
   status: ConnectionStatus;
-  tunnelStatus: TunnelStatus;
-  error: string | null;
-  connectedHost: Host | null;
   sessionId: string | null;
-
-  /** Client's WG private key for the active session (kept in memory only). */
-  _clientPrivateKey: string | null;
+  hostId: string | null;
+  connectedHost: Host | null;
+  codec: string | null;
+  gamingMode: GamingMode;
+  connectionType: string | null; // 'p2p' or 'relay'
+  error: string | null;
+  stats: StreamStats | null;
 
   connect: (host: Host) => Promise<void>;
   disconnect: () => Promise<void>;
   setStatus: (status: ConnectionStatus) => void;
-  setTunnelStatus: (tunnelStatus: TunnelStatus) => void;
   setError: (error: string | null) => void;
+  setGamingMode: (mode: GamingMode) => void;
+  updateStats: (stats: StreamStats) => void;
 }
 
 // ---------------------------------------------------------------------------
-// Health-check interval handle
+// Stats polling interval
 // ---------------------------------------------------------------------------
 
-let healthCheckInterval: ReturnType<typeof setInterval> | null = null;
-let geronimoExitCleanup: (() => void) | null = null;
+let statsInterval: ReturnType<typeof setInterval> | null = null;
 
-function startHealthCheck(): void {
-  stopHealthCheck();
+function startStatsPolling(): void {
+  stopStatsPolling();
 
-  healthCheckInterval = setInterval(async () => {
+  statsInterval = setInterval(async () => {
     const { status } = useConnectionStore.getState();
-    if (status !== 'connected') {
-      stopHealthCheck();
+    if (status !== 'streaming') {
+      stopStatsPolling();
       return;
     }
 
     try {
-      const result = await window.nvrs.wireguard.status();
-      if (result.success && result.status && !result.status.connected) {
-        console.warn('[HealthCheck] WireGuard tunnel is no longer connected.');
-        useConnectionStore.getState().setTunnelStatus('error');
+      const result = await window.nvrs.viewer.stats();
+      if (result.success && result.stats) {
+        useConnectionStore.getState().updateStats(result.stats);
       }
     } catch {
-      // Non-fatal; the next tick will try again.
+      // Non-fatal; next tick will retry.
     }
-  }, 10_000);
+  }, 500);
 }
 
-function stopHealthCheck(): void {
-  if (healthCheckInterval !== null) {
-    clearInterval(healthCheckInterval);
-    healthCheckInterval = null;
+function stopStatsPolling(): void {
+  if (statsInterval !== null) {
+    clearInterval(statsInterval);
+    statsInterval = null;
   }
 }
 
 // ---------------------------------------------------------------------------
-// Geronimo exit listener
+// P2P event listener cleanup handles
 // ---------------------------------------------------------------------------
 
-function attachGeronimoExitListener(): void {
-  detachGeronimoExitListener();
+let sessionEndedCleanup: (() => void) | null = null;
+let sessionErrorCleanup: (() => void) | null = null;
+let p2pDisconnectedCleanup: (() => void) | null = null;
 
-  geronimoExitCleanup = window.nvrs.geronimo.onExit((exitCode) => {
+function attachP2PListeners(): void {
+  detachP2PListeners();
+
+  sessionEndedCleanup = window.nvrs.p2p.onSessionEnded((data) => {
     const { status } = useConnectionStore.getState();
-    if (status === 'connected' || status === 'connecting') {
-      console.warn(
-        `[ConnectionStore] Geronimo exited unexpectedly with code ${exitCode}. ` +
-          'Triggering auto-disconnect.'
-      );
-      // Fire-and-forget disconnect. The UI will observe the state change.
+    if (status === 'streaming' || status === 'connecting') {
+      console.warn(`[ConnectionStore] Session ended: ${data.reason}. Triggering auto-disconnect.`);
       useConnectionStore.getState().disconnect().catch((err) => {
-        console.error('[ConnectionStore] Auto-disconnect after Geronimo exit failed:', err);
+        console.error('[ConnectionStore] Auto-disconnect after session end failed:', err);
       });
+    }
+  });
+
+  sessionErrorCleanup = window.nvrs.p2p.onSessionError((data) => {
+    console.error('[ConnectionStore] Session error:', data.error);
+    useConnectionStore.getState().setError(data.error);
+    useConnectionStore.getState().disconnect().catch(() => {});
+  });
+
+  p2pDisconnectedCleanup = window.nvrs.p2p.onDisconnected(() => {
+    const { status } = useConnectionStore.getState();
+    if (status === 'streaming') {
+      console.warn('[ConnectionStore] P2P disconnected unexpectedly. Triggering auto-disconnect.');
+      useConnectionStore.getState().disconnect().catch(() => {});
     }
   });
 }
 
-function detachGeronimoExitListener(): void {
-  if (geronimoExitCleanup) {
-    geronimoExitCleanup();
-    geronimoExitCleanup = null;
+function detachP2PListeners(): void {
+  if (sessionEndedCleanup) {
+    sessionEndedCleanup();
+    sessionEndedCleanup = null;
+  }
+  if (sessionErrorCleanup) {
+    sessionErrorCleanup();
+    sessionErrorCleanup = null;
+  }
+  if (p2pDisconnectedCleanup) {
+    p2pDisconnectedCleanup();
+    p2pDisconnectedCleanup = null;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Default gaming mode presets
+// ---------------------------------------------------------------------------
+
+const GAMING_MODE_PRESETS: Record<GamingMode, { codecs: string[]; maxBitrate: number; targetFps: number }> = {
+  competitive: {
+    codecs: ['H.264', 'H.265', 'AV1'],
+    maxBitrate: 30_000,
+    targetFps: 240,
+  },
+  balanced: {
+    codecs: ['H.265', 'AV1', 'H.264'],
+    maxBitrate: 50_000,
+    targetFps: 120,
+  },
+  cinematic: {
+    codecs: ['AV1', 'H.265', 'H.264'],
+    maxBitrate: 80_000,
+    targetFps: 60,
+  },
+};
 
 // ---------------------------------------------------------------------------
 // Store implementation
@@ -139,89 +172,129 @@ function detachGeronimoExitListener(): void {
 
 export const useConnectionStore = create<ConnectionState>((set, get) => ({
   status: 'disconnected',
-  tunnelStatus: 'disconnected',
-  error: null,
-  connectedHost: null,
   sessionId: null,
-  _clientPrivateKey: null,
+  hostId: null,
+  connectedHost: null,
+  codec: null,
+  gamingMode: 'balanced',
+  connectionType: null,
+  error: null,
+  stats: null,
 
   // -----------------------------------------------------------------------
   // connect
+  //
+  // New flow:
+  //   1. Connect to signaling WebSocket
+  //   2. Emit session:request via signaling WS
+  //   3. Receive session:accepted (host accepted, get capabilities)
+  //   4. Gather local ICE candidates via native addon
+  //   5. Exchange candidates through signaling
+  //   6. Establish P2P connection via native addon
+  //   7. Start the native viewer
   // -----------------------------------------------------------------------
   connect: async (host: Host) => {
-    const { status } = get();
-    if (status === 'connecting' || status === 'connected') {
+    const { status, gamingMode } = get();
+    if (status === 'requesting' || status === 'signaling' || status === 'ice-gathering' || status === 'connecting' || status === 'streaming') {
       throw new Error('Already connected or connecting. Disconnect first.');
     }
 
     set({
-      status: 'connecting',
-      tunnelStatus: 'disconnected',
+      status: 'requesting',
       error: null,
       connectedHost: host,
+      hostId: host.id,
       sessionId: null,
-      _clientPrivateKey: null,
+      codec: null,
+      connectionType: null,
+      stats: null,
     });
 
     try {
-      // 1. Generate a WireGuard keypair locally.
-      //    The private key never leaves the client.
-      const keyResult = await window.nvrs.wireguard.generateKeyPair();
-      if (!keyResult.success || !keyResult.publicKey || !keyResult.privateKey) {
-        throw new Error(keyResult.error || 'Failed to generate WireGuard keypair.');
+      // 1. Connect to the signaling server
+      const accessToken = useAuthStore.getState().tokens?.accessToken;
+      if (!accessToken) {
+        throw new Error('No access token available. Please log in first.');
       }
 
-      set({ _clientPrivateKey: keyResult.privateKey });
+      const signalingResult = await window.nvrs.p2p.connectSignaling(accessToken);
+      if (!signalingResult.success) {
+        throw new Error(signalingResult.error || 'Failed to connect to signaling server.');
+      }
 
-      // 2. Call the server with our public key.
-      //    Server allocates a tunnel IP, returns its own WG public key & endpoint.
-      const response = await apiClient.post<ConnectionApiResponse>(
-        `/hosts/${host.id}/connect`,
-        { clientPublicKey: keyResult.publicKey }
-      );
+      set({ status: 'signaling' });
 
-      const { wireguard, geronimo, sessionId } = response.data;
-
-      set({ sessionId });
-
-      // 3. Establish WireGuard tunnel using our LOCAL private key combined
-      //    with the server-provided configuration.
-      set({ tunnelStatus: 'connecting' });
-
-      const wgResult = await window.nvrs.wireguard.connect({
-        privateKey: keyResult.privateKey, // local -- never sent to server
-        address: wireguard.clientAddress,
-        dns: wireguard.dns,
-        peerPublicKey: wireguard.serverPublicKey,
-        peerEndpoint: wireguard.serverEndpoint,
-        allowedIps: wireguard.allowedIps,
+      // 2. Request a session with the host
+      const preset = GAMING_MODE_PRESETS[gamingMode];
+      const sessionResult = await window.nvrs.p2p.requestSession(host.id, {
+        codecs: preset.codecs,
+        gamingMode,
+        maxBitrate: preset.maxBitrate,
+        targetFps: preset.targetFps,
       });
 
-      if (!wgResult.success) {
-        throw new Error(wgResult.error || 'Failed to establish WireGuard tunnel.');
+      if (!sessionResult.success || !sessionResult.session) {
+        throw new Error(sessionResult.error || 'Session request was rejected.');
       }
 
-      set({ tunnelStatus: 'connected' });
-
-      // 4. Launch Geronimo streaming client.
-      const geroResult = await window.nvrs.geronimo.launch({
-        hostIp: geronimo.hostIp,
-        ports: geronimo.ports,
+      const sessionInfo = sessionResult.session;
+      set({
+        sessionId: sessionInfo.sessionId,
+        codec: sessionInfo.codec,
+        status: 'ice-gathering',
       });
 
-      if (!geroResult.success) {
-        // Tunnel is up but Geronimo failed. Roll back the tunnel.
-        await window.nvrs.wireguard.disconnect().catch(() => {});
-        set({ tunnelStatus: 'disconnected' });
-        throw new Error(geroResult.error || 'Failed to launch streaming client.');
+      // 3. Wait for session:accepted event and gather ICE candidates
+      //    The main process handles the session:accepted event and makes the
+      //    STUN servers available. For now, we use default STUN servers and
+      //    let the P2P module handle the exchange.
+      const defaultStunServers = [
+        'stun:stun.l.google.com:19302',
+        'stun:stun1.l.google.com:19302',
+      ];
+
+      const gatherResult = await window.nvrs.p2p.gatherCandidates(defaultStunServers);
+      if (!gatherResult.success) {
+        throw new Error(gatherResult.error || 'ICE candidate gathering failed.');
       }
 
-      // 5. Fully connected. Wire up health monitoring.
-      set({ status: 'connected' });
+      set({ status: 'connecting' });
+
+      // 4. Establish the P2P connection
+      //    The DTLS fingerprint would come from the session:accepted event in production.
+      //    For now, use a placeholder that the native addon can validate.
+      const connectResult = await window.nvrs.p2p.connect({
+        dtlsFingerprint: 'placeholder-dtls-fingerprint',
+      });
+
+      if (!connectResult.success) {
+        throw new Error(connectResult.error || 'P2P connection failed.');
+      }
+
+      set({ connectionType: connectResult.connectionType || 'p2p' });
+
+      // 5. Start the native viewer
+      const viewerResult = await window.nvrs.viewer.start({
+        sessionId: sessionInfo.sessionId,
+        codec: sessionInfo.codec,
+        windowHandle: Buffer.alloc(0), // Will be provided by native integration
+        gamingMode,
+        maxBitrate: preset.maxBitrate,
+        targetFps: preset.targetFps,
+      });
+
+      if (!viewerResult.success) {
+        // P2P is up but viewer failed. Roll back.
+        await window.nvrs.p2p.disconnect().catch(() => {});
+        throw new Error(viewerResult.error || 'Failed to start streaming viewer.');
+      }
+
+      // 6. Fully streaming. Wire up monitoring.
+      set({ status: 'streaming' });
       window.nvrs.tray.updateDisconnect(true);
 
-      attachGeronimoExitListener();
-      startHealthCheck();
+      attachP2PListeners();
+      startStatsPolling();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Connection failed';
       console.error('[ConnectionStore] Connection error:', message);
@@ -229,18 +302,18 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
       set({
         status: 'error',
         error: message,
-        tunnelStatus: 'disconnected',
-        _clientPrivateKey: null,
+        connectionType: null,
       });
 
-      // Best-effort cleanup of any partial state.
-      try { await window.nvrs.geronimo.kill(); } catch { /* ignore */ }
-      try { await window.nvrs.wireguard.disconnect(); } catch { /* ignore */ }
+      // Best-effort cleanup of any partial state
+      try { await window.nvrs.viewer.stop(); } catch { /* ignore */ }
+      try { await window.nvrs.p2p.disconnect(); } catch { /* ignore */ }
+      try { await window.nvrs.p2p.disconnectSignaling(); } catch { /* ignore */ }
 
-      stopHealthCheck();
-      detachGeronimoExitListener();
+      stopStatsPolling();
+      detachP2PListeners();
 
-      // Notify the server that the session failed.
+      // Notify the server that the session failed
       try {
         await useSessionStore.getState().endSession();
       } catch {
@@ -255,41 +328,49 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
   // disconnect
   // -----------------------------------------------------------------------
   disconnect: async () => {
-    // Immediately update UI state.
+    // Immediately update UI state
     set({
       status: 'disconnected',
-      tunnelStatus: 'disconnected',
-      _clientPrivateKey: null,
+      connectionType: null,
+      stats: null,
     });
 
-    stopHealthCheck();
-    detachGeronimoExitListener();
+    stopStatsPolling();
+    detachP2PListeners();
 
     const errors: string[] = [];
 
-    // 1. Kill Geronimo
+    // 1. Stop the viewer
     try {
-      const result = await window.nvrs.geronimo.kill();
+      const result = await window.nvrs.viewer.stop();
       if (!result.success) {
-        errors.push(result.error || 'Failed to stop streaming client');
+        errors.push(result.error || 'Failed to stop viewer');
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
-      errors.push(`Geronimo kill failed: ${msg}`);
+      errors.push(`Viewer stop failed: ${msg}`);
     }
 
-    // 2. Disconnect WireGuard
+    // 2. Disconnect P2P
     try {
-      const result = await window.nvrs.wireguard.disconnect();
+      const result = await window.nvrs.p2p.disconnect();
       if (!result.success) {
-        errors.push(result.error || 'Failed to disconnect tunnel');
+        errors.push(result.error || 'Failed to disconnect P2P');
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
-      errors.push(`WireGuard disconnect failed: ${msg}`);
+      errors.push(`P2P disconnect failed: ${msg}`);
     }
 
-    // 3. End the server-side session.
+    // 3. Disconnect signaling
+    try {
+      await window.nvrs.p2p.disconnectSignaling();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      errors.push(`Signaling disconnect failed: ${msg}`);
+    }
+
+    // 4. End the server-side session
     try {
       await useSessionStore.getState().endSession();
     } catch (err) {
@@ -299,7 +380,9 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
 
     set({
       connectedHost: null,
+      hostId: null,
       sessionId: null,
+      codec: null,
       error: errors.length > 0 ? errors.join('; ') : null,
     });
 
@@ -311,6 +394,17 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
   },
 
   setStatus: (status: ConnectionStatus) => set({ status }),
-  setTunnelStatus: (tunnelStatus: TunnelStatus) => set({ tunnelStatus }),
   setError: (error: string | null) => set({ error }),
+  setGamingMode: (mode: GamingMode) => {
+    set({ gamingMode: mode });
+
+    // If currently streaming, apply the mode change to the viewer
+    const { status } = get();
+    if (status === 'streaming') {
+      window.nvrs.viewer.setGamingMode(mode).catch((err) => {
+        console.error('[ConnectionStore] Failed to apply gaming mode:', err);
+      });
+    }
+  },
+  updateStats: (stats: StreamStats) => set({ stats }),
 }));

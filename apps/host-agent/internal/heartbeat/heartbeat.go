@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/nvidia/nvstreamer/host-agent/internal/config"
-	"github.com/nvidia/nvstreamer/host-agent/internal/nvstreamer"
-	"github.com/nvidia/nvstreamer/host-agent/internal/tunnel"
+	"github.com/nvidia/nvstreamer/host-agent/internal/p2p"
+	"github.com/nvidia/nvstreamer/host-agent/internal/streamer"
 )
 
 const (
@@ -28,43 +28,48 @@ const (
 
 // HeartbeatPayload is the JSON body sent to the control plane on each heartbeat.
 type HeartbeatPayload struct {
-	HostID           string `json:"host_id"`
-	Status           string `json:"status"`
-	NvstreamerRunning bool   `json:"nvstreamer_running"`
-	NvstreamerVersion string `json:"nvstreamer_version"`
-	TunnelUp         bool   `json:"tunnel_up"`
-	GPUModel         string `json:"gpu_model,omitempty"`
-	Timestamp        string `json:"timestamp"`
+	HostID          string   `json:"host_id"`
+	Status          string   `json:"status"`
+	StreamerRunning bool     `json:"streamer_running"`
+	StreamerVersion string   `json:"streamer_version"`
+	Codecs          []string `json:"codecs,omitempty"`
+	GPUModel        string   `json:"gpu_model,omitempty"`
+	MaxResolution   string   `json:"max_resolution,omitempty"`
+	MaxFPS          int      `json:"max_fps,omitempty"`
+	NVENCVersion    string   `json:"nvenc_version,omitempty"`
+	Timestamp       string   `json:"timestamp"`
 }
 
 // StartHeartbeat runs two concurrent loops until ctx is cancelled:
 //  1. A periodic HTTP heartbeat POST every 30 seconds.
 //  2. A persistent WebSocket connection for real-time signaling.
 //
+// The streamerMgr is used to report streamer status and capabilities.
+// The sigHandler is used to handle P2P session signaling messages.
 // This function blocks until ctx is done.
-func StartHeartbeat(ctx context.Context, cfg *config.Config, hostID string) {
+func StartHeartbeat(ctx context.Context, cfg *config.Config, hostID string, streamerMgr *streamer.Manager, sigHandler *p2p.SignalingHandler) {
 	// Start the WebSocket signaling connection in the background.
 	go func() {
 		wsURL := buildWebSocketURL(cfg.ControlPlaneURL, hostID)
 		token := cfg.BootstrapToken
-		if err := ConnectSignaling(ctx, wsURL, hostID, token); err != nil {
+		if err := ConnectSignaling(ctx, wsURL, hostID, token, sigHandler); err != nil {
 			slog.Error("WebSocket signaling connection ended", "error", err)
 		}
 	}()
 
 	// Run the periodic heartbeat loop in the foreground.
-	runHeartbeatLoop(ctx, cfg, hostID)
+	runHeartbeatLoop(ctx, cfg, hostID, streamerMgr)
 }
 
 // runHeartbeatLoop sends heartbeat POSTs at a fixed interval until the context is cancelled.
-func runHeartbeatLoop(ctx context.Context, cfg *config.Config, hostID string) {
+func runHeartbeatLoop(ctx context.Context, cfg *config.Config, hostID string, streamerMgr *streamer.Manager) {
 	ticker := time.NewTicker(heartbeatInterval)
 	defer ticker.Stop()
 
 	client := &http.Client{Timeout: httpTimeout}
 
 	// Send an initial heartbeat immediately.
-	sendHeartbeat(ctx, client, cfg, hostID)
+	sendHeartbeat(ctx, client, cfg, hostID, streamerMgr)
 
 	for {
 		select {
@@ -72,33 +77,59 @@ func runHeartbeatLoop(ctx context.Context, cfg *config.Config, hostID string) {
 			slog.Info("heartbeat loop stopped", "reason", ctx.Err())
 			return
 		case <-ticker.C:
-			sendHeartbeat(ctx, client, cfg, hostID)
+			sendHeartbeat(ctx, client, cfg, hostID, streamerMgr)
 		}
 	}
 }
 
 // sendHeartbeat collects the current host status and sends it to the control plane.
-func sendHeartbeat(ctx context.Context, client *http.Client, cfg *config.Config, hostID string) {
-	// Collect nvstreamer status.
-	running, _, version := nvstreamer.GetStatus(cfg.NvstreamerPath)
+func sendHeartbeat(ctx context.Context, client *http.Client, cfg *config.Config, hostID string, streamerMgr *streamer.Manager) {
+	running := streamerMgr.IsRunning()
 
-	// Check tunnel status.
-	tunnelUp, err := tunnel.GetTunnelStatus()
-	if err != nil {
-		slog.Warn("could not check tunnel status", "error", err)
+	var version string
+	var codecs []string
+	var gpuModel string
+	var maxResolution string
+	var maxFPS int
+	var nvencVersion string
+
+	// Query capabilities from the streamer if it is running.
+	if running {
+		caps, err := streamerMgr.GetCapabilities()
+		if err != nil {
+			slog.Debug("could not get streamer capabilities for heartbeat", "error", err)
+		} else {
+			codecs = caps.Codecs
+			gpuModel = caps.GPUName
+			maxResolution = caps.MaxResolution
+			maxFPS = caps.MaxFPS
+			nvencVersion = caps.NVENCVersion
+		}
+
+		// Get version from a detect call if not available from capabilities.
+		info, err := streamerMgr.Detect()
+		if err == nil {
+			version = info.Version
+			if gpuModel == "" {
+				gpuModel = info.GPUName
+			}
+			if len(codecs) == 0 {
+				codecs = info.Codecs
+			}
+		}
 	}
 
-	// Detect GPU model (cached after first call in a real implementation).
-	gpuModel, _ := nvstreamer.GetGPUInfo()
-
 	payload := HeartbeatPayload{
-		HostID:            hostID,
-		Status:            determineStatus(running, tunnelUp),
-		NvstreamerRunning: running,
-		NvstreamerVersion: version,
-		TunnelUp:          tunnelUp,
-		GPUModel:          gpuModel,
-		Timestamp:         time.Now().UTC().Format(time.RFC3339),
+		HostID:          hostID,
+		Status:          determineStatus(running),
+		StreamerRunning: running,
+		StreamerVersion: version,
+		Codecs:          codecs,
+		GPUModel:        gpuModel,
+		MaxResolution:   maxResolution,
+		MaxFPS:          maxFPS,
+		NVENCVersion:    nvencVersion,
+		Timestamp:       time.Now().UTC().Format(time.RFC3339),
 	}
 
 	body, err := json.Marshal(payload)
@@ -134,23 +165,18 @@ func sendHeartbeat(ctx context.Context, client *http.Client, cfg *config.Config,
 
 	slog.Debug("heartbeat sent successfully",
 		"status", payload.Status,
-		"nvstreamer", running,
-		"tunnel", tunnelUp,
+		"streamer", running,
 	)
 }
 
 // determineStatus returns a human-readable status string based on component health.
-func determineStatus(nvstreamerRunning, tunnelUp bool) string {
-	switch {
-	case nvstreamerRunning && tunnelUp:
+// With the P2P model, the tunnel is no longer a separate component. Status is based
+// on whether the streamer is running and registered.
+func determineStatus(streamerRunning bool) string {
+	if streamerRunning {
 		return "ready"
-	case !nvstreamerRunning && tunnelUp:
-		return "degraded-no-streamer"
-	case nvstreamerRunning && !tunnelUp:
-		return "degraded-no-tunnel"
-	default:
-		return "offline"
 	}
+	return "degraded-no-streamer"
 }
 
 // buildWebSocketURL converts an HTTP(S) control plane URL to the corresponding

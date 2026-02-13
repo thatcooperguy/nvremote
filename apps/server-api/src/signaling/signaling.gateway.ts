@@ -13,6 +13,11 @@ import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../common/prisma.service';
 import { HostStatus, SessionStatus } from '@prisma/client';
+import { TurnServerConfig } from '../common/gateway.service';
+
+// ---------------------------------------------------------------------------
+// Socket & payload types
+// ---------------------------------------------------------------------------
 
 interface AuthenticatedSocket extends Socket {
   data: {
@@ -44,15 +49,46 @@ interface SessionEndPayload {
   sessionId: string;
 }
 
-/** Data forwarded to the host agent when a new streaming session is created. */
+// -- ICE / P2P payloads -----------------------------------------------------
+
+interface IceCandidatePayload {
+  sessionId: string;
+  candidate: {
+    candidate: string;
+    sdpMid?: string | null;
+    sdpMLineIndex?: number | null;
+    usernameFragment?: string | null;
+  };
+}
+
+interface IceCompletePayload {
+  sessionId: string;
+}
+
+interface P2PEstablishedPayload {
+  sessionId: string;
+  connectionType?: 'p2p' | 'relay';
+}
+
+// ---------------------------------------------------------------------------
+// Data forwarded to the host agent when a new streaming session is created.
+// ---------------------------------------------------------------------------
+
+/** P2P session offer sent to the host agent. */
 export interface SessionOfferData {
   sessionId: string;
-  clientPublicKey: string;
-  clientTunnelIp: string;
-  hostTunnelIp: string;
-  gatewayEndpoint: string;
-  gatewayPublicKey: string;
+  stunServers: string[];
+  turnServers?: TurnServerConfig[];
+  codecs: string[];
+  gamingMode: boolean;
+  maxBitrate: number | null;
+  targetFps: number | null;
+  resolution: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Gateway
+// ---------------------------------------------------------------------------
 
 @WebSocketGateway({
   cors: { origin: '*' },
@@ -339,6 +375,172 @@ export class SignalingGatewayWs
   }
 
   // -----------------------------------------------------------------------
+  // ICE signaling relay
+  // -----------------------------------------------------------------------
+
+  /**
+   * Relay an ICE candidate from one peer to the other.
+   *
+   * Either the client (identified by userId) or the host (identified by
+   * hostId on the socket) can send candidates.  The server looks up the
+   * session, verifies the sender is a participant, and forwards the
+   * candidate to the other side.
+   */
+  @SubscribeMessage('ice:candidate')
+  async handleIceCandidate(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: IceCandidatePayload,
+  ): Promise<{ success: boolean }> {
+    const session = await this.prisma.session.findUnique({
+      where: { id: payload.sessionId },
+    });
+
+    if (!session) {
+      throw new WsException('Session not found');
+    }
+
+    const isUser = client.data.userId === session.userId;
+    const isHost = client.data.hostId === session.hostId;
+
+    if (!isUser && !isHost) {
+      throw new WsException('Not a participant of this session');
+    }
+
+    // Relay to the other peer
+    if (isUser) {
+      // Client sent candidate -> forward to host
+      this.server.to(`host:${session.hostId}`).emit('ice:candidate', {
+        sessionId: session.id,
+        candidate: payload.candidate,
+        from: 'client',
+      });
+    } else {
+      // Host sent candidate -> forward to client
+      this.server.to(`user:${session.userId}`).emit('ice:candidate', {
+        sessionId: session.id,
+        candidate: payload.candidate,
+        from: 'host',
+      });
+    }
+
+    return { success: true };
+  }
+
+  /**
+   * Relay an ICE gathering complete signal from one peer to the other.
+   *
+   * Sent when a peer has finished gathering all its ICE candidates
+   * (equivalent to a null candidate in the WebRTC API).
+   */
+  @SubscribeMessage('ice:complete')
+  async handleIceComplete(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: IceCompletePayload,
+  ): Promise<{ success: boolean }> {
+    const session = await this.prisma.session.findUnique({
+      where: { id: payload.sessionId },
+    });
+
+    if (!session) {
+      throw new WsException('Session not found');
+    }
+
+    const isUser = client.data.userId === session.userId;
+    const isHost = client.data.hostId === session.hostId;
+
+    if (!isUser && !isHost) {
+      throw new WsException('Not a participant of this session');
+    }
+
+    const from = isUser ? 'client' : 'host';
+
+    if (isUser) {
+      this.server.to(`host:${session.hostId}`).emit('ice:complete', {
+        sessionId: session.id,
+        from,
+      });
+    } else {
+      this.server.to(`user:${session.userId}`).emit('ice:complete', {
+        sessionId: session.id,
+        from,
+      });
+    }
+
+    this.logger.debug(
+      `ICE gathering complete for session ${session.id} (from: ${from})`,
+    );
+
+    return { success: true };
+  }
+
+  /**
+   * Handle notification that a P2P connection has been established.
+   *
+   * Either side can emit this once the ICE connection state reaches
+   * "connected".  The server updates the session metadata with the
+   * connection type and notifies the other peer.
+   */
+  @SubscribeMessage('session:p2p-established')
+  async handleP2PEstablished(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: P2PEstablishedPayload,
+  ): Promise<{ success: boolean }> {
+    const session = await this.prisma.session.findUnique({
+      where: { id: payload.sessionId },
+    });
+
+    if (!session) {
+      throw new WsException('Session not found');
+    }
+
+    const isUser = client.data.userId === session.userId;
+    const isHost = client.data.hostId === session.hostId;
+
+    if (!isUser && !isHost) {
+      throw new WsException('Not a participant of this session');
+    }
+
+    // Update session metadata with the connection type
+    const existingMeta = (session.metadata as Record<string, unknown>) ?? {};
+    const connectionType = payload.connectionType ?? 'p2p';
+
+    await this.prisma.session.update({
+      where: { id: session.id },
+      data: {
+        metadata: {
+          ...existingMeta,
+          connectionType,
+          p2pEstablishedAt: new Date().toISOString(),
+        },
+      },
+    });
+
+    const from = isUser ? 'client' : 'host';
+
+    // Notify the other peer
+    if (isUser) {
+      this.server.to(`host:${session.hostId}`).emit('session:p2p-established', {
+        sessionId: session.id,
+        connectionType,
+        from,
+      });
+    } else {
+      this.server.to(`user:${session.userId}`).emit('session:p2p-established', {
+        sessionId: session.id,
+        connectionType,
+        from,
+      });
+    }
+
+    this.logger.log(
+      `P2P connection established for session ${session.id} ` +
+        `(type: ${connectionType}, reported by: ${from})`,
+    );
+
+    return { success: true };
+  }
+
+  // -----------------------------------------------------------------------
   // Public methods (called by SessionsService)
   // -----------------------------------------------------------------------
 
@@ -346,7 +548,8 @@ export class SignalingGatewayWs
    * Notify the host agent that a new streaming session has been created.
    *
    * Emits a `session:offer` event to the host's socket room containing the
-   * WireGuard and tunnel details the host needs to prepare for the client.
+   * STUN/TURN configuration and client streaming preferences so the host
+   * can begin ICE negotiation.
    *
    * @returns `true` if the host had an active socket and was notified.
    */

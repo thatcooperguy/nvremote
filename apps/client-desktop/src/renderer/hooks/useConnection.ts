@@ -2,7 +2,8 @@ import { useEffect, useCallback, useRef } from 'react';
 import {
   useConnectionStore,
   type ConnectionStatus,
-  type TunnelStatus,
+  type GamingMode,
+  type StreamStats,
 } from '../store/connectionStore';
 import { useHostStore } from '../store/hostStore';
 import { toast } from '../components/Toast';
@@ -10,46 +11,51 @@ import type { Host } from '../components/HostCard';
 
 interface UseConnectionReturn {
   status: ConnectionStatus;
-  tunnelStatus: TunnelStatus;
+  gamingMode: GamingMode;
+  connectionType: string | null;
   error: string | null;
   connectedHost: Host | null;
-  isConnected: boolean;
+  stats: StreamStats | null;
+  isStreaming: boolean;
   isConnecting: boolean;
   connect: (host: Host) => Promise<void>;
   disconnect: () => Promise<void>;
   reconnect: () => Promise<void>;
+  setGamingMode: (mode: GamingMode) => void;
 }
 
 /**
- * Hook that manages the full connection lifecycle:
- * WireGuard keypair generation -> API connect -> WireGuard tunnel -> Geronimo launch.
+ * Hook that manages the full P2P connection lifecycle:
+ * Connect signaling -> request session -> gather ICE -> P2P connect -> start viewer.
  *
  * Also listens for force-disconnect events from the main process and handles
  * deep-link connect requests.
  */
 export function useConnection(): UseConnectionReturn {
   const status = useConnectionStore((s) => s.status);
-  const tunnelStatus = useConnectionStore((s) => s.tunnelStatus);
+  const gamingMode = useConnectionStore((s) => s.gamingMode);
+  const connectionType = useConnectionStore((s) => s.connectionType);
   const error = useConnectionStore((s) => s.error);
   const connectedHost = useConnectionStore((s) => s.connectedHost);
+  const stats = useConnectionStore((s) => s.stats);
   const storeConnect = useConnectionStore((s) => s.connect);
   const storeDisconnect = useConnectionStore((s) => s.disconnect);
+  const setGamingMode = useConnectionStore((s) => s.setGamingMode);
 
   const lastHostRef = useRef<Host | null>(null);
 
   // Listen for disconnection events pushed from the main process (e.g. tray
-  // disconnect, or tunnel teardown initiated by the system).
+  // disconnect, or P2P teardown initiated by the system).
   useEffect(() => {
     const cleanup = window.nvrs.connection.onDisconnected(() => {
       useConnectionStore.getState().setStatus('disconnected');
-      useConnectionStore.getState().setTunnelStatus('disconnected');
       toast.info('Disconnected from host');
     });
 
     return cleanup;
   }, []);
 
-  // Listen for deep-link connect events (nvrs://connect?host=<id>).
+  // Listen for deep-link connect events (crazystream://connect?host=<id>).
   useEffect(() => {
     const cleanup = window.nvrs.deepLink.onConnect(async (data) => {
       const hosts = useHostStore.getState().hosts;
@@ -81,14 +87,12 @@ export function useConnection(): UseConnectionReturn {
     return cleanup;
   }, [storeConnect]);
 
-  // The connection store already runs a 10s health-check interval and a
-  // Geronimo exit listener internally, so we do not duplicate those here.
-  // We only surface a UI toast when the tunnel status degrades.
+  // Surface a UI toast when there is a connection error
   useEffect(() => {
-    if (tunnelStatus === 'error' && status === 'connected') {
-      toast.warning('WireGuard tunnel appears to be down');
+    if (status === 'error' && error) {
+      toast.error(error);
     }
-  }, [tunnelStatus, status]);
+  }, [status, error]);
 
   const connect = useCallback(
     async (host: Host) => {
@@ -122,15 +126,20 @@ export function useConnection(): UseConnectionReturn {
     }
   }, [connectedHost, storeConnect, storeDisconnect]);
 
+  const isConnecting = status === 'requesting' || status === 'signaling' || status === 'ice-gathering' || status === 'connecting';
+
   return {
     status,
-    tunnelStatus,
+    gamingMode,
+    connectionType,
     error,
     connectedHost,
-    isConnected: status === 'connected',
-    isConnecting: status === 'connecting',
+    stats,
+    isStreaming: status === 'streaming',
+    isConnecting,
     connect,
     disconnect,
     reconnect,
+    setGamingMode,
   };
 }

@@ -5,14 +5,17 @@
   "description": "NVIDIA Remote Stream - Secure, low-latency remote streaming platform",
   "workspaces": [
     "apps/client-desktop",
-    "apps/server-api"
+    "apps/server-api",
+    "apps/website"
   ],
   "scripts": {
     "dev:api": "npm run start:dev --workspace=apps/server-api",
     "dev:client": "npm run dev --workspace=apps/client-desktop",
+    "dev:website": "npm run dev --workspace=apps/website",
     "build:api": "npm run build --workspace=apps/server-api",
     "build:client": "npm run build --workspace=apps/client-desktop",
-    "build:all": "npm run build:api && npm run build:client",
+    "build:website": "npm run build --workspace=apps/website",
+    "build:all": "npm run build:api && npm run build:client && npm run build:website",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write \"apps/**/*.{ts,tsx,json,css}\"",
     "test": "npm run test --workspaces --if-present",

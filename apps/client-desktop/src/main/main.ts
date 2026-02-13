@@ -9,19 +9,21 @@ import {
   session,
 } from 'electron';
 import path from 'path';
+import { loadViewer, getViewer, isViewerAvailable } from './viewer';
+import type { ViewerConfig, IceCandidate } from './viewer';
 import {
-  launchGeronimo,
-  killGeronimo,
-  getGeronimoStatus,
-  geronimoEvents,
-} from './geronimo';
-import {
-  generateKeyPair,
-  connectTunnel,
-  disconnectTunnel,
-  getTunnelStatus,
-} from './wireguard';
-import type { WgConfig } from './wireguard';
+  initP2P,
+  connectSignaling,
+  disconnectSignaling,
+  requestSession,
+  gatherAndSendCandidates,
+  establishP2PConnection,
+  disconnectP2P,
+  getCurrentSessionId,
+  isSignalingConnected,
+  onSessionEnded,
+} from './p2p';
+import type { SessionOptions } from './p2p';
 
 // ---------------------------------------------------------------------------
 // Encrypted token storage using electron-store
@@ -34,8 +36,8 @@ async function getStore(): Promise<import('electron-store').default> {
   // electron-store v8+ is ESM-only. Dynamic import is required.
   const ElectronStore = (await import('electron-store')).default;
   store = new ElectronStore({
-    name: 'nvrs-secure',
-    encryptionKey: 'nvrs-client-v1', // obfuscation; not a security boundary
+    name: 'crazystream-secure',
+    encryptionKey: 'crazystream-client-v1', // obfuscation; not a security boundary
     schema: {
       'auth.access': { type: 'string', default: '' },
       'auth.refresh': { type: 'string', default: '' },
@@ -52,7 +54,7 @@ let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let isQuitting = false;
 
-const PROTOCOL = 'nvrs';
+const PROTOCOL = 'crazystream';
 const isDev = !app.isPackaged;
 
 // ---------------------------------------------------------------------------
@@ -73,7 +75,7 @@ function getRendererUrl(): string {
 function getApiBaseUrl(): string {
   return isDev
     ? 'http://localhost:3000/api'
-    : 'https://api.remotestream.nvidia.com';
+    : 'https://api.crazystream.gg';
 }
 
 // ---------------------------------------------------------------------------
@@ -125,6 +127,16 @@ function createWindow(): void {
     mainWindow?.webContents.send('window:maximize-change', false);
   });
 
+  // Initialize P2P with the main window for event forwarding
+  initP2P(mainWindow);
+
+  // Register P2P session-ended callback to forward to renderer
+  onSessionEnded(() => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('connection:disconnected');
+    }
+  });
+
   if (isDev) {
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   }
@@ -141,7 +153,7 @@ function createTray(): void {
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: 'Show NVIDIA Remote Stream',
+      label: 'Show CrazyStream',
       click: () => {
         mainWindow?.show();
         mainWindow?.focus();
@@ -166,7 +178,7 @@ function createTray(): void {
     },
   ]);
 
-  tray.setToolTip('NVIDIA Remote Stream');
+  tray.setToolTip('CrazyStream');
   tray.setContextMenu(contextMenu);
 
   tray.on('double-click', () => {
@@ -297,80 +309,146 @@ function setupIpcHandlers(): void {
     }
   });
 
-  // ── WireGuard ────────────────────────────────────────────────────────
-  ipcMain.handle('wireguard:generate-keypair', () => {
+  // ── Viewer ──────────────────────────────────────────────────────────
+  ipcMain.handle('viewer:start', (_event, config: ViewerConfig) => {
     try {
-      const keyPair = generateKeyPair();
-      return {
-        success: true,
-        publicKey: keyPair.publicKey,
-        privateKey: keyPair.privateKey,
-      };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Key generation failed';
-      return { success: false, error: message };
-    }
-  });
-
-  ipcMain.handle('wireguard:connect', async (_event, config: WgConfig) => {
-    try {
-      await connectTunnel(config);
+      const viewer = loadViewer();
+      viewer.start(config);
       return { success: true };
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to connect tunnel';
+      const message = err instanceof Error ? err.message : 'Failed to start viewer';
       return { success: false, error: message };
     }
   });
 
-  ipcMain.handle('wireguard:disconnect', async () => {
+  ipcMain.handle('viewer:stop', () => {
     try {
-      await disconnectTunnel();
+      const viewer = getViewer();
+      viewer.stop();
       return { success: true };
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to disconnect tunnel';
+      const message = err instanceof Error ? err.message : 'Failed to stop viewer';
       return { success: false, error: message };
     }
   });
 
-  ipcMain.handle('wireguard:status', async () => {
+  ipcMain.handle('viewer:stats', () => {
     try {
-      const status = await getTunnelStatus();
-      return { success: true, status };
+      const viewer = getViewer();
+      const stats = viewer.getStats();
+      return { success: true, stats };
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to get tunnel status';
+      const message = err instanceof Error ? err.message : 'Failed to get stats';
       return { success: false, error: message };
     }
   });
 
-  // ── Geronimo ─────────────────────────────────────────────────────────
+  ipcMain.handle('viewer:set-quality', (_event, preset: string) => {
+    try {
+      const viewer = getViewer();
+      viewer.setQuality(preset);
+      return { success: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to set quality';
+      return { success: false, error: message };
+    }
+  });
+
+  ipcMain.handle('viewer:set-gaming-mode', (_event, mode: string) => {
+    try {
+      const viewer = getViewer();
+      viewer.setGamingMode(mode);
+      return { success: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to set gaming mode';
+      return { success: false, error: message };
+    }
+  });
+
+  ipcMain.handle('viewer:available', () => {
+    return { available: isViewerAvailable() };
+  });
+
+  // ── P2P / Signaling ────────────────────────────────────────────────
+  ipcMain.handle('p2p:connect-signaling', async (_event, accessToken: string) => {
+    try {
+      await connectSignaling(accessToken);
+      return { success: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to connect signaling';
+      return { success: false, error: message };
+    }
+  });
+
+  ipcMain.handle('p2p:disconnect-signaling', () => {
+    try {
+      disconnectSignaling();
+      return { success: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to disconnect signaling';
+      return { success: false, error: message };
+    }
+  });
+
   ipcMain.handle(
-    'geronimo:launch',
-    async (
-      _event,
-      config: { hostIp: string; ports: { video: number; audio: number; input: number } }
-    ) => {
+    'p2p:request-session',
+    async (_event, hostId: string, options: SessionOptions) => {
       try {
-        const result = await launchGeronimo(config);
-        return { success: true, pid: result.pid };
+        const info = await requestSession(hostId, options);
+        return { success: true, session: info };
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to launch Geronimo';
+        const message = err instanceof Error ? err.message : 'Session request failed';
         return { success: false, error: message };
       }
     }
   );
 
-  ipcMain.handle('geronimo:kill', async () => {
+  ipcMain.handle('p2p:gather-candidates', async (_event, stunServers: string[]) => {
     try {
-      await killGeronimo();
-      return { success: true };
+      const candidates = await gatherAndSendCandidates(stunServers);
+      return { success: true, candidates };
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to kill Geronimo';
+      const message = err instanceof Error ? err.message : 'ICE gathering failed';
       return { success: false, error: message };
     }
   });
 
-  ipcMain.handle('geronimo:status', () => {
-    return getGeronimoStatus();
+  ipcMain.handle('p2p:add-remote-candidate', (_event, candidate: IceCandidate) => {
+    try {
+      const viewer = getViewer();
+      viewer.addRemoteCandidate(candidate);
+      return { success: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to add remote candidate';
+      return { success: false, error: message };
+    }
+  });
+
+  ipcMain.handle('p2p:connect', async (_event, config: { dtlsFingerprint: string }) => {
+    try {
+      const result = await establishP2PConnection(config.dtlsFingerprint);
+      return { success: true, connectionType: result.connectionType };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'P2P connection failed';
+      return { success: false, error: message };
+    }
+  });
+
+  ipcMain.handle('p2p:disconnect', () => {
+    try {
+      disconnectP2P();
+      return { success: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'P2P disconnect failed';
+      return { success: false, error: message };
+    }
+  });
+
+  ipcMain.handle('p2p:status', () => {
+    return {
+      signalingConnected: isSignalingConnected(),
+      sessionId: getCurrentSessionId(),
+    };
   });
 
   // ── Tray updates ─────────────────────────────────────────────────────
@@ -385,25 +463,14 @@ function setupIpcHandlers(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Forward Geronimo exit events to the renderer
-// ---------------------------------------------------------------------------
-
-function setupGeronimoEventForwarding(): void {
-  geronimoEvents.on('exit', (exitCode: number | null) => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('geronimo:exit', exitCode ?? -1);
-    }
-  });
-}
-
-// ---------------------------------------------------------------------------
 // Disconnect helper (used by tray and quit)
 // ---------------------------------------------------------------------------
 
 async function handleDisconnect(): Promise<void> {
   try {
-    await killGeronimo();
-    await disconnectTunnel();
+    getViewer().stop();
+    disconnectP2P();
+    disconnectSignaling();
     mainWindow?.webContents.send('connection:disconnected');
   } catch (err) {
     console.error('Error during disconnect:', err);
@@ -438,7 +505,6 @@ if (!gotLock) {
     createWindow();
     createTray();
     setupIpcHandlers();
-    setupGeronimoEventForwarding();
   });
 }
 
@@ -463,8 +529,9 @@ app.on('activate', () => {
 app.on('before-quit', async () => {
   isQuitting = true;
   try {
-    await killGeronimo();
-    await disconnectTunnel();
+    getViewer().stop();
+    disconnectP2P();
+    disconnectSignaling();
   } catch {
     // Swallow errors during shutdown.
   }

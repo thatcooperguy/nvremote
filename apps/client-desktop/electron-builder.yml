@@ -1,0 +1,50 @@
+appId: com.nvidia.remotestream
+productName: NVIDIA Remote Stream
+copyright: Copyright (c) NVIDIA Corporation
+
+directories:
+  buildResources: build
+  output: release
+
+files:
+  - dist-electron/**/*
+  - dist/**/*
+  - "!node_modules/**/*"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.ico
+  artifactName: "${productName}-${version}-Setup.${ext}"
+  publisherName: NVIDIA Corporation
+  verifyUpdateCodeSignature: true
+
+nsis:
+  oneClick: false
+  perMachine: true
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  installerHeaderIcon: build/icon.ico
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: NVIDIA Remote Stream
+  include: build/installer.nsh
+
+protocols:
+  name: NVIDIA Remote Stream Protocol
+  schemes:
+    - nvrs
+
+extraResources:
+  - from: resources/
+    to: resources/
+    filter:
+      - "**/*"
+
+publish:
+  provider: generic
+  url: https://update.nvidia.com/remote-stream/

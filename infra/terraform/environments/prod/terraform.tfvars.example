@@ -1,0 +1,19 @@
+# NVIDIA Remote Stream (NVRS) - Prod Environment Variables
+# Copy this file to terraform.tfvars and fill in production values.
+# NEVER commit terraform.tfvars with real values to version control.
+
+region = "us-east-1"
+
+# Production instance sizes
+gateway_instance_type = "t3.small"
+db_instance_class     = "db.t3.small"
+
+# SSH access -- restrict to your office/VPN CIDR only
+ssh_key_name      = "nvrs-prod-key"
+allowed_ssh_cidrs = ["203.0.113.0/28"]
+
+# WireGuard port
+wireguard_port = 51820
+
+# Custom domain for API (recommended for production)
+domain_name = "stream.example.com"

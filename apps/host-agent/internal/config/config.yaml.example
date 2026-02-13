@@ -1,0 +1,30 @@
+# NVIDIA Remote Stream Host Agent Configuration
+# Default location: C:\ProgramData\NVRemoteStream\agent.yaml
+
+# Control plane URL (required)
+control_plane_url: "https://nvrs.example.com"
+
+# Bootstrap token for initial host registration (required)
+# Obtain this from the NVRemoteStream admin console.
+bootstrap_token: "your-bootstrap-token-here"
+
+# Human-readable name for this host (defaults to system hostname)
+# host_name: "my-gaming-pc"
+
+# Path to the nvstreamer executable
+nvstreamer_path: "C:\\Program Files\\NVIDIA\\nvstreamer\\nvstreamer.exe"
+
+# Ports used by nvstreamer for streaming
+nvstreamer_ports:
+  video: 8443
+  audio: 8444
+  input: 8445
+
+# WireGuard gateway endpoint (typically assigned during registration)
+# gateway_endpoint: "gateway.nvrs.example.com:51820"
+
+# Directory for agent state files (keys, registration data, logs)
+data_dir: "C:\\ProgramData\\NVRemoteStream"
+
+# Log level: debug, info, warn, error
+log_level: "info"

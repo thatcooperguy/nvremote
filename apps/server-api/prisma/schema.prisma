@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum OrgRole {
+  ADMIN
+  MEMBER
+  GUEST
+}
+
+enum HostStatus {
+  ONLINE
+  OFFLINE
+  MAINTENANCE
+}
+
+enum SessionStatus {
+  PENDING
+  ACTIVE
+  ENDED
+  FAILED
+}
+
+// ---------------------------------------------------------------------------
+// User
+// ---------------------------------------------------------------------------
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  name      String?
+  avatarUrl String?
+  googleId  String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orgMemberships OrgMember[]
+  sessions       Session[]
+  auditLogs      AuditLog[]
+  refreshTokens  RefreshToken[]
+
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// Organisation
+// ---------------------------------------------------------------------------
+
+model Org {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+
+  members   OrgMember[]
+  hosts     Host[]
+  auditLogs AuditLog[]
+
+  @@map("orgs")
+}
+
+model OrgMember {
+  id       String   @id @default(uuid()) @db.Uuid
+  userId   String   @db.Uuid
+  orgId    String   @db.Uuid
+  role     OrgRole  @default(MEMBER)
+  joinedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org  Org  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId])
+  @@map("org_members")
+}
+
+// ---------------------------------------------------------------------------
+// Host (streaming machine registered by the nvstreamer agent)
+// ---------------------------------------------------------------------------
+
+model Host {
+  id                String     @id @default(uuid()) @db.Uuid
+  orgId             String     @db.Uuid
+  name              String
+  hostname          String
+  status            HostStatus @default(OFFLINE)
+  publicIp          String?
+  privateIp         String?
+  tunnelIp          String?
+  gatewayId         String?
+  gpuInfo           String?
+  nvstreamerVersion String?
+  nvstreamerPorts   Json?
+  bootstrapToken    String?
+  lastSeenAt        DateTime?
+  createdAt         DateTime   @default(now())
+
+  org      Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  sessions Session[]
+
+  @@index([orgId])
+  @@index([bootstrapToken])
+  @@map("hosts")
+}
+
+// ---------------------------------------------------------------------------
+// Session (a streaming connection between a user and a host)
+// ---------------------------------------------------------------------------
+
+model Session {
+  id        String        @id @default(uuid()) @db.Uuid
+  userId    String        @db.Uuid
+  hostId    String        @db.Uuid
+  status    SessionStatus @default(PENDING)
+  startedAt DateTime      @default(now())
+  endedAt   DateTime?
+  clientIp  String?
+  metadata  Json?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  host Host @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([hostId])
+  @@map("sessions")
+}
+
+// ---------------------------------------------------------------------------
+// Audit Log
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  orgId        String   @db.Uuid
+  userId       String?  @db.Uuid
+  action       String
+  resourceType String
+  resourceId   String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  org  Org   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([orgId, createdAt])
+  @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Refresh Token
+// ---------------------------------------------------------------------------
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@map("refresh_tokens")
+}

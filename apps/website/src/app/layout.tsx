@@ -1,7 +1,14 @@
 import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import './globals.css';
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
   title: 'CrazyStream — Ultra Low Latency Game Streaming',
@@ -54,11 +61,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="min-h-screen bg-cs-dark text-white antialiased">
-        <Navbar />
-        <main className="pt-16">{children}</main>
-        <Footer />
+    <html lang="en" className={`dark ${inter.variable}`}>
+      <body className="min-h-screen bg-cs-dark text-white antialiased font-sans relative">
+        {/* Noise texture overlay */}
+        <div className="fixed inset-0 bg-noise pointer-events-none z-[1] opacity-50" />
+
+        {/* Main content */}
+        <div className="relative z-[2]">
+          <Navbar />
+          <main className="pt-16">{children}</main>
+          <Footer />
+        </div>
       </body>
     </html>
   );

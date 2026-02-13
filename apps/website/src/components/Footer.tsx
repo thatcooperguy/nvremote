@@ -18,15 +18,21 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-white/[0.06] bg-cs-dark">
-      <div className="section-padding py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          {/* Brand */}
-          <div className="md:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
+    <footer className="relative border-t border-white/[0.04] bg-cs-dark overflow-hidden">
+      {/* Grid pattern background */}
+      <div className="absolute inset-0 grid-overlay opacity-30 pointer-events-none" />
+
+      {/* Gradient divider line at top */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cs-green/30 to-transparent" />
+
+      <div className="relative section-padding pt-16 pb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+          {/* Brand column */}
+          <div className="lg:col-span-1">
+            <div className="flex items-center gap-2.5 mb-5">
               <svg
-                width="24"
-                height="24"
+                width="28"
+                height="28"
                 viewBox="0 0 32 32"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
@@ -62,20 +68,33 @@ export default function Footer() {
                 Crazy<span className="text-cs-green">Stream</span>
               </span>
             </div>
-            <p className="text-sm text-cs-gray-300 max-w-sm leading-relaxed">
+            <p className="text-sm text-cs-gray-300 max-w-xs leading-relaxed mb-6">
               Ultra low latency game streaming powered by NVIDIA hardware
               acceleration. Stream your games anywhere with near-zero lag.
             </p>
+
+            {/* Social / GitHub link */}
+            <a
+              href="https://github.com/crazystream/crazystream"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-sm text-cs-gray-200 hover:text-white hover:border-cs-green/30 hover:bg-cs-green/5 transition-all duration-200"
+            >
+              <GitHubIcon />
+              <span>Star on GitHub</span>
+            </a>
           </div>
 
-          {/* Links */}
+          {/* Product links */}
           <div>
-            <h4 className="text-sm font-semibold text-white mb-4">Product</h4>
-            <ul className="space-y-2">
+            <h4 className="text-xs font-semibold text-white uppercase tracking-widest mb-5">
+              Product
+            </h4>
+            <ul className="space-y-3">
               <li>
                 <Link
                   href="/downloads/"
-                  className="text-sm text-cs-gray-300 hover:text-cs-green transition-colors"
+                  className="text-sm text-cs-gray-300 hover:text-cs-green transition-colors duration-200"
                 >
                   Downloads
                 </Link>
@@ -83,7 +102,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/docs/"
-                  className="text-sm text-cs-gray-300 hover:text-cs-green transition-colors"
+                  className="text-sm text-cs-gray-300 hover:text-cs-green transition-colors duration-200"
                 >
                   Documentation
                 </Link>
@@ -93,25 +112,35 @@ export default function Footer() {
                   href="https://github.com/crazystream/crazystream/releases"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-cs-gray-300 hover:text-cs-green transition-colors"
+                  className="text-sm text-cs-gray-300 hover:text-cs-green transition-colors duration-200"
                 >
                   Changelog
                 </a>
               </li>
+              <li>
+                <Link
+                  href="/docs/#gaming-modes"
+                  className="text-sm text-cs-gray-300 hover:text-cs-green transition-colors duration-200"
+                >
+                  Gaming Modes
+                </Link>
+              </li>
             </ul>
           </div>
 
+          {/* Community links */}
           <div>
-            <h4 className="text-sm font-semibold text-white mb-4">Community</h4>
-            <ul className="space-y-2">
+            <h4 className="text-xs font-semibold text-white uppercase tracking-widest mb-5">
+              Community
+            </h4>
+            <ul className="space-y-3">
               <li>
                 <a
                   href="https://github.com/crazystream/crazystream"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-cs-gray-300 hover:text-cs-green transition-colors flex items-center gap-2"
+                  className="text-sm text-cs-gray-300 hover:text-cs-green transition-colors duration-200"
                 >
-                  <GitHubIcon />
                   GitHub
                 </a>
               </li>
@@ -120,7 +149,7 @@ export default function Footer() {
                   href="https://github.com/crazystream/crazystream/issues"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-cs-gray-300 hover:text-cs-green transition-colors"
+                  className="text-sm text-cs-gray-300 hover:text-cs-green transition-colors duration-200"
                 >
                   Report a Bug
                 </a>
@@ -130,27 +159,75 @@ export default function Footer() {
                   href="https://github.com/crazystream/crazystream/discussions"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-cs-gray-300 hover:text-cs-green transition-colors"
+                  className="text-sm text-cs-gray-300 hover:text-cs-green transition-colors duration-200"
                 >
                   Discussions
                 </a>
+              </li>
+              <li>
+                <a
+                  href="https://github.com/crazystream/crazystream/blob/main/CONTRIBUTING.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-cs-gray-300 hover:text-cs-green transition-colors duration-200"
+                >
+                  Contributing
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Tech / Resources */}
+          <div>
+            <h4 className="text-xs font-semibold text-white uppercase tracking-widest mb-5">
+              Technology
+            </h4>
+            <ul className="space-y-3">
+              <li>
+                <span className="text-sm text-cs-gray-400">NVENC Hardware Encoding</span>
+              </li>
+              <li>
+                <span className="text-sm text-cs-gray-400">NvFBC Screen Capture</span>
+              </li>
+              <li>
+                <span className="text-sm text-cs-gray-400">P2P Direct Connection</span>
+              </li>
+              <li>
+                <span className="text-sm text-cs-gray-400">DTLS 1.3 Encryption</span>
+              </li>
+              <li>
+                <span className="text-sm text-cs-gray-400">Opus Audio Codec</span>
               </li>
             </ul>
           </div>
         </div>
 
+        {/* Animated green accent line */}
+        <div className="section-divider mb-8" />
+
         {/* Bottom bar */}
-        <div className="pt-8 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-cs-gray-400">
-            &copy; {currentYear} CrazyStream. All rights reserved.
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-cs-gray-500">
+            &copy; {currentYear} CrazyStream. Open source under MIT License.
           </p>
-          <p className="text-xs text-cs-gray-400">
-            Built with{' '}
-            <span className="text-red-400" aria-label="love">
-              &#9829;
-            </span>{' '}
-            by the CrazyStream team
-          </p>
+          <div className="flex items-center gap-6">
+            <a
+              href="https://github.com/crazystream/crazystream/blob/main/LICENSE"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-cs-gray-500 hover:text-cs-gray-300 transition-colors"
+            >
+              License
+            </a>
+            <a
+              href="https://github.com/crazystream/crazystream/blob/main/SECURITY.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-cs-gray-500 hover:text-cs-gray-300 transition-colors"
+            >
+              Security
+            </a>
+          </div>
         </div>
       </div>
     </footer>

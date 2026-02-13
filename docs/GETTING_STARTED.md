@@ -1,873 +1,519 @@
 # NVIDIA Remote Stream -- Getting Started
 
-**Version:** 1.0
-**Last Updated:** 2026-02-13
+A step-by-step guide to setting up NVRS for development and deployment.
 
 ---
 
 ## Table of Contents
 
-1. [Prerequisites](#prerequisites)
-2. [Repository Structure](#repository-structure)
-3. [Local Development Setup](#local-development-setup)
-4. [Running Components Locally](#running-components-locally)
-5. [Deploying to AWS with Terraform](#deploying-to-aws-with-terraform)
-6. [First-Time Configuration](#first-time-configuration)
-7. [Troubleshooting](#troubleshooting)
+1. [What is NVRS?](#what-is-nvrs)
+2. [Architecture Overview](#architecture-overview)
+3. [Prerequisites](#prerequisites)
+4. [Local Development Setup](#local-development-setup)
+5. [Cloud Deployment (AWS)](#cloud-deployment-aws)
+6. [Host Machine Setup](#host-machine-setup)
+7. [End-to-End: Your First Stream](#end-to-end-your-first-stream)
+8. [Troubleshooting](#troubleshooting)
+
+---
+
+## What is NVRS?
+
+NVRS wraps NVIDIA's existing streaming binaries -- **nvstreamer.exe** (server) and
+**Geronimo** (client) -- with secure cloud connectivity so you can stream from any
+machine to any machine over the internet without opening firewall ports.
+
+The system uses a **WireGuard overlay network** routed through a cloud gateway.
+The client connects to the gateway, the host connects to the gateway, and traffic
+flows through the tunnel. No inbound firewall rules needed on either end.
+
+**Connection flow:**
+
+```
+1. User signs in with Google
+2. Clicks "Connect" on a host card
+3. Client generates a WireGuard keypair locally (private key never leaves the machine)
+4. Client sends only the PUBLIC key to the server
+5. Server registers the client as a WireGuard peer on the cloud gateway
+6. Server notifies the host agent via WebSocket
+7. Client establishes WireGuard tunnel to the gateway
+8. Client launches: geronimo.exe nvsc://<host-tunnel-ip>
+9. Streaming begins through the encrypted tunnel
+```
+
+---
+
+## Architecture Overview
+
+```
+apps/
+  server-api/       NestJS + Prisma + PostgreSQL    (control plane)
+  client-desktop/   Electron + React + Vite         (Windows desktop app)
+  host-agent/       Go Windows service              (runs on streaming machine)
+  gateway/          Go + wgctrl                     (cloud WireGuard relay)
+
+infra/
+  docker/           Local dev docker-compose (PostgreSQL, Redis, API, Gateway)
+  terraform/        AWS infrastructure (VPC, EC2, RDS)
+  deploy.sh         One-command cloud deployment
+  deploy-compose.yml Production docker-compose
+  nginx.conf        Reverse proxy + TLS
+
+docs/               Architecture, security, data model docs
+```
+
+**WireGuard IP ranges:**
+- Gateway: `10.100.0.1`
+- Hosts: `10.100.0.2` - `10.100.255.254` (allocated on registration)
+- Clients: `10.101.0.1` - `10.101.255.254` (allocated per session, released on disconnect)
 
 ---
 
 ## Prerequisites
 
-Ensure the following tools are installed and available on your PATH before proceeding.
+### Required
 
-### Required Software
+| Tool | Version | Install |
+|------|---------|---------|
+| **Node.js** | 20+ | https://nodejs.org/ |
+| **npm** | 10+ | Ships with Node.js |
+| **Go** | 1.22+ | https://go.dev/dl/ |
+| **Docker Desktop** | 24+ | https://docs.docker.com/get-docker/ |
+| **Git** | 2.40+ | https://git-scm.com/ |
+| **WireGuard** | Latest | https://www.wireguard.com/install/ |
 
-| Tool | Minimum Version | Purpose | Installation |
-|---|---|---|---|
-| **Node.js** | 20.x LTS | Control Plane API, Client App build | https://nodejs.org/ or `nvm install 20` |
-| **npm** | 10.x | Package management (ships with Node.js) | Included with Node.js |
-| **Go** | 1.22+ | Host Agent, Gateway sidecar | https://go.dev/dl/ |
-| **Docker** | 24.x+ | Local PostgreSQL, Redis, development containers | https://docs.docker.com/get-docker/ |
-| **Docker Compose** | 2.x+ (V2 plugin) | Multi-container local environment | Included with Docker Desktop |
-| **AWS CLI** | 2.x | Infrastructure deployment, secrets management | https://aws.amazon.com/cli/ |
-| **Terraform** | 1.7+ | Infrastructure as Code | https://developer.hashicorp.com/terraform/install |
-| **WireGuard Tools** | Latest | Tunnel management (`wg`, `wg-quick`) | https://www.wireguard.com/install/ |
-| **Git** | 2.40+ | Source control | https://git-scm.com/ |
+### For Cloud Deployment
 
-### Optional (Recommended)
+| Tool | Version | Install |
+|------|---------|---------|
+| **AWS CLI** | 2.x | https://aws.amazon.com/cli/ |
+| **Terraform** | 1.7+ | https://developer.hashicorp.com/terraform/install |
 
-| Tool | Purpose | Installation |
-|---|---|---|
-| **nvm** (Node Version Manager) | Manage multiple Node.js versions | https://github.com/nvm-sh/nvm |
-| **Prisma Studio** | Visual database browser | `npx prisma studio` (included with Prisma) |
-| **pgAdmin** or **DBeaver** | Database administration GUI | https://www.pgadmin.org/ or https://dbeaver.io/ |
-| **Postman** or **Bruno** | API testing | https://www.postman.com/ or https://www.usebruno.com/ |
+### Accounts
 
-### Accounts and Credentials
+| Account | Purpose | Setup |
+|---------|---------|-------|
+| **Google Cloud** | OAuth sign-in | Create OAuth 2.0 Client ID at https://console.cloud.google.com/apis/credentials |
+| **AWS** | Cloud deployment | https://aws.amazon.com/ |
 
-| Credential | Purpose | How to Obtain |
-|---|---|---|
-| **Google Cloud OAuth 2.0 Client ID** | OIDC authentication for users | Create at https://console.cloud.google.com/apis/credentials |
-| **AWS Account** | Infrastructure deployment | https://aws.amazon.com/ |
-| **AWS IAM credentials** | Terraform and CLI access | IAM console or `aws configure` |
-
-### Verify Installation
-
-Run the following commands to verify your environment:
+### Verify Your Environment
 
 ```bash
-node --version        # Should output v20.x.x or higher
-npm --version         # Should output 10.x.x or higher
-go version            # Should output go1.22.x or higher
-docker --version      # Should output Docker version 24.x.x or higher
-docker compose version # Should output Docker Compose version v2.x.x
-aws --version         # Should output aws-cli/2.x.x
-terraform --version   # Should output Terraform v1.7.x or higher
-wg --version          # Should output wireguard-tools vX.X.X
-git --version         # Should output git version 2.40.x or higher
-```
-
----
-
-## Repository Structure
-
-```
-nvstreamer/
-|-- docs/                        # Documentation
-|   |-- architecture/
-|   |   |-- ARCHITECTURE.md      # System architecture
-|   |   |-- DATA_MODEL.md        # Database schema
-|   |   +-- UI_WIREFLOW.md       # UI wireflow descriptions
-|   |-- security/
-|   |   +-- SECURITY.md          # Security model
-|   +-- GETTING_STARTED.md       # This file
-|
-|-- control-plane/               # Control Plane API (Node.js + Fastify)
-|   |-- src/
-|   |   |-- routes/              # API route handlers
-|   |   |-- services/            # Business logic
-|   |   |-- middleware/          # Auth, RBAC, validation, rate limiting
-|   |   |-- websocket/          # WebSocket handlers (host + client channels)
-|   |   |-- models/             # TypeScript types / Zod schemas
-|   |   +-- utils/              # Shared utilities
-|   |-- prisma/
-|   |   |-- schema.prisma       # Database schema
-|   |   +-- migrations/         # Database migrations
-|   |-- test/                   # Tests
-|   |-- package.json
-|   |-- tsconfig.json
-|   +-- Dockerfile
-|
-|-- host-agent/                  # Host Agent (Go)
-|   |-- cmd/
-|   |   +-- agent/
-|   |       +-- main.go         # Entry point
-|   |-- internal/
-|   |   |-- bootstrap/          # Bootstrap registration
-|   |   |-- heartbeat/          # Heartbeat loop
-|   |   |-- tunnel/             # WireGuard tunnel management
-|   |   |-- nvstreamer/         # nvstreamer.exe process management
-|   |   +-- config/             # Configuration
-|   |-- go.mod
-|   |-- go.sum
-|   +-- Makefile
-|
-|-- gateway/                     # Gateway sidecar (Go)
-|   |-- cmd/
-|   |   +-- gateway/
-|   |       +-- main.go         # Entry point
-|   |-- internal/
-|   |   |-- wireguard/          # WireGuard interface management
-|   |   |-- peers/              # Dynamic peer management
-|   |   |-- metrics/            # Bandwidth and connection metrics
-|   |   +-- config/             # Configuration
-|   |-- go.mod
-|   |-- go.sum
-|   +-- Dockerfile
-|
-|-- client/                      # Client Desktop App (Electron + React)
-|   |-- src/
-|   |   |-- main/               # Electron main process
-|   |   |-- renderer/           # React UI
-|   |   |   |-- components/     # Reusable UI components
-|   |   |   |-- pages/          # Page components
-|   |   |   |-- hooks/          # Custom React hooks
-|   |   |   |-- store/          # State management
-|   |   |   +-- styles/         # Tailwind config, global styles
-|   |   +-- shared/             # Shared types between main and renderer
-|   |-- package.json
-|   |-- electron-builder.yml
-|   +-- tsconfig.json
-|
-|-- infra/                       # Infrastructure as Code
-|   |-- terraform/
-|   |   |-- modules/
-|   |   |   |-- control-plane/  # ECS Fargate, ALB, security groups
-|   |   |   |-- database/       # RDS PostgreSQL, ElastiCache Redis
-|   |   |   |-- gateway/        # EC2 ASG, NLB, WireGuard config
-|   |   |   |-- networking/     # VPC, subnets, route tables
-|   |   |   +-- dns/            # Route53 records
-|   |   |-- environments/
-|   |   |   |-- dev/
-|   |   |   |-- staging/
-|   |   |   +-- production/
-|   |   |-- main.tf
-|   |   |-- variables.tf
-|   |   +-- outputs.tf
-|   +-- docker-compose.yml       # Local development environment
-|
-+-- .github/
-    +-- workflows/
-        |-- ci.yml               # Build + test on every push
-        |-- deploy-staging.yml   # Deploy to staging on merge to main
-        +-- deploy-prod.yml      # Deploy to production on release tag
+node --version          # v20.x.x+
+npm --version           # 10.x.x+
+go version              # go1.22+
+docker --version        # 24.x+
+docker compose version  # v2.x+
+wg --version            # wireguard-tools
+git --version           # 2.40+
 ```
 
 ---
 
 ## Local Development Setup
 
-### Step 1: Clone the Repository
+### Step 1: Clone and install
 
 ```bash
-git clone https://github.com/your-org/nvstreamer.git
+git clone https://github.com/thatcooperguy/nvstreamer.git
 cd nvstreamer
-```
-
-### Step 2: Start Infrastructure Services
-
-Start PostgreSQL and Redis using Docker Compose:
-
-```bash
-docker compose -f infra/docker-compose.yml up -d
-```
-
-This starts:
-- **PostgreSQL 15** on `localhost:5432` (user: `nvstream`, password: `nvstream_dev`, database: `nvstream`)
-- **Redis 7** on `localhost:6379`
-
-Verify the services are running:
-
-```bash
-docker compose -f infra/docker-compose.yml ps
-```
-
-Expected output:
-```
-NAME                    STATUS              PORTS
-nvstream-postgres       Up (healthy)        0.0.0.0:5432->5432/tcp
-nvstream-redis          Up (healthy)        0.0.0.0:6379->6379/tcp
-```
-
-#### Docker Compose File Reference
-
-The `infra/docker-compose.yml` file contents:
-
-```yaml
-version: "3.9"
-
-services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: nvstream-postgres
-    environment:
-      POSTGRES_USER: nvstream
-      POSTGRES_PASSWORD: nvstream_dev
-      POSTGRES_DB: nvstream
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nvstream"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    container_name: nvstream-redis
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  postgres_data:
-```
-
-### Step 3: Set Up the Control Plane API
-
-```bash
-cd control-plane
-
-# Install dependencies
 npm install
+```
 
-# Create the .env file for local development
+This installs dependencies for both `apps/server-api` and `apps/client-desktop`
+via npm workspaces.
+
+### Step 2: Start PostgreSQL and Redis
+
+```bash
+npm run docker:up
+```
+
+This runs `docker compose -f infra/docker/docker-compose.yml up -d`, which starts:
+
+| Service | Container | Port | Credentials |
+|---------|-----------|------|-------------|
+| PostgreSQL 16 | nvrs-postgres | localhost:5432 | `nvrs` / `nvrs_dev_password` / db: `nvrs` |
+| Redis 7 | nvrs-redis | localhost:6379 | (no auth) |
+| Adminer | nvrs-adminer | localhost:8081 | (web UI for DB) |
+
+Verify they're healthy:
+
+```bash
+docker ps
+```
+
+### Step 3: Configure the Server API
+
+```bash
+cd apps/server-api
 cp .env.example .env
 ```
 
-Edit `control-plane/.env` with your local settings:
+Edit `apps/server-api/.env`:
 
 ```bash
-# Database
-DATABASE_URL="postgresql://nvstream:nvstream_dev@localhost:5432/nvstream?schema=public"
-
-# Redis
-REDIS_URL="redis://localhost:6379"
-
-# JWT Signing Keys (generate for local dev)
-JWT_PRIVATE_KEY_PATH="./keys/dev-private.pem"
-JWT_PUBLIC_KEY_PATH="./keys/dev-public.pem"
-JWT_ACCESS_TOKEN_EXPIRY="15m"
-JWT_REFRESH_TOKEN_EXPIRY="7d"
-
-# Google OIDC
-GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET="your-google-client-secret"
-GOOGLE_REDIRECT_URI="http://localhost:3000/auth/callback"
-
 # Server
-PORT=4000
-HOST="0.0.0.0"
-NODE_ENV="development"
-LOG_LEVEL="debug"
+PORT=3001
+CORS_ORIGIN=http://localhost:5173
 
-# CORS (allow local client app)
-CORS_ORIGINS="http://localhost:3000"
+# PostgreSQL
+DATABASE_URL=postgresql://nvrs:nvrs_dev_password@localhost:5432/nvrs?schema=public
+
+# JWT
+JWT_SECRET=any-long-random-string-for-dev
+JWT_ACCESS_EXPIRY=15m
+JWT_REFRESH_EXPIRY_DAYS=7
+
+# Google OAuth2 (get these from Google Cloud Console)
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-client-secret
+GOOGLE_CALLBACK_URL=http://localhost:3001/api/v1/auth/google/callback
+
+# WireGuard Gateway (leave defaults for local dev without gateway)
+GATEWAY_URL=http://localhost:8080
+GATEWAY_TOKEN=dev-gateway-token
+GATEWAY_PUBLIC_KEY=
+GATEWAY_ENDPOINT=
 ```
 
-Generate development JWT signing keys:
+### Step 4: Run database migrations
 
 ```bash
-mkdir -p keys
-openssl genrsa -out keys/dev-private.pem 2048
-openssl rsa -in keys/dev-private.pem -pubout -out keys/dev-public.pem
-```
-
-Run database migrations:
-
-```bash
+cd apps/server-api
+npx prisma generate
 npx prisma migrate dev
 ```
 
-This creates all database tables, indexes, and enums defined in
-`prisma/schema.prisma`.
+This creates all tables defined in `prisma/schema.prisma`: User, Org, OrgMember,
+Host, Session, AuditLog, RefreshToken.
 
-Optionally, seed the database with sample data:
-
-```bash
-npx prisma db seed
-```
-
-### Step 4: Set Up the Client Desktop App
+### Step 5: Start the Server API
 
 ```bash
-cd client
-
-# Install dependencies
-npm install
-
-# Create the .env file for local development
-cp .env.example .env
+# From the repo root:
+npm run dev:api
 ```
 
-Edit `client/.env`:
+The NestJS server starts on `http://localhost:3001`. You should see:
+
+```
+[Nest] LOG [NestFactory] Starting Nest application...
+[Nest] LOG [NestApplication] Nest application successfully started
+```
+
+### Step 6: Start the Client Desktop App
 
 ```bash
-# Control Plane API URL
-VITE_API_URL="http://localhost:4000/api/v1"
-VITE_WS_URL="ws://localhost:4000"
-
-# Google OIDC
-VITE_GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
+# From the repo root (in a new terminal):
+npm run dev:client
 ```
 
-### Step 5: Set Up the Host Agent (Optional for UI development)
+This starts Vite + Electron in dev mode. The Electron window opens with the
+NVIDIA-themed login screen (dark background #1A1A1A, green accent #76B900).
 
-The Host Agent is only needed if you want to test end-to-end session establishment.
+### Step 7: Set up Google OAuth (required for sign-in to work)
 
-```bash
-cd host-agent
-
-# Download Go dependencies
-go mod download
-
-# Create configuration file
-cp config.example.yaml config.yaml
-```
-
-Edit `host-agent/config.yaml`:
-
-```yaml
-control_plane:
-  api_url: "http://localhost:4000/api/v1"
-  ws_url: "ws://localhost:4000/ws/host"
-
-# For local development, skip mTLS and use a bootstrap token
-auth:
-  mode: "bootstrap"
-  bootstrap_token: ""  # Will be generated during first-time setup
-
-host:
-  hostname: "DEV-WORKSTATION"
-  heartbeat_interval: "30s"
-
-wireguard:
-  interface_name: "wg-nvstream"
-  listen_port: 51821
-
-logging:
-  level: "debug"
-  format: "text"
-```
-
-### Step 6: Set Up the Gateway (Optional for local development)
-
-For local development, the gateway is typically not needed. The client and host agent
-can connect directly over localhost. If you need to test gateway relay functionality:
-
-```bash
-cd gateway
-
-# Download Go dependencies
-go mod download
-
-# Create configuration file
-cp config.example.yaml config.yaml
-```
-
-Edit `gateway/config.yaml`:
-
-```yaml
-control_plane:
-  api_url: "http://localhost:4000/api/v1"
-  grpc_url: "localhost:4001"
-
-wireguard:
-  interface_name: "wg-gateway"
-  listen_port: 51820
-  address: "10.100.0.1/16"
-
-logging:
-  level: "debug"
-  format: "text"
-```
+1. Go to https://console.cloud.google.com/apis/credentials
+2. Create an **OAuth 2.0 Client ID** (type: Web Application)
+3. Add authorized redirect URI: `http://localhost:3001/api/v1/auth/google/callback`
+4. Copy the Client ID and Client Secret into your `.env`
+5. Restart the server API
 
 ---
 
-## Running Components Locally
+## Cloud Deployment (AWS)
 
-### Start the Control Plane API
+Once you have an AWS account with CLI access configured:
 
-```bash
-cd control-plane
-npm run dev
-```
-
-The API starts on `http://localhost:4000`. You should see:
-
-```
-[INFO] Server listening on http://0.0.0.0:4000
-[INFO] Database connection established
-[INFO] Redis connection established
-[INFO] WebSocket server ready
-```
-
-Verify with:
+### Option A: One-command deploy (recommended)
 
 ```bash
-curl http://localhost:4000/api/v1/health
+cd infra
+chmod +x deploy.sh
+./deploy.sh --environment dev --region us-west-2
 ```
 
-Expected response:
+`deploy.sh` handles everything:
+1. Checks prerequisites (AWS CLI, Terraform, Docker, SSH keys)
+2. Runs `terraform plan` and `terraform apply` (creates VPC, EC2, RDS, EIP)
+3. SSHs into the EC2 instance and deploys the app via `deploy-compose.yml`
+4. Runs database migrations
+5. Sets up TLS (Let's Encrypt or self-signed)
+6. Runs verification checks
 
-```json
-{
-  "status": "healthy",
-  "version": "1.0.0",
-  "database": "connected",
-  "redis": "connected",
-  "uptime": 5
-}
-```
+Add `--domain your-domain.com` if you have a domain pointed at the Elastic IP.
 
-### Start the Client Desktop App
+### Option B: Manual Terraform
 
 ```bash
-cd client
-npm run dev
+cd infra/terraform/environments/dev
+cp ../../terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with your settings
+
+terraform init
+terraform plan
+terraform apply
 ```
 
-This starts the Electron app in development mode with hot reload. The React dev
-server runs on `http://localhost:3000` and the Electron window opens automatically.
+### What gets created
 
-For development without Electron (browser-only React UI):
+| Resource | Purpose | Estimated Cost |
+|----------|---------|---------------|
+| VPC + subnets | Network isolation | Free |
+| EC2 t3.small | Gateway + API server | ~$15/mo |
+| Elastic IP | Static IP for WireGuard endpoint | ~$4/mo |
+| RDS db.t3.micro PostgreSQL | Database | ~$15/mo |
+| **Total** | | **~$35-50/mo** |
 
-```bash
-cd client
-npm run dev:web
-```
+### After deployment
 
-This starts just the Vite dev server at `http://localhost:3000`.
+The deploy script outputs:
+- **API URL**: `https://<elastic-ip>` or `https://your-domain.com`
+- **Gateway Endpoint**: `<elastic-ip>:51820`
+- **Gateway Public Key**: (WireGuard public key)
 
-### Start the Host Agent
-
-```bash
-cd host-agent
-go run ./cmd/agent --config config.yaml
-```
-
-If the agent has not been bootstrapped yet, it will print:
-
-```
-[INFO] Agent not registered. Run with --bootstrap-token to register.
-```
-
-See [First-Time Configuration](#first-time-configuration) for bootstrap instructions.
-
-### Start the Gateway (if needed)
-
-```bash
-cd gateway
-
-# Requires root/admin for WireGuard interface creation
-sudo go run ./cmd/gateway --config config.yaml
-```
-
-### Run All Services (Quick Start)
-
-For convenience, you can start all services together. From the repository root:
-
-```bash
-# Terminal 1: Infrastructure
-docker compose -f infra/docker-compose.yml up -d
-
-# Terminal 2: Control Plane
-cd control-plane && npm run dev
-
-# Terminal 3: Client App
-cd client && npm run dev
-
-# Terminal 4 (optional): Host Agent
-cd host-agent && go run ./cmd/agent --config config.yaml
-```
-
-### Running Tests
-
-**Control Plane:**
-
-```bash
-cd control-plane
-
-# Unit tests
-npm test
-
-# Unit tests with coverage
-npm run test:coverage
-
-# Integration tests (requires running PostgreSQL and Redis)
-npm run test:integration
-
-# All tests
-npm run test:all
-```
-
-**Host Agent:**
-
-```bash
-cd host-agent
-
-# All tests
-go test ./...
-
-# With verbose output
-go test -v ./...
-
-# With race detection
-go test -race ./...
-```
-
-**Gateway:**
-
-```bash
-cd gateway
-go test ./...
-```
-
-**Client:**
-
-```bash
-cd client
-
-# Unit tests (Vitest)
-npm test
-
-# End-to-end tests (Playwright)
-npm run test:e2e
-```
+You'll need these values for the host agent config and client `.env`.
 
 ---
 
-## Deploying to AWS with Terraform
+## Host Machine Setup
 
-### Step 1: Configure AWS Credentials
+The host machine is the Windows PC running **nvstreamer.exe** that you want to
+stream from. It needs:
+
+1. An NVIDIA GPU (GTX/RTX series, Kepler or newer)
+2. Latest NVIDIA display drivers
+3. WireGuard for Windows installed
+4. NvFBC enabled
+5. The NVRS host agent
+
+### Step 1: Enable NvFBC (NVIDIA Frame Buffer Capture)
+
+NvStreamer requires NvFBC to capture the screen. Two methods:
+
+**Method A (no restart):**
+```
+NvFBCEnable.exe -enable
+```
+
+**Method B (registry key, requires restart):**
+Run `EnableFBC.reg`, then restart.
+
+> **Note:** Installing or updating display drivers may reset the NvFBC flag.
+> You may need to re-enable it after driver updates.
+
+### Step 2: Stop conflicting services
+
+If GeForce Experience (GFE) is installed, stop NvContainer services:
+
+```powershell
+sc stop NvContainerLocalSystem
+```
+
+Or disable GameStream in GFE's UI. NvStreamer and GFE's GameStream cannot run
+simultaneously.
+
+### Step 3: Install NvVAD (Virtual Audio Driver)
+
+Required for audio streaming. Download from NVIDIA's build share or use the
+bundled installer from the NvStreamer package.
+
+### Step 4: Verify nvstreamer.exe runs
+
+Before installing the agent, verify nvstreamer works standalone:
+
+```
+nvstreamer.exe --log-level debug --show-pii-in-logs --log -
+```
+
+If you see errors about device context, add `--cuda`:
+
+```
+nvstreamer.exe --cuda --log-level debug --show-pii-in-logs --log -
+```
+
+Note the IP address it reports. On a system with no physical monitor (headless),
+you'll need a virtual display (ForceDisp or VNC with virtual monitor).
+
+> **Important:** Allow NvStreamer.exe through Windows Firewall when prompted.
+> (With NVRS, traffic goes through the WireGuard tunnel, but local firewall
+> still needs to allow loopback/tunnel-interface traffic.)
+
+### Step 5: Install the NVRS Host Agent
+
+**Option A: PowerShell installer (recommended)**
+
+```powershell
+# Run as Administrator
+.\scripts\install.ps1 -ControlPlaneURL "https://your-api-url" -BootstrapToken "your-token"
+```
+
+This:
+1. Copies the agent to `C:\ProgramData\NVRemoteStream\`
+2. Writes the config file
+3. Installs as a Windows service (`NVRemoteStreamAgent`)
+4. Starts the service
+5. Registers with the control plane
+
+**Option B: Manual**
 
 ```bash
-aws configure
-# Enter your AWS Access Key ID, Secret Access Key, region (e.g., us-west-2)
+cd apps/host-agent
+go build -o nvrs-agent.exe ./cmd/agent
+
+# Copy config
+cp internal/config/config.yaml.example C:\ProgramData\NVRemoteStream\agent.yaml
+# Edit agent.yaml with your control_plane_url and bootstrap_token
+
+# Install as service
+.\nvrs-agent.exe --install
+
+# Start
+Start-Service NVRemoteStreamAgent
 ```
 
-Or set environment variables:
+### Step 6: Verify host registration
 
-```bash
-export AWS_ACCESS_KEY_ID="your-access-key"
-export AWS_SECRET_ACCESS_KEY="your-secret-key"
-export AWS_REGION="us-west-2"
+After the agent starts, it:
+1. Registers with the control plane using the bootstrap token
+2. Receives a host ID and WireGuard tunnel IP (e.g., `10.100.0.3`)
+3. Establishes a WireGuard tunnel to the cloud gateway
+4. Starts sending heartbeats every 30 seconds
+5. Detects nvstreamer.exe and GPU info
+
+Check registration:
+
+```powershell
+Get-Content C:\ProgramData\NVRemoteStream\registration.json
+# Should show: host_id, tunnel_ip
 ```
 
-### Step 2: Initialize Terraform State Backend
+Check the service:
 
-Create an S3 bucket and DynamoDB table for Terraform state management:
-
-```bash
-# Create S3 bucket for state
-aws s3api create-bucket \
-  --bucket nvstream-terraform-state \
-  --region us-west-2 \
-  --create-bucket-configuration LocationConstraint=us-west-2
-
-# Enable versioning
-aws s3api put-bucket-versioning \
-  --bucket nvstream-terraform-state \
-  --versioning-configuration Status=Enabled
-
-# Create DynamoDB table for state locking
-aws dynamodb create-table \
-  --table-name nvstream-terraform-locks \
-  --attribute-definitions AttributeName=LockID,AttributeType=S \
-  --key-schema AttributeName=LockID,KeyType=HASH \
-  --billing-mode PAY_PER_REQUEST
+```powershell
+Get-Service NVRemoteStreamAgent
+# Should show: Running
 ```
 
-### Step 3: Configure Environment Variables
-
-```bash
-cd infra/terraform/environments/staging
-cp terraform.tfvars.example terraform.tfvars
-```
-
-Edit `terraform.tfvars`:
-
-```hcl
-# General
-environment    = "staging"
-project_name   = "nvstream"
-aws_region     = "us-west-2"
-
-# Networking
-vpc_cidr           = "10.0.0.0/16"
-availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
-
-# Control Plane
-control_plane_image     = "your-ecr-repo/nvstream-control-plane:latest"
-control_plane_cpu       = 512
-control_plane_memory    = 1024
-control_plane_desired_count = 2
-
-# Database
-db_instance_class   = "db.t4g.medium"
-db_allocated_storage = 20
-db_max_allocated_storage = 100
-
-# Redis
-redis_node_type = "cache.t4g.micro"
-
-# Gateway
-gateway_instance_type = "c6gn.medium"
-gateway_min_count     = 1
-gateway_max_count     = 3
-
-# DNS
-domain_name = "nvstream.example.com"
-route53_zone_id = "Z1234567890ABCDEF"
-
-# Google OIDC
-google_client_id = "your-google-client-id.apps.googleusercontent.com"
-```
-
-### Step 4: Initialize and Plan
-
-```bash
-cd infra/terraform/environments/staging
-
-terraform init \
-  -backend-config="bucket=nvstream-terraform-state" \
-  -backend-config="key=staging/terraform.tfstate" \
-  -backend-config="region=us-west-2" \
-  -backend-config="dynamodb_table=nvstream-terraform-locks"
-
-terraform plan -out=plan.tfplan
-```
-
-Review the plan carefully. It will create:
-- VPC with public and private subnets across 3 AZs
-- ECS Fargate cluster with ALB for the Control Plane
-- RDS PostgreSQL Multi-AZ instance
-- ElastiCache Redis cluster
-- EC2 Auto Scaling Group with NLB for Gateways
-- Security groups, IAM roles, and policies
-- Route53 DNS records
-- ACM TLS certificates
-
-### Step 5: Apply
-
-```bash
-terraform apply plan.tfplan
-```
-
-This takes approximately 15-20 minutes for a fresh deployment.
-
-### Step 6: Run Database Migrations in Production
-
-After the infrastructure is created, run Prisma migrations against the production
-database:
-
-```bash
-# Get the database URL from Terraform outputs
-export DATABASE_URL=$(terraform output -raw database_url)
-
-# Run migrations
-cd ../../../../control-plane
-npx prisma migrate deploy
-```
-
-### Step 7: Verify Deployment
-
-```bash
-# Get the API URL from Terraform outputs
-cd ../infra/terraform/environments/staging
-API_URL=$(terraform output -raw api_url)
-
-# Health check
-curl https://${API_URL}/api/v1/health
-```
+The host should now appear as **ONLINE** in the client dashboard.
 
 ---
 
-## First-Time Configuration
+## End-to-End: Your First Stream
 
-After deployment (or local setup), follow these steps to create your first
-organization and register your first host.
+With everything deployed:
 
-### 1. Authenticate
+1. **Open the NVRS client app**
+2. **Sign in with Google**
+3. **See your host** in the dashboard (green ONLINE badge, GPU info, latency)
+4. **Click "Connect"**
 
-Open the Client App (or use the browser at `http://localhost:3000` in development).
-Click "Sign in with Google" and complete the OIDC flow. This creates your user
-account.
+Behind the scenes:
+- Client generates X25519 keypair (private key stays local)
+- Client sends public key to `POST /hosts/:id/connect`
+- Server allocates a client tunnel IP (e.g., `10.101.0.5`)
+- Server registers the peer with the gateway
+- Server notifies the host agent via WebSocket
+- Client establishes WireGuard tunnel to the gateway
+- Client launches `geronimo.exe nvsc://10.100.0.3` (the host's tunnel IP)
 
-### 2. Create an Organization
+5. **Streaming begins** -- you should see the host's desktop
+6. **Click "Disconnect"** or close Geronimo to end the session
 
-Using the Client App UI or via API:
-
-```bash
-# Replace with your actual JWT (obtained after login)
-TOKEN="your-jwt-access-token"
-API="http://localhost:4000/api/v1"
-
-curl -X POST "${API}/orgs" \
-  -H "Authorization: Bearer ${TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "My Organization",
-    "slug": "my-org"
-  }'
-```
-
-Response:
-
-```json
-{
-  "id": "uuid",
-  "name": "My Organization",
-  "slug": "my-org",
-  "settings": {},
-  "created_at": "2026-02-13T00:00:00.000Z"
-}
-```
-
-You are automatically added as an Admin of the new organization.
-
-### 3. Generate a Bootstrap Token
-
-```bash
-ORG_ID="uuid-from-previous-step"
-
-curl -X POST "${API}/orgs/${ORG_ID}/hosts/bootstrap-token" \
-  -H "Authorization: Bearer ${TOKEN}"
-```
-
-Response:
-
-```json
-{
-  "token": "nvs_bootstrap_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
-  "expires_at": "2026-02-14T00:00:00.000Z"
-}
-```
-
-Save the token. It is shown only once and expires in 24 hours.
-
-### 4. Register Your First Host
-
-On the Windows machine running nvstreamer.exe, install and run the Host Agent:
-
-```bash
-# Download the host agent binary (or build from source)
-# For building from source:
-cd host-agent
-go build -o nvstream-agent.exe ./cmd/agent
-
-# Run with bootstrap token
-.\nvstream-agent.exe --bootstrap-token nvs_bootstrap_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
-```
-
-The agent will:
-1. Register with the control plane
-2. Receive and store its mTLS client certificate
-3. Begin sending heartbeats
-4. Report its hostname, GPU info, and nvstreamer status
-
-You should see:
-
-```
-[INFO] Bootstrap registration successful
-[INFO] Host ID: <uuid>
-[INFO] Certificate stored in Windows Certificate Store
-[INFO] Heartbeat loop started (interval: 30s)
-[INFO] Status: ONLINE | GPU: NVIDIA GeForce RTX 4090 | nvstreamer: running
-```
-
-### 5. Verify Host Appears in Dashboard
-
-Open the Client App. You should see your host appear in the dashboard with:
-- Hostname
-- ONLINE status (green indicator)
-- GPU information
-- Latency measurement
-
-### 6. Create Your First Session
-
-Click the "Connect" button on the host card. The system will:
-1. Generate ephemeral WireGuard keys
-2. Establish the tunnel
-3. Launch the nvstreamer client
-4. Display the streaming session overlay
+The overlay shows connection status, latency, and a disconnect button.
 
 ---
 
 ## Troubleshooting
 
-### Common Issues
+### Server API won't start
 
-| Issue | Cause | Solution |
-|---|---|---|
-| `prisma migrate dev` fails with connection error | PostgreSQL not running or wrong credentials | Verify Docker containers are running: `docker compose ps`. Check `DATABASE_URL` in `.env`. |
-| `ECONNREFUSED` on API startup | Redis not running | Verify Redis container: `docker compose ps`. Check `REDIS_URL` in `.env`. |
-| Google OIDC redirect fails | Wrong redirect URI configured | Ensure `GOOGLE_REDIRECT_URI` matches what is configured in Google Cloud Console. For local dev: `http://localhost:3000/auth/callback`. |
-| Host Agent fails to register | Invalid or expired bootstrap token | Generate a new bootstrap token. Tokens expire after 24 hours. |
-| WireGuard tunnel fails to establish | WireGuard tools not installed, or insufficient permissions | Install WireGuard tools. On Windows, run as Administrator. On Linux, run with `sudo`. |
-| Client cannot connect to host | Firewall blocking UDP 51820 | Ensure the gateway's UDP port 51820 is accessible. Check security groups in AWS. |
-| `ERR_MODULE_NOT_FOUND` in Control Plane | Missing npm dependencies | Run `npm install` in the `control-plane/` directory. |
-| Terraform state lock error | Previous Terraform operation interrupted | Run `terraform force-unlock <LOCK_ID>` (use with caution). |
-| Database migration conflict | Multiple developers migrated simultaneously | Coordinate migrations. Use `prisma migrate resolve` to mark conflicting migration as applied. |
+| Symptom | Fix |
+|---------|-----|
+| `ECONNREFUSED` on port 5432 | PostgreSQL not running. Run `npm run docker:up` |
+| `ECONNREFUSED` on port 6379 | Redis not running. Run `npm run docker:up` |
+| Prisma errors | Run `npx prisma generate && npx prisma migrate dev` in `apps/server-api` |
+| Google OAuth redirect fails | Check `GOOGLE_CALLBACK_URL` matches Google Cloud Console redirect URI |
 
-### Useful Commands
+### Client won't connect
+
+| Symptom | Fix |
+|---------|-----|
+| "Sign in" button does nothing | Check `GOOGLE_CLIENT_ID` in client environment |
+| Hosts don't appear | Check API is running and CORS_ORIGIN matches Vite dev server URL |
+| WireGuard tunnel fails | Run client as Administrator. Check WireGuard is installed. |
+
+### Host agent issues
+
+| Symptom | Fix |
+|---------|-----|
+| Registration fails | Bootstrap token expired (24h). Generate a new one. |
+| "Service failed to start" | Run as Administrator. Check `agent.yaml` has correct URLs. |
+| nvstreamer not detected | Verify `nvstreamer_path` in `agent.yaml`. Run nvstreamer manually first. |
+| NvFBC errors | Run `NvFBCEnable.exe -enable`. May need to re-run after driver updates. |
+
+### Gateway / WireGuard
+
+| Symptom | Fix |
+|---------|-----|
+| Tunnel won't establish | Check gateway EC2 security group allows UDP 51820 inbound |
+| Peers not routing | Check `net.ipv4.ip_forward=1` is set on gateway EC2 |
+| High latency | Gateway should be in the same region as users. Check `wg show` for handshake times. |
+
+### NvStreamer specific (from NVIDIA wiki)
+
+| Symptom | Fix |
+|---------|-----|
+| Missing `qwave.dll` (Windows Server) | Install "Quality Windows Audio Video Experience" feature, enable QWAVE service |
+| No sound card | Install virtual audio (NvVAD) or disable audio: `general.featureFlags: 5` in client config |
+| Input not working | Check "Input mode" in nvstreamer log. If non-zero, run `DisableVirtualHidDevices.reg` and restart nvstreamer |
+| Remote Desktop blocks nvstreamer | Use VNC instead of RDP to access the host machine |
+| Black screen on headless machine | Use ForceDisp to create a virtual monitor |
+| Laptop co-proc errors | Add `--cuda` flag to nvstreamer command line |
+
+### Useful commands
 
 ```bash
-# View Control Plane logs
-cd control-plane && npm run dev  # stdout in development
+# Check docker services
+docker ps
 
-# View Docker container logs
-docker compose -f infra/docker-compose.yml logs -f postgres
-docker compose -f infra/docker-compose.yml logs -f redis
+# View API logs
+npm run dev:api
 
-# Connect to local database
-psql postgresql://nvstream:nvstream_dev@localhost:5432/nvstream
+# Open database browser
+open http://localhost:8081  # Adminer
 
-# Open Prisma Studio (visual database browser)
-cd control-plane && npx prisma studio
+# Open Prisma Studio
+cd apps/server-api && npx prisma studio
 
-# Reset local database (caution: destroys all data)
-cd control-plane && npx prisma migrate reset
-
-# Check host agent connectivity
-cd host-agent && go run ./cmd/agent --config config.yaml --check-connectivity
-
-# Verify WireGuard interface
+# Check WireGuard tunnel status
 wg show
 
-# Test API endpoint
-curl -v http://localhost:4000/api/v1/health
+# View host agent logs (Windows)
+Get-Content C:\ProgramData\NVRemoteStream\agent.log -Tail 50
+
+# Build host agent from source
+cd apps/host-agent && go build -o nvrs-agent.exe ./cmd/agent
+
+# Build gateway from source
+cd apps/gateway && go build -o gateway ./src/...
 ```
-
-### Getting Help
-
-- Check the architecture docs: [docs/architecture/ARCHITECTURE.md](./architecture/ARCHITECTURE.md)
-- Check the security docs: [docs/security/SECURITY.md](./security/SECURITY.md)
-- File an issue on GitHub with the `bug` or `question` label
-- Include logs, error messages, and your environment details (OS, Node.js version, Go version)
 
 ---
 
-## References
+## Repo Quick Reference
 
-- [ARCHITECTURE.md](./architecture/ARCHITECTURE.md) -- System architecture
-- [SECURITY.md](./security/SECURITY.md) -- Security model
-- [DATA_MODEL.md](./architecture/DATA_MODEL.md) -- Database schema
-- [UI_WIREFLOW.md](./architecture/UI_WIREFLOW.md) -- UI wireflow descriptions
+| Command | What it does |
+|---------|-------------|
+| `npm install` | Install all workspace dependencies |
+| `npm run docker:up` | Start PostgreSQL + Redis + Adminer |
+| `npm run docker:down` | Stop local Docker services |
+| `npm run dev:api` | Start NestJS server (watch mode) |
+| `npm run dev:client` | Start Electron + Vite client (watch mode) |
+| `npm run build:all` | Build both API and client |
+| `npm run db:migrate` | Run Prisma migrations |
+| `npm run db:generate` | Generate Prisma client |
+| `npm run lint` | Run ESLint across all workspaces |
+| `npm run format` | Run Prettier across all workspaces |
+| `./infra/deploy.sh` | Deploy everything to AWS |

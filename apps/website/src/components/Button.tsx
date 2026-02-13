@@ -11,6 +11,7 @@ interface ButtonProps {
   disabled?: boolean;
   className?: string;
   external?: boolean;
+  download?: boolean;
   showArrow?: boolean;
 }
 
@@ -37,6 +38,7 @@ export default function Button({
   disabled = false,
   className = '',
   external = false,
+  download = false,
   showArrow = false,
 }: ButtonProps) {
   const baseStyles =
@@ -82,6 +84,13 @@ export default function Button({
   );
 
   if (href && !disabled) {
+    if (download) {
+      return (
+        <a href={href} download className={combinedStyles}>
+          {content}
+        </a>
+      );
+    }
     if (external) {
       return (
         <a

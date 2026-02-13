@@ -118,7 +118,7 @@ const hostDownloads: DownloadItem[] = [
     version: VERSION,
     size: '~48 MB',
     sha256: 'a1b2c3d4e5f60718293a4b5c6d7e8f9001122334455667788990aabbccddeeff',
-    href: `${GITHUB_RELEASES}/tag/${VERSION}`,
+    href: '/api/download/windows-host',
   },
   {
     platform: 'Linux Host',
@@ -127,7 +127,7 @@ const hostDownloads: DownloadItem[] = [
     version: VERSION,
     size: '~42 MB',
     sha256: 'b2c3d4e5f6071829a3b4c5d6e7f8091a12233445566778899a0bbccddee0ff11',
-    href: `${GITHUB_RELEASES}/tag/${VERSION}`,
+    href: '/api/download/linux-host',
   },
   {
     platform: 'macOS Host',
@@ -136,7 +136,7 @@ const hostDownloads: DownloadItem[] = [
     version: VERSION,
     size: '~45 MB',
     sha256: 'c3d4e5f607182a93b4c5d6e7f809a1b223344556677889a90bccddee0f112233',
-    href: `${GITHUB_RELEASES}/tag/${VERSION}`,
+    href: '/api/download/macos-host',
   },
 ];
 
@@ -152,7 +152,7 @@ const clientDownloads: DownloadItem[] = [
     version: VERSION,
     size: '~35 MB',
     sha256: 'd4e5f6071829a3b4c5d6e7f8091a2b33445566778899a0bbccddee0ff1122334',
-    href: `${GITHUB_RELEASES}/tag/${VERSION}`,
+    href: '/api/download/windows-client',
   },
   {
     platform: 'macOS Client',
@@ -161,7 +161,7 @@ const clientDownloads: DownloadItem[] = [
     version: VERSION,
     size: '~38 MB',
     sha256: 'e5f60718293a4b5c6d7e8f90a1b2c344556677889a90bbccddeeff001122334455',
-    href: `${GITHUB_RELEASES}/tag/${VERSION}`,
+    href: '/api/download/macos-client',
   },
   {
     platform: 'Linux Client',
@@ -170,7 +170,7 @@ const clientDownloads: DownloadItem[] = [
     version: VERSION,
     size: '~40 MB',
     sha256: 'f607182a93b4c5d6e7f809a1b2c3d445566778899a0bbccddee0ff11223344556',
-    href: `${GITHUB_RELEASES}/tag/${VERSION}`,
+    href: '/api/download/linux-client',
   },
   {
     platform: 'Android Client',
@@ -179,7 +179,7 @@ const clientDownloads: DownloadItem[] = [
     version: VERSION,
     size: '~25 MB',
     sha256: '071829a3b4c5d6e7f809a1b2c3d4e556677889a90bbccddee0ff1122334455667',
-    href: `${GITHUB_RELEASES}/tag/${VERSION}`,
+    href: '/api/download/android-client',
   },
   {
     platform: 'Web Client',
@@ -296,7 +296,7 @@ function DownloadCardFull({
             variant="primary"
             size="md"
             className="w-full"
-            external
+            download
           >
             <Download className="w-4 h-4" />
             Download
@@ -515,7 +515,7 @@ export default function DownloadsPage() {
                 </h4>
                 <div className="bg-white rounded-xl p-3 mb-4">
                   <QRCodeSVG
-                    value={`${GITHUB_RELEASES}/tag/${VERSION}`}
+                    value="https://crazystream-website-649890645714.us-west1.run.app/api/download/android-client"
                     size={140}
                     level="M"
                     bgColor="#FFFFFF"
@@ -523,7 +523,7 @@ export default function DownloadsPage() {
                   />
                 </div>
                 <p className="text-[11px] text-cs-gray-500 font-mono break-all">
-                  {GITHUB_RELEASES}/tag/{VERSION}
+                  CrazyStream-{VERSION}.apk
                 </p>
               </div>
 

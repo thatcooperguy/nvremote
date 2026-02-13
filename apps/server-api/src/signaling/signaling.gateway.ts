@@ -283,7 +283,7 @@ export class SignalingGatewayWs
         userId,
         hostId: host.id,
         status: SessionStatus.PENDING,
-        metadata: payload.metadata ?? undefined,
+        metadata: (payload.metadata ?? undefined) as any,
       },
     });
 

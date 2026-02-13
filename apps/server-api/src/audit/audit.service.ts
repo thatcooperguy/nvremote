@@ -44,7 +44,7 @@ export class AuditService {
           action: entry.action,
           resourceType: entry.resourceType,
           resourceId: entry.resourceId ?? null,
-          metadata: entry.metadata ?? undefined,
+          metadata: (entry.metadata as Record<string, unknown> | undefined) ?? undefined as any,
         },
       });
     } catch (error) {

@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://crazystream.gg',
+    url: 'https://crazystream-website-649890645714.us-west1.run.app',
     siteName: 'CrazyStream',
     title: 'CRAZYSTREAM — Cloud Gaming, Unlocked.',
     description:

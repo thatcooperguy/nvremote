@@ -206,7 +206,7 @@ export default function DocsPage() {
 
                 <div className="mt-6 pt-5 border-t border-white/[0.06]">
                   <a
-                    href="https://github.com/crazystream/crazystream"
+                    href="https://github.com/thatcooperguy/nvstreamer"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 text-sm text-cs-gray-300 hover:text-cs-green transition-colors"
@@ -446,7 +446,7 @@ encoder:
 
 network:
   port: 42587            # UDP port for streaming
-  stun_server: stun:stun.crazystream.gg:3478
+  stun_server: stun:stun.l.google.com:19302
 
 qos:
   mode: balanced         # competitive, balanced, or cinematic
@@ -572,7 +572,7 @@ overlay:
                 <InfoBox type="info">
                   For issues not covered here, check the{' '}
                   <a
-                    href="https://github.com/crazystream/crazystream/issues"
+                    href="https://github.com/thatcooperguy/nvstreamer/issues"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-cs-green hover:underline"
@@ -581,7 +581,7 @@ overlay:
                   </a>{' '}
                   page or start a{' '}
                   <a
-                    href="https://github.com/crazystream/crazystream/discussions"
+                    href="https://github.com/thatcooperguy/nvstreamer/discussions"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-cs-green hover:underline"
@@ -604,7 +604,7 @@ overlay:
                       GitHub.
                     </p>
                     <Button
-                      href="https://github.com/crazystream/crazystream"
+                      href="https://github.com/thatcooperguy/nvstreamer"
                       variant="secondary"
                       size="lg"
                       external

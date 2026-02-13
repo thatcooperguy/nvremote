@@ -63,7 +63,7 @@ export default function SessionsPage() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedToken, setCopiedToken] = useState(false);
 
-  const sessionLink = 'https://stream.crazystream.dev/s/abc123xYz789QwErTy';
+  const sessionLink = 'https://crazystream-website-649890645714.us-west1.run.app/s/abc123xYz789QwErTy';
   const sessionToken = 'cs_Kx9mP2vL8nQwRtFgHjDk4aBcEfUiOp7sXyZ';
 
   const handleGenerate = () => {

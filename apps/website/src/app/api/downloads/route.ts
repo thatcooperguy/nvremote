@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const BASE_URL = 'https://releases.crazystream.dev';
+const BASE_URL = 'https://github.com/thatcooperguy/nvstreamer/releases/download';
 
 const releases = [
   {
@@ -20,29 +20,29 @@ const releases = [
         {
           platform: 'windows',
           arch: 'x64',
-          filename: 'CrazyStreamHost-v0.2.1-win64.exe',
+          filename: 'CrazyStreamHost-v0.2.1-alpha-win64.exe',
           size: 48200000,
           sizeLabel: '48.2 MB',
           sha256: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2',
-          url: `${BASE_URL}/v0.2.1/CrazyStreamHost-v0.2.1-win64.exe`,
+          url: `${BASE_URL}/v0.2.1-alpha/CrazyStreamHost-v0.2.1-alpha-win64.exe`,
         },
         {
           platform: 'linux',
           arch: 'x64',
-          filename: 'crazystream-host_0.2.1_amd64.deb',
+          filename: 'CrazyStreamHost-v0.2.1-alpha-amd64.deb',
           size: 42100000,
           sizeLabel: '42.1 MB',
           sha256: 'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3',
-          url: `${BASE_URL}/v0.2.1/crazystream-host_0.2.1_amd64.deb`,
+          url: `${BASE_URL}/v0.2.1-alpha/CrazyStreamHost-v0.2.1-alpha-amd64.deb`,
         },
         {
           platform: 'macos',
           arch: 'universal',
-          filename: 'CrazyStreamHost-v0.2.1.pkg',
+          filename: 'CrazyStreamHost-v0.2.1-alpha-universal.pkg',
           size: 45800000,
           sizeLabel: '45.8 MB',
           sha256: 'c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4',
-          url: `${BASE_URL}/v0.2.1/CrazyStreamHost-v0.2.1.pkg`,
+          url: `${BASE_URL}/v0.2.1-alpha/CrazyStreamHost-v0.2.1-alpha-universal.pkg`,
         },
       ],
       client: [
@@ -53,34 +53,34 @@ const releases = [
           size: 35400000,
           sizeLabel: '35.4 MB',
           sha256: 'd4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5',
-          url: `${BASE_URL}/v0.2.1/CrazyStreamClient-v0.2.1-win64.exe`,
+          url: `${BASE_URL}/v0.2.1-alpha/CrazyStreamClient-v0.2.1-alpha-win64.exe`,
         },
         {
           platform: 'macos',
           arch: 'universal',
-          filename: 'CrazyStreamClient-v0.2.1.dmg',
+          filename: 'CrazyStreamClient-v0.2.1-alpha-universal.dmg',
           size: 38200000,
           sizeLabel: '38.2 MB',
           sha256: 'e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6',
-          url: `${BASE_URL}/v0.2.1/CrazyStreamClient-v0.2.1.dmg`,
+          url: `${BASE_URL}/v0.2.1-alpha/CrazyStreamClient-v0.2.1-alpha-universal.dmg`,
         },
         {
           platform: 'linux',
           arch: 'x64',
-          filename: 'CrazyStream-v0.2.1-x86_64.AppImage',
+          filename: 'CrazyStream-v0.2.1-alpha-x86_64.AppImage',
           size: 40600000,
           sizeLabel: '40.6 MB',
           sha256: 'f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7',
-          url: `${BASE_URL}/v0.2.1/CrazyStream-v0.2.1-x86_64.AppImage`,
+          url: `${BASE_URL}/v0.2.1-alpha/CrazyStream-v0.2.1-alpha-x86_64.AppImage`,
         },
         {
           platform: 'android',
           arch: 'arm64',
-          filename: 'CrazyStream-v0.2.1.apk',
+          filename: 'CrazyStream-v0.2.1-alpha.apk',
           size: 25100000,
           sizeLabel: '25.1 MB',
           sha256: 'a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8',
-          url: `${BASE_URL}/v0.2.1/CrazyStream-v0.2.1.apk`,
+          url: `${BASE_URL}/v0.2.1-alpha/CrazyStream-v0.2.1-alpha.apk`,
           playStoreUrl: 'https://play.google.com/store/apps/details?id=dev.crazystream.client',
         },
         {

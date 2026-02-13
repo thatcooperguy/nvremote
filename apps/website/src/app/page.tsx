@@ -684,7 +684,7 @@ export default function HomePage() {
                   </span>
                 </Link>
                 <a
-                  href="https://github.com/crazystream/crazystream"
+                  href="https://github.com/thatcooperguy/nvstreamer"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl bg-transparent text-white border border-white/[0.12] hover:border-cs-green/40 hover:text-cs-green hover:bg-cs-green/5 hover:shadow-glow-sm transition-all duration-300"

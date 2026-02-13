@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Github } from 'lucide-react';
 
-const GITHUB_URL = 'https://github.com/crazystream/crazystream';
+const GITHUB_URL = 'https://github.com/thatcooperguy/nvstreamer';
 
 const productLinks = [
   { label: 'Downloads', href: '/downloads' },

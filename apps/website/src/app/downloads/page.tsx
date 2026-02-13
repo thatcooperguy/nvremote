@@ -25,7 +25,8 @@ import Button from '@/components/Button';
 /* -------------------------------------------------------------------------- */
 
 const VERSION = 'v0.2.1-alpha';
-const BASE_URL = 'https://releases.crazystream.dev';
+const GITHUB_RELEASES = 'https://github.com/thatcooperguy/nvstreamer/releases';
+const BASE_URL = `${GITHUB_RELEASES}/download/${VERSION}`;
 
 /* -------------------------------------------------------------------------- */
 /*  Platform Icons                                                             */
@@ -117,7 +118,7 @@ const hostDownloads: DownloadItem[] = [
     version: VERSION,
     size: '~48 MB',
     sha256: 'a1b2c3d4e5f60718293a4b5c6d7e8f9001122334455667788990aabbccddeeff',
-    href: `${BASE_URL}/windows/CrazyStreamHost-${VERSION}-win64.exe`,
+    href: `${GITHUB_RELEASES}/tag/${VERSION}`,
   },
   {
     platform: 'Linux Host',
@@ -126,7 +127,7 @@ const hostDownloads: DownloadItem[] = [
     version: VERSION,
     size: '~42 MB',
     sha256: 'b2c3d4e5f6071829a3b4c5d6e7f8091a12233445566778899a0bbccddee0ff11',
-    href: `${BASE_URL}/linux/CrazyStreamHost-${VERSION}-amd64.deb`,
+    href: `${GITHUB_RELEASES}/tag/${VERSION}`,
   },
   {
     platform: 'macOS Host',
@@ -135,7 +136,7 @@ const hostDownloads: DownloadItem[] = [
     version: VERSION,
     size: '~45 MB',
     sha256: 'c3d4e5f607182a93b4c5d6e7f809a1b223344556677889a90bccddee0f112233',
-    href: `${BASE_URL}/macos/CrazyStreamHost-${VERSION}-universal.pkg`,
+    href: `${GITHUB_RELEASES}/tag/${VERSION}`,
   },
 ];
 
@@ -151,7 +152,7 @@ const clientDownloads: DownloadItem[] = [
     version: VERSION,
     size: '~35 MB',
     sha256: 'd4e5f6071829a3b4c5d6e7f8091a2b33445566778899a0bbccddee0ff1122334',
-    href: `${BASE_URL}/windows/CrazyStreamClient-${VERSION}-win64.exe`,
+    href: `${GITHUB_RELEASES}/tag/${VERSION}`,
   },
   {
     platform: 'macOS Client',
@@ -160,7 +161,7 @@ const clientDownloads: DownloadItem[] = [
     version: VERSION,
     size: '~38 MB',
     sha256: 'e5f60718293a4b5c6d7e8f90a1b2c344556677889a90bbccddeeff001122334455',
-    href: `${BASE_URL}/macos/CrazyStreamClient-${VERSION}-universal.dmg`,
+    href: `${GITHUB_RELEASES}/tag/${VERSION}`,
   },
   {
     platform: 'Linux Client',
@@ -169,7 +170,7 @@ const clientDownloads: DownloadItem[] = [
     version: VERSION,
     size: '~40 MB',
     sha256: 'f607182a93b4c5d6e7f809a1b2c3d445566778899a0bbccddee0ff11223344556',
-    href: `${BASE_URL}/linux/CrazyStreamClient-${VERSION}-x86_64.AppImage`,
+    href: `${GITHUB_RELEASES}/tag/${VERSION}`,
   },
   {
     platform: 'Android Client',
@@ -178,7 +179,7 @@ const clientDownloads: DownloadItem[] = [
     version: VERSION,
     size: '~25 MB',
     sha256: '071829a3b4c5d6e7f809a1b2c3d4e556677889a90bbccddee0ff1122334455667',
-    href: `${BASE_URL}/android/CrazyStream-${VERSION}.apk`,
+    href: `${GITHUB_RELEASES}/tag/${VERSION}`,
   },
   {
     platform: 'Web Client',
@@ -336,7 +337,7 @@ function DownloadCardFull({
       {/* Release Notes link */}
       {!item.comingSoon && (
         <a
-          href="https://github.com/crazystream/crazystream/releases"
+          href="https://github.com/thatcooperguy/nvstreamer/releases"
           target="_blank"
           rel="noopener noreferrer"
           className="mt-3 inline-flex items-center gap-1.5 text-xs text-cs-gray-400 hover:text-cs-green transition-colors duration-200"
@@ -514,7 +515,7 @@ export default function DownloadsPage() {
                 </h4>
                 <div className="bg-white rounded-xl p-3 mb-4">
                   <QRCodeSVG
-                    value={`${BASE_URL}/android/CrazyStream-${VERSION}.apk`}
+                    value={`${GITHUB_RELEASES}/tag/${VERSION}`}
                     size={140}
                     level="M"
                     bgColor="#FFFFFF"
@@ -522,7 +523,7 @@ export default function DownloadsPage() {
                   />
                 </div>
                 <p className="text-[11px] text-cs-gray-500 font-mono break-all">
-                  {BASE_URL}/android/CrazyStream-{VERSION}.apk
+                  {GITHUB_RELEASES}/tag/{VERSION}
                 </p>
               </div>
 
@@ -649,7 +650,7 @@ export default function DownloadsPage() {
                   Setup Documentation
                 </Button>
                 <Button
-                  href="https://github.com/crazystream/crazystream/issues"
+                  href="https://github.com/thatcooperguy/nvstreamer/issues"
                   variant="ghost"
                   size="sm"
                   external

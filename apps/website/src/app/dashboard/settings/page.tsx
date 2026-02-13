@@ -96,7 +96,7 @@ export default function SettingsPage() {
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white">ccooper</p>
             <p className="text-xs text-cs-gray-400 mt-0.5">
-              ccooper@crazystream.dev
+              ccooper@gmail.com
             </p>
           </div>
           <button className="shrink-0 inline-flex items-center gap-2 px-4 py-2 border border-white/[0.08] text-cs-gray-300 text-sm font-medium rounded-lg hover:border-red-500/30 hover:text-red-400 hover:bg-red-500/5 transition-all duration-300">

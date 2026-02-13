@@ -15,7 +15,7 @@ const navLinks = [
   { href: '/dashboard', label: 'Dashboard' },
 ];
 
-const GITHUB_URL = 'https://github.com/crazystream/crazystream';
+const GITHUB_URL = 'https://github.com/thatcooperguy/nvstreamer';
 
 function Logo() {
   return (

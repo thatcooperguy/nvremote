@@ -11,15 +11,15 @@ import (
 
 const (
 	// DefaultConfigPath is the default location for the agent configuration file.
-	DefaultConfigPath = `C:\ProgramData\NVRemoteStream\agent.yaml`
+	DefaultConfigPath = `C:\ProgramData\CrazyStream\agent.yaml`
 
 	// DefaultDataDir is the default directory for agent state files.
-	DefaultDataDir = `C:\ProgramData\NVRemoteStream`
+	DefaultDataDir = `C:\ProgramData\CrazyStream`
 )
 
 // Config holds all configuration for the host agent.
 type Config struct {
-	// ControlPlaneURL is the base URL of the NVRemoteStream control plane API.
+	// ControlPlaneURL is the base URL of the CrazyStream control plane API.
 	ControlPlaneURL string `mapstructure:"control_plane_url" yaml:"control_plane_url"`
 
 	// BootstrapToken is a one-time token used to register this host with the control plane.
@@ -98,29 +98,29 @@ func Load(configPath string) (*Config, error) {
 	}
 
 	// Configure environment variable overrides.
-	v.SetEnvPrefix("NVRS")
+	v.SetEnvPrefix("CRAZYSTREAM")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
 	// Bind specific environment variables to config keys.
 	envBindings := map[string]string{
-		"control_plane_url": "NVRS_CONTROL_PLANE_URL",
-		"bootstrap_token":   "NVRS_BOOTSTRAP_TOKEN",
-		"host_name":         "NVRS_HOST_NAME",
-		"streamer_path":     "NVRS_STREAMER_PATH",
-		"stun_servers":      "NVRS_STUN_SERVERS",
-		"turn_server":       "NVRS_TURN_SERVER",
-		"turn_username":     "NVRS_TURN_USERNAME",
-		"turn_credential":   "NVRS_TURN_CREDENTIAL",
-		"data_dir":          "NVRS_DATA_DIR",
-		"log_level":         "NVRS_LOG_LEVEL",
+		"control_plane_url": "CRAZYSTREAM_CONTROL_PLANE_URL",
+		"bootstrap_token":   "CRAZYSTREAM_BOOTSTRAP_TOKEN",
+		"host_name":         "CRAZYSTREAM_HOST_NAME",
+		"streamer_path":     "CRAZYSTREAM_STREAMER_PATH",
+		"stun_servers":      "CRAZYSTREAM_STUN_SERVERS",
+		"turn_server":       "CRAZYSTREAM_TURN_SERVER",
+		"turn_username":     "CRAZYSTREAM_TURN_USERNAME",
+		"turn_credential":   "CRAZYSTREAM_TURN_CREDENTIAL",
+		"data_dir":          "CRAZYSTREAM_DATA_DIR",
+		"log_level":         "CRAZYSTREAM_LOG_LEVEL",
 
 		// Deprecated bindings (kept for backward compatibility).
-		"nvstreamer_path":        "NVRS_NVSTREAMER_PATH",
-		"nvstreamer_ports.video": "NVRS_NVSTREAMER_PORTS_VIDEO",
-		"nvstreamer_ports.audio": "NVRS_NVSTREAMER_PORTS_AUDIO",
-		"nvstreamer_ports.input": "NVRS_NVSTREAMER_PORTS_INPUT",
-		"gateway_endpoint":       "NVRS_GATEWAY_ENDPOINT",
+		"nvstreamer_path":        "CRAZYSTREAM_NVSTREAMER_PATH",
+		"nvstreamer_ports.video": "CRAZYSTREAM_NVSTREAMER_PORTS_VIDEO",
+		"nvstreamer_ports.audio": "CRAZYSTREAM_NVSTREAMER_PORTS_AUDIO",
+		"nvstreamer_ports.input": "CRAZYSTREAM_NVSTREAMER_PORTS_INPUT",
+		"gateway_endpoint":       "CRAZYSTREAM_GATEWAY_ENDPOINT",
 	}
 	for key, env := range envBindings {
 		_ = v.BindEnv(key, env)

@@ -1,3 +1,18 @@
+###############################################################################
+# CrazyStream -- Release Workflow
+#
+# Triggered on tag pushes matching v*.  Builds all platform artifacts and
+# creates a GitHub Release with the resulting binaries.
+#
+# Jobs:
+#   1. build-native-libs   -- C++17 streaming core (Windows, MSVC + NVENC/FFmpeg)
+#   2. build-host-agent    -- Go host agent (Windows)
+#   3. build-host-bundle   -- Zip crazystream-host.exe + CrazyStreamAgent.exe
+#   4. build-client        -- Electron desktop client (Windows NSIS installer)
+#   5. build-android       -- Android APK (Kotlin/Compose)
+#   6. create-release      -- Publish GitHub Release with all artifacts
+###############################################################################
+
 name: Release
 
 on:
@@ -5,107 +20,623 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 env:
   NODE_VERSION: "20"
   GO_VERSION: "1.22"
 
 jobs:
-  # Build and package the Electron client installer
-  release-client:
-    name: Release Client (Windows)
+  ###########################################################################
+  # Job 1: Build C++ native libraries
+  #   Produces: crazystream-host.exe  (GPU streaming host)
+  #             crazystream-viewer.node (N-API addon for Electron)
+  ###########################################################################
+  build-native-libs:
+    name: Build Native Libs (C++17)
     runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup MSVC developer environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Setup Node.js (needed for viewer N-API headers)
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
 
-      - name: Install dependencies
-        run: npm ci
+      # -------------------------------------------------------------------
+      # vcpkg -- install OpenSSL
+      # -------------------------------------------------------------------
+      - name: Cache vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: C:\vcpkg\installed
+          key: vcpkg-x64-windows-openssl-${{ runner.os }}
+          restore-keys: |
+            vcpkg-x64-windows-openssl-
 
-      - name: Build and package
-        run: cd apps/client-desktop && npm run package
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install vcpkg and OpenSSL
+        shell: pwsh
+        run: |
+          # Use the pre-installed vcpkg on the runner if available,
+          # otherwise clone and bootstrap
+          if (Test-Path "C:\vcpkg\vcpkg.exe") {
+            Write-Host "Using pre-installed vcpkg"
+          } else {
+            Write-Host "Cloning vcpkg..."
+            git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
+            C:\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+          }
+          C:\vcpkg\vcpkg.exe install openssl:x64-windows
+          C:\vcpkg\vcpkg.exe integrate install
+          Write-Host "vcpkg OpenSSL installed at C:\vcpkg\installed\x64-windows"
+          # Verify OpenSSL is present
+          if (-not (Test-Path "C:\vcpkg\installed\x64-windows\include\openssl\ssl.h")) {
+            Write-Error "OpenSSL headers not found after vcpkg install"
+            exit 1
+          }
 
-      - name: Upload installer
+      # -------------------------------------------------------------------
+      # FFmpeg -- download pre-built shared+dev libraries from BtbN
+      # -------------------------------------------------------------------
+      - name: Cache FFmpeg download
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}\ffmpeg
+          key: ffmpeg-btbn-win64-shared-v7.1
+          restore-keys: |
+            ffmpeg-btbn-win64-shared-
+
+      - name: Download FFmpeg shared dev libraries
+        shell: pwsh
+        run: |
+          $ffmpegDir = "$env:RUNNER_TEMP\ffmpeg"
+          if (Test-Path "$ffmpegDir\bin\avcodec*.dll") {
+            Write-Host "FFmpeg already cached at $ffmpegDir"
+          } else {
+            $ffmpegUrl = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-win64-lgpl-shared-7.1.zip"
+            $zipPath = "$env:RUNNER_TEMP\ffmpeg.zip"
+            Write-Host "Downloading FFmpeg from $ffmpegUrl ..."
+            curl.exe -L -o $zipPath $ffmpegUrl --retry 3 --retry-delay 5
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "Failed to download FFmpeg"
+              exit 1
+            }
+            Write-Host "Extracting FFmpeg..."
+            Expand-Archive -Path $zipPath -DestinationPath "$env:RUNNER_TEMP\ffmpeg-extract" -Force
+            # The zip contains a single top-level directory; find and move it.
+            $innerDir = Get-ChildItem "$env:RUNNER_TEMP\ffmpeg-extract" -Directory | Select-Object -First 1
+            if ($null -eq $innerDir) {
+              Write-Error "No directory found inside FFmpeg archive"
+              exit 1
+            }
+            # Remove old target if it exists (partial cache)
+            if (Test-Path $ffmpegDir) { Remove-Item $ffmpegDir -Recurse -Force }
+            Move-Item $innerDir.FullName $ffmpegDir
+            Remove-Item $zipPath -ErrorAction SilentlyContinue
+            Remove-Item "$env:RUNNER_TEMP\ffmpeg-extract" -Recurse -ErrorAction SilentlyContinue
+          }
+          Write-Host "FFmpeg location: $ffmpegDir"
+          Write-Host "FFmpeg DLLs:"
+          Get-ChildItem "$ffmpegDir\bin" -Filter *.dll | ForEach-Object { Write-Host "  $($_.Name)" }
+          Write-Host "FFmpeg libs:"
+          Get-ChildItem "$ffmpegDir\lib" -Filter *.lib | ForEach-Object { Write-Host "  $($_.Name)" }
+
+      # -------------------------------------------------------------------
+      # Node.js headers -- needed for crazystream-viewer N-API compilation
+      # -------------------------------------------------------------------
+      - name: Download Node.js headers and node.lib
+        shell: pwsh
+        run: |
+          $nodeVersion = (node -v).TrimStart('v')
+          Write-Host "Node.js version: $nodeVersion"
+
+          # Download headers tarball
+          $headersUrl = "https://nodejs.org/dist/v$nodeVersion/node-v$nodeVersion-headers.tar.gz"
+          Write-Host "Downloading Node.js headers from $headersUrl ..."
+          $tarPath = "$env:RUNNER_TEMP\node-headers.tar.gz"
+          curl.exe -L -o $tarPath $headersUrl --retry 3
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to download Node.js headers"
+            exit 1
+          }
+          $headerExtract = "$env:RUNNER_TEMP\node-headers"
+          mkdir $headerExtract -Force | Out-Null
+          tar -xzf $tarPath -C $headerExtract
+          $headerDir = Get-ChildItem $headerExtract -Directory | Select-Object -First 1
+          $nodeInclude = "$($headerDir.FullName)\include\node"
+          Write-Host "Node.js headers at: $nodeInclude"
+
+          # Verify key header exists
+          if (-not (Test-Path "$nodeInclude\node_api.h")) {
+            Write-Error "node_api.h not found at $nodeInclude"
+            exit 1
+          }
+          echo "NODE_HEADER_DIR=$nodeInclude" >> $env:GITHUB_ENV
+
+          # Download win-x64 node.lib needed to link the .node addon
+          $libUrl = "https://nodejs.org/dist/v$nodeVersion/win-x64/node.lib"
+          $libDir = "$env:RUNNER_TEMP\node-lib"
+          mkdir $libDir -Force | Out-Null
+          curl.exe -L -o "$libDir\node.lib" $libUrl --retry 3
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to download node.lib"
+            exit 1
+          }
+          Write-Host "node.lib downloaded to: $libDir\node.lib"
+          echo "NODE_LIB_DIR=$libDir" >> $env:GITHUB_ENV
+
+      # -------------------------------------------------------------------
+      # CMake configure
+      # -------------------------------------------------------------------
+      - name: CMake configure
+        shell: pwsh
+        working-directory: libs
+        run: |
+          $vcpkgRoot = "C:\vcpkg\installed\x64-windows"
+          $ffmpegRoot = "$env:RUNNER_TEMP\ffmpeg"
+          $toolchainFile = "C:\vcpkg\scripts\buildsystems\vcpkg.cmake"
+
+          Write-Host "=== CMake Configuration ==="
+          Write-Host "  vcpkg root:      $vcpkgRoot"
+          Write-Host "  FFmpeg root:     $ffmpegRoot"
+          Write-Host "  Node headers:    $env:NODE_HEADER_DIR"
+          Write-Host "  Node lib dir:    $env:NODE_LIB_DIR"
+          Write-Host "  Toolchain file:  $toolchainFile"
+
+          cmake -B build -G "Visual Studio 17 2022" -A x64 `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_TOOLCHAIN_FILE="$toolchainFile" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows `
+            -DOPENSSL_ROOT_DIR="$vcpkgRoot" `
+            -DCMAKE_PREFIX_PATH="$vcpkgRoot" `
+            -DFFMPEG_ROOT="$ffmpegRoot" `
+            -DCS_BUILD_HOST=ON `
+            -DCS_BUILD_VIEWER=ON `
+            -DCS_BUILD_TESTS=OFF `
+            -DNODE_INCLUDE_DIR="$env:NODE_HEADER_DIR" `
+            -DCMAKE_SHARED_LINKER_FLAGS="/LIBPATH:$env:NODE_LIB_DIR node.lib"
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "CMake configure failed"
+            exit 1
+          }
+
+      # -------------------------------------------------------------------
+      # Build
+      # -------------------------------------------------------------------
+      - name: CMake build (Release)
+        shell: pwsh
+        working-directory: libs
+        run: |
+          cmake --build build --config Release --parallel
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "CMake build failed"
+            exit 1
+          }
+
+      # -------------------------------------------------------------------
+      # Verify outputs exist
+      # -------------------------------------------------------------------
+      - name: Verify build outputs
+        shell: pwsh
+        run: |
+          $hostExe = "libs\build\crazystream-host\Release\crazystream-host.exe"
+          $viewerNode = "libs\build\crazystream-viewer\Release\crazystream-viewer.node"
+
+          if (-not (Test-Path $hostExe)) {
+            Write-Error "crazystream-host.exe not found at $hostExe"
+            # List what was actually produced for debugging
+            Write-Host "Contents of libs\build\crazystream-host\"
+            Get-ChildItem "libs\build\crazystream-host" -Recurse -File | ForEach-Object { Write-Host "  $($_.FullName)" }
+            exit 1
+          }
+          if (-not (Test-Path $viewerNode)) {
+            Write-Error "crazystream-viewer.node not found at $viewerNode"
+            Write-Host "Contents of libs\build\crazystream-viewer\"
+            Get-ChildItem "libs\build\crazystream-viewer" -Recurse -File | ForEach-Object { Write-Host "  $($_.FullName)" }
+            exit 1
+          }
+
+          Write-Host "crazystream-host.exe: $('{0:N0}' -f (Get-Item $hostExe).Length) bytes"
+          Write-Host "crazystream-viewer.node: $('{0:N0}' -f (Get-Item $viewerNode).Length) bytes"
+
+      # -------------------------------------------------------------------
+      # Collect artifacts -- host exe, viewer addon, runtime DLLs
+      # -------------------------------------------------------------------
+      - name: Collect native artifacts
+        shell: pwsh
+        run: |
+          $out = "native-artifacts"
+          mkdir $out -Force | Out-Null
+
+          # Host executable
+          Copy-Item "libs\build\crazystream-host\Release\crazystream-host.exe" "$out\"
+
+          # Viewer N-API addon
+          Copy-Item "libs\build\crazystream-viewer\Release\crazystream-viewer.node" "$out\"
+
+          # FFmpeg DLLs needed at runtime
+          $ffBin = "$env:RUNNER_TEMP\ffmpeg\bin"
+          $dllPatterns = @("avcodec*.dll", "avutil*.dll", "swscale*.dll", "avformat*.dll", "swresample*.dll")
+          foreach ($pattern in $dllPatterns) {
+            Get-ChildItem $ffBin -Filter $pattern -ErrorAction SilentlyContinue | ForEach-Object {
+              Write-Host "Copying FFmpeg DLL: $($_.Name)"
+              Copy-Item $_.FullName "$out\"
+            }
+          }
+
+          # OpenSSL DLLs from vcpkg
+          $vcpkgBin = "C:\vcpkg\installed\x64-windows\bin"
+          Get-ChildItem $vcpkgBin -Filter "libssl*.dll" -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName "$out\" }
+          Get-ChildItem $vcpkgBin -Filter "libcrypto*.dll" -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName "$out\" }
+
+          Write-Host ""
+          Write-Host "=== Collected native artifacts ==="
+          Get-ChildItem $out | ForEach-Object { Write-Host "  $($_.Name)  ($([math]::Round($_.Length/1KB)) KB)" }
+
+      - name: Upload native artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: client-installer-windows
-          path: apps/client-desktop/release/*.exe
+          name: native-libs
+          path: native-artifacts/
+          if-no-files-found: error
+          retention-days: 5
 
-  # Build host agent for release
-  release-host-agent:
-    name: Release Host Agent (Windows)
+  ###########################################################################
+  # Job 2: Build Go host agent
+  ###########################################################################
+  build-host-agent:
+    name: Build Host Agent (Go)
     runs-on: windows-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: apps/host-agent/go.sum
 
-      - name: Build
-        run: cd apps/host-agent && go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" -o nvrs-host-agent.exe ./cmd/agent
+      - name: Tidy Go modules
+        shell: pwsh
+        working-directory: apps/host-agent
+        run: |
+          # Ensure go.sum exists and is up to date
+          go mod tidy
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "go mod tidy failed"
+            exit 1
+          }
+
+      - name: Build host agent
+        shell: pwsh
+        working-directory: apps/host-agent
+        run: |
+          $tag = "${{ github.ref_name }}"
+          Write-Host "Building CrazyStreamAgent.exe for tag: $tag"
+
+          go build -ldflags="-s -w -X main.version=$tag" -o CrazyStreamAgent.exe ./cmd/agent
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Go build failed"
+            exit 1
+          }
+          $size = (Get-Item CrazyStreamAgent.exe).Length
+          Write-Host "Built CrazyStreamAgent.exe ($('{0:N0}' -f $size) bytes)"
         env:
           GOOS: windows
           GOARCH: amd64
+          CGO_ENABLED: "0"
 
-      - name: Upload artifact
+      - name: Upload host agent
         uses: actions/upload-artifact@v4
         with:
-          name: host-agent-release
-          path: apps/host-agent/nvrs-host-agent.exe
+          name: host-agent
+          path: apps/host-agent/CrazyStreamAgent.exe
+          if-no-files-found: error
+          retention-days: 5
 
-  # Build gateway Docker image and push
-  release-gateway:
-    name: Release Gateway (Docker)
+  ###########################################################################
+  # Job 3: Bundle host streamer + agent into a single zip
+  ###########################################################################
+  build-host-bundle:
+    name: Bundle Host Package
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    needs: [build-native-libs, build-host-agent]
+
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+      - name: Download native libs artifact
+        uses: actions/download-artifact@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          name: native-libs
+          path: native-libs
 
-      - name: Build and push
-        uses: docker/build-push-action@v5
+      - name: Download host agent artifact
+        uses: actions/download-artifact@v4
         with:
-          context: apps/gateway
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/gateway:${{ github.ref_name }}
-            ghcr.io/${{ github.repository }}/gateway:latest
+          name: host-agent
+          path: host-agent
 
-  # Create GitHub Release with all artifacts
+      - name: List downloaded artifacts
+        run: |
+          echo "=== native-libs ==="
+          ls -lh native-libs/
+          echo ""
+          echo "=== host-agent ==="
+          ls -lh host-agent/
+
+      - name: Create host bundle zip
+        run: |
+          TAG="${{ github.ref_name }}"
+          BUNDLE_NAME="CrazyStreamHost-${TAG}-win64"
+          mkdir -p "$BUNDLE_NAME"
+
+          # Copy host executable
+          if [ -f "native-libs/crazystream-host.exe" ]; then
+            cp native-libs/crazystream-host.exe "$BUNDLE_NAME/"
+          else
+            echo "::error::crazystream-host.exe not found in native-libs artifact"
+            exit 1
+          fi
+
+          # Copy agent executable
+          if [ -f "host-agent/CrazyStreamAgent.exe" ]; then
+            cp host-agent/CrazyStreamAgent.exe "$BUNDLE_NAME/"
+          else
+            echo "::error::CrazyStreamAgent.exe not found in host-agent artifact"
+            exit 1
+          fi
+
+          # Copy all runtime DLLs
+          cp native-libs/*.dll "$BUNDLE_NAME/" 2>/dev/null || echo "Note: no runtime DLLs found (may be statically linked)"
+
+          echo "=== Bundle contents ==="
+          ls -lh "$BUNDLE_NAME/"
+
+          zip -r "${BUNDLE_NAME}.zip" "$BUNDLE_NAME/"
+          echo "Created ${BUNDLE_NAME}.zip ($(du -h ${BUNDLE_NAME}.zip | cut -f1))"
+
+      - name: Upload host bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: host-bundle
+          path: "CrazyStreamHost-${{ github.ref_name }}-win64.zip"
+          if-no-files-found: error
+          retention-days: 5
+
+  ###########################################################################
+  # Job 4: Build Electron desktop client (Windows installer)
+  ###########################################################################
+  build-client:
+    name: Build Desktop Client (Electron)
+    runs-on: windows-latest
+    needs: [build-native-libs]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download native libs artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: native-libs
+          path: native-libs
+
+      - name: Copy native binaries to client resources
+        shell: pwsh
+        run: |
+          $resourceDir = "apps\client-desktop\resources"
+          mkdir $resourceDir -Force | Out-Null
+
+          # Copy viewer N-API addon
+          if (Test-Path "native-libs\crazystream-viewer.node") {
+            Copy-Item "native-libs\crazystream-viewer.node" "$resourceDir\"
+            Write-Host "Copied crazystream-viewer.node to resources"
+          } else {
+            Write-Error "crazystream-viewer.node not found in native-libs artifact"
+            exit 1
+          }
+
+          # Copy all runtime DLLs (FFmpeg, OpenSSL)
+          Get-ChildItem "native-libs" -Filter "*.dll" | ForEach-Object {
+            Write-Host "Copying to resources: $($_.Name)"
+            Copy-Item $_.FullName "$resourceDir\"
+          }
+
+          Write-Host ""
+          Write-Host "=== Resources directory contents ==="
+          Get-ChildItem $resourceDir | ForEach-Object { Write-Host "  $($_.Name)  ($([math]::Round($_.Length/1KB)) KB)" }
+
+      - name: Install client dependencies
+        shell: pwsh
+        working-directory: apps/client-desktop
+        run: |
+          npm ci
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "npm ci failed"
+            exit 1
+          }
+
+      - name: Build and package client
+        shell: pwsh
+        working-directory: apps/client-desktop
+        run: |
+          npm run package
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Electron build/package failed"
+            exit 1
+          }
+
+          Write-Host ""
+          Write-Host "=== Release directory contents ==="
+          Get-ChildItem "release" -Recurse -File | ForEach-Object {
+            Write-Host "  $($_.FullName)  ($([math]::Round($_.Length/1MB, 1)) MB)"
+          }
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload client installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-installer
+          path: apps/client-desktop/release/CrazyStream-*-Setup.exe
+          if-no-files-found: warn
+          retention-days: 5
+
+  ###########################################################################
+  # Job 5: Build Android client APK
+  ###########################################################################
+  build-android:
+    name: Build Android Client
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Generate Gradle wrapper (if missing)
+        working-directory: apps/android
+        run: |
+          if [ ! -f "gradlew" ]; then
+            echo "Gradle wrapper not found, generating..."
+            gradle wrapper --gradle-version 8.5
+          fi
+          chmod +x gradlew
+          echo "Gradle wrapper version:"
+          ./gradlew --version
+
+      - name: Build release APK
+        working-directory: apps/android
+        run: |
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Rename APK with version tag
+        run: |
+          TAG="${{ github.ref_name }}"
+          APK_DIR="apps/android/app/build/outputs/apk/release"
+
+          echo "=== APK directory contents ==="
+          ls -lh "$APK_DIR/" 2>/dev/null || echo "APK directory does not exist"
+
+          # Handle both signed and unsigned APK names
+          if [ -f "$APK_DIR/app-release-unsigned.apk" ]; then
+            mv "$APK_DIR/app-release-unsigned.apk" "$APK_DIR/CrazyStream-${TAG}.apk"
+            echo "Renamed app-release-unsigned.apk -> CrazyStream-${TAG}.apk"
+          elif [ -f "$APK_DIR/app-release.apk" ]; then
+            mv "$APK_DIR/app-release.apk" "$APK_DIR/CrazyStream-${TAG}.apk"
+            echo "Renamed app-release.apk -> CrazyStream-${TAG}.apk"
+          else
+            echo "::error::No release APK found in $APK_DIR"
+            ls -lhR "$APK_DIR/" 2>/dev/null || true
+            exit 1
+          fi
+
+          ls -lh "$APK_DIR/CrazyStream-${TAG}.apk"
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: apps/android/app/build/outputs/apk/release/CrazyStream-*.apk
+          if-no-files-found: warn
+          retention-days: 5
+
+  ###########################################################################
+  # Job 6: Create GitHub Release with all artifacts
+  ###########################################################################
   create-release:
-    name: Create Release
+    name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [release-client, release-host-agent, release-gateway]
-    permissions:
-      contents: write
+    needs:
+      - build-host-bundle
+      - build-client
+      - build-android
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
+          path: release-artifacts
 
-      - name: Create Release
+      - name: List all release artifacts
+        run: |
+          echo "=== All downloaded artifacts ==="
+          find release-artifacts -type f | sort
+          echo ""
+          echo "=== Sizes ==="
+          find release-artifacts -type f -exec ls -lh {} \;
+
+      - name: Collect release files
+        run: |
+          mkdir -p release-files
+
+          # Host bundle zip
+          cp release-artifacts/host-bundle/*.zip release-files/ 2>/dev/null && \
+            echo "Collected host bundle zip" || echo "Warning: host bundle zip not found"
+
+          # Windows client installer
+          cp release-artifacts/client-installer/*.exe release-files/ 2>/dev/null && \
+            echo "Collected client installer exe" || echo "Warning: client installer exe not found"
+
+          # Android APK
+          cp release-artifacts/android-apk/*.apk release-files/ 2>/dev/null && \
+            echo "Collected Android APK" || echo "Warning: Android APK not found"
+
+          echo ""
+          echo "=== Files for release ==="
+          ls -lh release-files/ || echo "No release files collected"
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
           files: |
-            artifacts/client-installer-windows/*
-            artifacts/host-agent-release/*
+            release-files/*
+          body: |
+            ## CrazyStream ${{ github.ref_name }}
+
+            ### Downloads
+
+            | Platform | Artifact | Description |
+            |----------|----------|-------------|
+            | Windows (Host) | `CrazyStreamHost-${{ github.ref_name }}-win64.zip` | Streaming host + agent bundle |
+            | Windows (Client) | `CrazyStream-*-Setup.exe` | Desktop viewer (Electron) installer |
+            | Android | `CrazyStream-${{ github.ref_name }}.apk` | Android mobile client |
+
+            ### Requirements
+            - **Host**: NVIDIA GPU with NVENC support, Windows 10/11 x64
+            - **Desktop Client**: Windows 10/11 x64
+            - **Android Client**: Android 7.0+ (API 24)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

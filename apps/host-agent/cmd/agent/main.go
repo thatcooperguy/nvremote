@@ -56,7 +56,7 @@ func (a *agent) run() {
 
 func main() {
 	var (
-		configPath  = flag.String("config", "", "path to config file (default: C:\\ProgramData\\NVRemoteStream\\agent.yaml)")
+		configPath  = flag.String("config", "", "path to config file (default: C:\\ProgramData\\CrazyStream\\agent.yaml)")
 		doInstall   = flag.Bool("install", false, "install as Windows service")
 		doUninstall = flag.Bool("uninstall", false, "uninstall Windows service")
 		doRun       = flag.Bool("run", false, "run in foreground (non-service mode)")

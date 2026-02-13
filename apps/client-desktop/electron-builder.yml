@@ -1,6 +1,6 @@
-appId: com.nvidia.remotestream
-productName: NVIDIA Remote Stream
-copyright: Copyright (c) NVIDIA Corporation
+appId: com.crazystream.client
+productName: CrazyStream
+copyright: Copyright (c) CrazyStream
 
 directories:
   buildResources: build
@@ -17,9 +17,8 @@ win:
       arch:
         - x64
   icon: build/icon.ico
-  artifactName: "${productName}-${version}-Setup.${ext}"
-  publisherName: NVIDIA Corporation
-  verifyUpdateCodeSignature: true
+  artifactName: "CrazyStream-${version}-Setup.${ext}"
+  publisherName: CrazyStream
 
 nsis:
   oneClick: false
@@ -31,13 +30,12 @@ nsis:
   installerHeaderIcon: build/icon.ico
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: NVIDIA Remote Stream
-  include: build/installer.nsh
+  shortcutName: CrazyStream
 
 protocols:
-  name: NVIDIA Remote Stream Protocol
+  name: CrazyStream Protocol
   schemes:
-    - nvrs
+    - crazystream
 
 extraResources:
   - from: resources/
@@ -47,4 +45,4 @@ extraResources:
 
 publish:
   provider: generic
-  url: https://update.nvidia.com/remote-stream/
+  url: https://github.com/thatcooperguy/nvstreamer/releases/latest

@@ -113,7 +113,7 @@ interface DownloadItem {
 const hostDownloads: DownloadItem[] = [
   {
     platform: 'Windows Host',
-    ext: '.exe',
+    ext: '.zip',
     icon: <Monitor className="w-6 h-6" />,
     version: VERSION,
     size: '~48 MB',

@@ -1,9 +1,9 @@
 {
-  "name": "nvidia-remote-stream-client",
+  "name": "crazystream-client",
   "version": "0.1.0",
-  "description": "NVIDIA Remote Stream - Desktop Client",
+  "description": "CrazyStream — Cloud Gaming Desktop Client",
   "main": "dist-electron/main/main.js",
-  "author": "NVIDIA",
+  "author": "CrazyStream",
   "license": "UNLICENSED",
   "private": true,
   "scripts": {

@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+import MarketingShell from '@/components/MarketingShell';
 import './globals.css';
 
 const inter = Inter({
@@ -11,10 +10,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'CrazyStream — Ultra Low Latency Game Streaming',
+  title: 'CRAZYSTREAM — Cloud Gaming, Unlocked.',
   description:
-    'Stream games with near-zero latency using NVIDIA hardware acceleration. P2P direct connection, adaptive QoS, NvFBC + NVENC pipeline. Supports 4K@60, 1440p@144, 1080p@240.',
+    'One hub. Multiple apps. Secure, low-latency cloud gaming anywhere. Stream with sub-15ms latency, 4K@60 HDR, and P2P encrypted connections powered by NvFBC + NVENC.',
   keywords: [
+    'cloud gaming',
     'game streaming',
     'low latency',
     'NVIDIA',
@@ -22,7 +22,8 @@ export const metadata: Metadata = {
     'NVENC',
     'remote gaming',
     'P2P streaming',
-    'cloud gaming',
+    'DTLS',
+    '4K HDR',
   ],
   authors: [{ name: 'CrazyStream Team' }],
   openGraph: {
@@ -30,23 +31,23 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: 'https://crazystream.gg',
     siteName: 'CrazyStream',
-    title: 'CrazyStream — Ultra Low Latency Game Streaming',
+    title: 'CRAZYSTREAM — Cloud Gaming, Unlocked.',
     description:
-      'Stream games with near-zero latency. P2P direct connection with adaptive quality. 4K@60, 1440p@144, 1080p@240 supported.',
+      'One hub. Multiple apps. Secure, low-latency cloud gaming anywhere. Sub-15ms latency, 4K@60 HDR, 240 FPS, P2P encrypted.',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'CrazyStream - Ultra Low Latency Game Streaming',
+        alt: 'CrazyStream — Cloud Gaming, Unlocked.',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'CrazyStream — Ultra Low Latency Game Streaming',
+    title: 'CRAZYSTREAM — Cloud Gaming, Unlocked.',
     description:
-      'Stream games with near-zero latency. P2P direct connection with adaptive quality.',
+      'One hub. Multiple apps. Secure, low-latency cloud gaming anywhere.',
     images: ['/og-image.png'],
   },
   robots: {
@@ -62,15 +63,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`dark ${inter.variable}`}>
-      <body className="min-h-screen bg-cs-dark text-white antialiased font-sans relative">
+      <body
+        className={`${inter.variable} font-sans bg-cs-dark text-white antialiased`}
+      >
         {/* Noise texture overlay */}
         <div className="fixed inset-0 bg-noise pointer-events-none z-[1] opacity-50" />
 
         {/* Main content */}
         <div className="relative z-[2]">
-          <Navbar />
-          <main className="pt-16">{children}</main>
-          <Footer />
+          <MarketingShell>{children}</MarketingShell>
         </div>
       </body>
     </html>

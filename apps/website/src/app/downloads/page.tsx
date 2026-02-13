@@ -1,231 +1,663 @@
-import type { Metadata } from 'next';
-import DownloadCard from '@/components/DownloadCard';
+'use client';
+
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import {
+  Monitor,
+  Laptop,
+  Smartphone,
+  Globe,
+  Download,
+  Copy,
+  Shield,
+  FileText,
+  HelpCircle,
+  AlertTriangle,
+  ExternalLink,
+  Check,
+} from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
+import { cn } from '@/lib/utils';
 import Button from '@/components/Button';
 
-export const metadata: Metadata = {
-  title: 'Downloads — CrazyStream',
-  description:
-    'Download CrazyStream Host and Client for Windows. Stream games with ultra low latency using NVIDIA hardware acceleration.',
+/* -------------------------------------------------------------------------- */
+/*  Constants                                                                  */
+/* -------------------------------------------------------------------------- */
+
+const VERSION = 'v0.2.1-alpha';
+const BASE_URL = 'https://releases.crazystream.dev';
+
+/* -------------------------------------------------------------------------- */
+/*  Platform Icons                                                             */
+/* -------------------------------------------------------------------------- */
+
+function AppleIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+    >
+      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
+    </svg>
+  );
+}
+
+function WindowsIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+    >
+      <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801" />
+    </svg>
+  );
+}
+
+function PlayStoreIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 0 1-.61-.92V2.734a1 1 0 0 1 .609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.199l2.302 2.302a1 1 0 0 1 0 1.38l-2.302 2.302L15.092 12l2.606-2.492zM5.864 2.658L16.8 8.99l-2.302 2.302L5.864 2.658z" />
+    </svg>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Animation Variants                                                         */
+/* -------------------------------------------------------------------------- */
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 30 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, delay: i * 0.08 },
+  }),
+};
+
+const sectionFade = {
+  hidden: { opacity: 0, y: 40 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6 },
+  },
 };
 
 /* -------------------------------------------------------------------------- */
-/*  Icons                                                                     */
+/*  Data Types                                                                 */
 /* -------------------------------------------------------------------------- */
 
-function HostIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-      <line x1="8" y1="21" x2="16" y2="21" />
-      <line x1="12" y1="17" x2="12" y2="21" />
-      <circle cx="12" cy="10" r="3" />
-    </svg>
-  );
-}
-
-function ClientIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-      <line x1="12" y1="18" x2="12.01" y2="18" />
-    </svg>
-  );
-}
-
-function MacIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 5-4 5-6s-1.5-2-2-2c-1 0-1.5.5-3 .5s-2-.5-3-.5-2 0-3 .5-2-.5-3-.5c-.5 0-2 0-2 2s2 6 5 6c1.25 0 2.5-1.06 4-1.06z" />
-      <path d="M10 2c1 .5 2 2 2 5" />
-    </svg>
-  );
-}
-
-function AndroidIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="5" y="11" width="14" height="10" rx="2" />
-      <path d="M8 2l2 4" />
-      <path d="M16 2l-2 4" />
-      <path d="M5 6h14" />
-      <circle cx="9" cy="8" r="0.5" fill="currentColor" />
-      <circle cx="15" cy="8" r="0.5" fill="currentColor" />
-    </svg>
-  );
+interface DownloadItem {
+  platform: string;
+  ext: string;
+  icon: React.ReactNode;
+  version: string;
+  size: string;
+  sha256: string;
+  href: string;
+  disabled?: boolean;
+  comingSoon?: boolean;
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Page                                                                      */
+/*  Host Downloads                                                             */
 /* -------------------------------------------------------------------------- */
 
-const BASE_URL = 'https://storage.googleapis.com/crazystream-releases/v0.1.0';
+const hostDownloads: DownloadItem[] = [
+  {
+    platform: 'Windows Host',
+    ext: '.exe',
+    icon: <Monitor className="w-6 h-6" />,
+    version: VERSION,
+    size: '~48 MB',
+    sha256: 'a1b2c3d4e5f60718293a4b5c6d7e8f9001122334455667788990aabbccddeeff',
+    href: `${BASE_URL}/windows/CrazyStreamHost-${VERSION}-win64.exe`,
+  },
+  {
+    platform: 'Linux Host',
+    ext: '.deb',
+    icon: <Laptop className="w-6 h-6" />,
+    version: VERSION,
+    size: '~42 MB',
+    sha256: 'b2c3d4e5f6071829a3b4c5d6e7f8091a12233445566778899a0bbccddee0ff11',
+    href: `${BASE_URL}/linux/CrazyStreamHost-${VERSION}-amd64.deb`,
+  },
+  {
+    platform: 'macOS Host',
+    ext: '.pkg',
+    icon: <AppleIcon className="w-6 h-6" />,
+    version: VERSION,
+    size: '~45 MB',
+    sha256: 'c3d4e5f607182a93b4c5d6e7f809a1b223344556677889a90bccddee0f112233',
+    href: `${BASE_URL}/macos/CrazyStreamHost-${VERSION}-universal.pkg`,
+  },
+];
+
+/* -------------------------------------------------------------------------- */
+/*  Client Downloads                                                           */
+/* -------------------------------------------------------------------------- */
+
+const clientDownloads: DownloadItem[] = [
+  {
+    platform: 'Windows Client',
+    ext: '.exe',
+    icon: <Monitor className="w-6 h-6" />,
+    version: VERSION,
+    size: '~35 MB',
+    sha256: 'd4e5f6071829a3b4c5d6e7f8091a2b33445566778899a0bbccddee0ff1122334',
+    href: `${BASE_URL}/windows/CrazyStreamClient-${VERSION}-win64.exe`,
+  },
+  {
+    platform: 'macOS Client',
+    ext: '.dmg',
+    icon: <AppleIcon className="w-6 h-6" />,
+    version: VERSION,
+    size: '~38 MB',
+    sha256: 'e5f60718293a4b5c6d7e8f90a1b2c344556677889a90bbccddeeff001122334455',
+    href: `${BASE_URL}/macos/CrazyStreamClient-${VERSION}-universal.dmg`,
+  },
+  {
+    platform: 'Linux Client',
+    ext: '.AppImage',
+    icon: <Laptop className="w-6 h-6" />,
+    version: VERSION,
+    size: '~40 MB',
+    sha256: 'f607182a93b4c5d6e7f809a1b2c3d445566778899a0bbccddee0ff11223344556',
+    href: `${BASE_URL}/linux/CrazyStreamClient-${VERSION}-x86_64.AppImage`,
+  },
+  {
+    platform: 'Android Client',
+    ext: '.apk',
+    icon: <Smartphone className="w-6 h-6" />,
+    version: VERSION,
+    size: '~25 MB',
+    sha256: '071829a3b4c5d6e7f809a1b2c3d4e556677889a90bbccddee0ff1122334455667',
+    href: `${BASE_URL}/android/CrazyStream-${VERSION}.apk`,
+  },
+  {
+    platform: 'Web Client',
+    ext: '',
+    icon: <Globe className="w-6 h-6" />,
+    version: VERSION,
+    size: '',
+    sha256: '',
+    href: '#',
+    disabled: true,
+    comingSoon: true,
+  },
+];
+
+/* -------------------------------------------------------------------------- */
+/*  Download Card Component                                                    */
+/* -------------------------------------------------------------------------- */
+
+function DownloadCardFull({
+  item,
+  index,
+}: {
+  item: DownloadItem;
+  index: number;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = () => {
+    if (item.disabled) return;
+    navigator.clipboard.writeText(item.href).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <motion.div
+      custom={index}
+      variants={fadeInUp}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: '-40px' }}
+      className={cn(
+        'gradient-border gradient-border-hover group relative overflow-hidden p-6 flex flex-col h-full transition-all duration-500',
+        item.disabled
+          ? 'opacity-50 pointer-events-none'
+          : 'hover:-translate-y-1 hover:shadow-card-hover'
+      )}
+    >
+      {/* Top accent line */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cs-green/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+      {/* Coming Soon badge */}
+      {item.comingSoon && (
+        <div className="absolute top-4 right-4 px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/30">
+          <span className="text-[10px] font-bold text-amber-400 tracking-widest uppercase">
+            Coming Soon
+          </span>
+        </div>
+      )}
+
+      {/* Header: Icon + Platform */}
+      <div className="flex items-start gap-4 mb-5">
+        <div className="relative w-12 h-12 rounded-xl bg-cs-green/10 border border-cs-green/20 flex items-center justify-center shrink-0 text-cs-green group-hover:border-cs-green/40 transition-all duration-300">
+          {item.icon}
+          <div className="absolute inset-0 rounded-xl bg-cs-green/0 group-hover:bg-cs-green/10 blur-xl transition-all duration-500" />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-white tracking-tight">
+            {item.platform}
+          </h3>
+          {item.ext && (
+            <p className="text-sm text-cs-gray-400 font-mono mt-0.5">
+              {item.ext}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Version + Alpha badges */}
+      <div className="flex items-center gap-2 mb-5">
+        <span className="px-2.5 py-1 rounded-md bg-cs-green/[0.08] border border-cs-green/15 text-xs font-mono font-medium text-cs-green">
+          {item.version}
+        </span>
+        <span className="px-2.5 py-1 rounded-md bg-amber-500/[0.08] border border-amber-500/15 text-xs font-medium text-amber-400">
+          Alpha
+        </span>
+      </div>
+
+      {/* File size */}
+      {item.size && (
+        <div className="flex items-center gap-2 mb-5 text-sm text-cs-gray-300">
+          <FileText className="w-4 h-4 text-cs-gray-500" />
+          <span>{item.size}</span>
+        </div>
+      )}
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Download button */}
+      <div className="mb-3">
+        {item.comingSoon ? (
+          <button
+            disabled
+            className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold rounded-xl bg-white/[0.04] border border-white/[0.08] text-cs-gray-500 cursor-not-allowed"
+          >
+            <Globe className="w-4 h-4" />
+            Coming Soon
+          </button>
+        ) : (
+          <Button
+            href={item.href}
+            variant="primary"
+            size="md"
+            className="w-full"
+            external
+          >
+            <Download className="w-4 h-4" />
+            Download
+          </Button>
+        )}
+      </div>
+
+      {/* Copy Link button */}
+      {!item.comingSoon && (
+        <button
+          onClick={handleCopyLink}
+          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-white/[0.08] text-cs-gray-300 hover:text-white hover:border-cs-green/30 hover:bg-cs-green/5 transition-all duration-200"
+        >
+          {copied ? (
+            <>
+              <Check className="w-4 h-4 text-cs-green" />
+              <span className="text-cs-green">Copied!</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-4 h-4" />
+              Copy Link
+            </>
+          )}
+        </button>
+      )}
+
+      {/* SHA256 hash */}
+      {item.sha256 && (
+        <div className="mt-4 pt-4 border-t border-white/[0.04]">
+          <p className="text-[10px] font-mono text-cs-gray-500 break-all leading-relaxed">
+            <span className="text-cs-gray-400">SHA256:</span>{' '}
+            {item.sha256}
+          </p>
+        </div>
+      )}
+
+      {/* Release Notes link */}
+      {!item.comingSoon && (
+        <a
+          href="https://github.com/crazystream/crazystream/releases"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-flex items-center gap-1.5 text-xs text-cs-gray-400 hover:text-cs-green transition-colors duration-200"
+        >
+          <ExternalLink className="w-3 h-3" />
+          Release Notes
+        </a>
+      )}
+    </motion.div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Page Component                                                             */
+/* -------------------------------------------------------------------------- */
 
 export default function DownloadsPage() {
   return (
     <>
-      {/* Header */}
+      {/* ================================================================ */}
+      {/*  HERO HEADER                                                     */}
+      {/* ================================================================ */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-hero-glow" />
+        <div className="absolute inset-0 bg-hero-glow-intense" />
         <div className="absolute inset-0 grid-overlay opacity-30 mask-fade-b" />
+        <div className="orb orb-green w-[500px] h-[500px] top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse-glow" />
 
         <div className="relative section-padding pt-24 sm:pt-32 pb-16">
-          <div className="max-w-3xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="max-w-3xl mx-auto text-center"
+          >
             <p className="text-xs text-cs-green uppercase tracking-[0.2em] font-semibold mb-4">
               Get Started
             </p>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-5">
-              Download <span className="text-gradient">CrazyStream</span>
+              Download{' '}
+              <span className="text-gradient">CRAZYSTREAM</span>
             </h1>
             <p className="text-lg text-cs-gray-200 max-w-xl mx-auto leading-relaxed">
-              Get the Host for your gaming PC and the Client for the device you
-              want to stream to.
+              Install the Host on your gaming PC and the Client on the
+              device you want to stream to. Available for all major
+              platforms.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ================================================================ */}
+      {/*  HOST DOWNLOADS                                                  */}
+      {/* ================================================================ */}
+      <section className="section-padding py-16 sm:py-20 relative">
+        <div className="absolute inset-0 dot-overlay opacity-20 mask-fade-y pointer-events-none" />
+
+        <div className="relative max-w-6xl mx-auto">
+          <motion.div
+            variants={sectionFade}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-cs-green/20 mb-6">
+              <Monitor className="w-4 h-4 text-cs-green" />
+              <span className="text-xs font-semibold text-cs-green tracking-wide uppercase">
+                Server Side
+              </span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">
+              Host Application
+            </h2>
+            <p className="text-cs-gray-300 max-w-lg mx-auto">
+              Install on the machine streaming your games. Requires an
+              NVIDIA GPU with NvFBC / NVENC support.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {hostDownloads.map((item, i) => (
+              <DownloadCardFull key={item.platform} item={item} index={i} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ================================================================ */}
+      {/*  HOST / CLIENT NOTE                                              */}
+      {/* ================================================================ */}
+      <motion.div
+        variants={sectionFade}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true }}
+        className="section-padding"
+      >
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-center gap-4 px-6 py-4 rounded-xl glass border border-white/[0.06]">
+            <div className="w-2 h-2 rounded-full bg-cs-green shrink-0" />
+            <p className="text-sm text-cs-gray-300">
+              <span className="text-white font-medium">Host</span> runs on
+              the machine streaming the game.{' '}
+              <span className="text-white font-medium">Client</span>{' '}
+              connects remotely to receive the stream.
             </p>
           </div>
         </div>
-      </section>
+      </motion.div>
 
-      {/* Platform detection */}
-      <section className="section-padding pb-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl glass border border-white/[0.06] w-fit mx-auto">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-blue-400">
-              <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801" />
-            </svg>
-            <span className="text-sm text-cs-gray-200">
-              Available for <span className="text-white font-semibold">Windows 10/11 (x64)</span>
-            </span>
-            <span className="text-cs-gray-600 mx-1">|</span>
-            <span className="text-sm text-cs-gray-400">
-              macOS, Linux &amp; Android coming soon
-            </span>
+      {/* ================================================================ */}
+      {/*  CLIENT DOWNLOADS                                                */}
+      {/* ================================================================ */}
+      <section className="section-padding py-16 sm:py-20 relative">
+        <div className="absolute inset-0 grid-overlay opacity-20 mask-fade-y pointer-events-none" />
+
+        <div className="relative max-w-6xl mx-auto">
+          <motion.div
+            variants={sectionFade}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-cs-green/20 mb-6">
+              <Smartphone className="w-4 h-4 text-cs-green" />
+              <span className="text-xs font-semibold text-cs-green tracking-wide uppercase">
+                Client Side
+              </span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">
+              Client Applications
+            </h2>
+            <p className="text-cs-gray-300 max-w-lg mx-auto">
+              Install on the device you want to stream TO. Supports
+              desktop, mobile, and web.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {clientDownloads.map((item, i) => (
+              <DownloadCardFull key={item.platform} item={item} index={i} />
+            ))}
           </div>
-        </div>
-      </section>
 
-      {/* Download cards */}
-      <section className="section-padding pb-16 sm:pb-20">
-        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-          <DownloadCard
-            title="CrazyStream Host"
-            subtitle="Install on the machine you want to stream FROM"
-            version="v0.1.0-alpha"
-            downloadUrl={`${BASE_URL}/CrazyStreamHost-v0.1.0-win64.exe`}
-            downloadLabel="Download Host (.exe)"
-            icon={<HostIcon />}
-            requirements={[
-              { label: 'OS', value: 'Windows 10/11 (x64)' },
-              { label: 'GPU', value: 'NVIDIA GTX 900 series or newer' },
-              { label: 'RAM', value: '8 GB minimum' },
-              { label: 'Driver', value: 'NVIDIA 535+ recommended' },
-              { label: 'Network', value: '20 Mbps upload minimum' },
-            ]}
-            checksum="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-          />
-          <DownloadCard
-            title="CrazyStream Client"
-            subtitle="Install on the machine you want to stream TO"
-            version="v0.1.0-alpha"
-            downloadUrl={`${BASE_URL}/CrazyStreamClient-v0.1.0-win64.exe`}
-            downloadLabel="Download Client (.exe)"
-            icon={<ClientIcon />}
-            requirements={[
-              { label: 'OS', value: 'Windows 10/11 (x64)' },
-              { label: 'GPU', value: 'Any GPU with hardware decode' },
-              { label: 'RAM', value: '4 GB minimum' },
-              { label: 'Display', value: 'Up to 4K@60 or 1080p@240' },
-              { label: 'Network', value: '20 Mbps download minimum' },
-            ]}
-            checksum="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-          />
-        </div>
-      </section>
-
-      {/* Coming Soon Platforms */}
-      <section className="section-padding pb-16 sm:pb-20">
-        <div className="max-w-4xl mx-auto">
-          <div className="section-divider mb-12" />
-          <h2 className="text-center text-xl font-bold text-white mb-8 tracking-tight">
-            Coming Soon
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {/* macOS Client */}
-            <div className="gradient-border p-6 flex items-center gap-5 opacity-60">
-              <div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shrink-0 text-cs-gray-400">
-                <MacIcon />
-              </div>
-              <div>
-                <h3 className="text-base font-semibold text-cs-gray-200">macOS Client</h3>
-                <p className="text-xs text-cs-gray-500 mt-0.5">Native Metal rendering &bull; VideoToolbox decode</p>
-              </div>
-              <div className="ml-auto px-3 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06]">
-                <span className="text-[10px] font-semibold text-cs-gray-400 uppercase tracking-widest">Soon</span>
-              </div>
+          {/* ============================================================ */}
+          {/*  ANDROID SPECIFIC SECTION                                    */}
+          {/* ============================================================ */}
+          <motion.div
+            variants={sectionFade}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="mt-10"
+          >
+            {/* Android Warning Banner */}
+            <div className="info-box info-box-warning flex items-start gap-3 mb-8">
+              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <p className="text-sm text-cs-gray-200">
+                <span className="font-semibold text-amber-400">
+                  Android Sideloading:
+                </span>{' '}
+                Install from trusted sources only. Verify the SHA256 hash
+                before installing to ensure the APK has not been tampered
+                with.
+              </p>
             </div>
 
-            {/* Android Client */}
-            <div className="gradient-border p-6 flex items-center gap-5 opacity-60">
-              <div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shrink-0 text-cs-gray-400">
-                <AndroidIcon />
+            {/* QR Code + Google Play */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
+              {/* QR Code Card */}
+              <div className="gradient-border p-6 flex flex-col items-center text-center">
+                <h4 className="text-sm font-semibold text-white mb-4 tracking-tight">
+                  Scan to Download APK
+                </h4>
+                <div className="bg-white rounded-xl p-3 mb-4">
+                  <QRCodeSVG
+                    value={`${BASE_URL}/android/CrazyStream-${VERSION}.apk`}
+                    size={140}
+                    level="M"
+                    bgColor="#FFFFFF"
+                    fgColor="#0A0A0A"
+                  />
+                </div>
+                <p className="text-[11px] text-cs-gray-500 font-mono break-all">
+                  {BASE_URL}/android/CrazyStream-{VERSION}.apk
+                </p>
               </div>
-              <div>
-                <h3 className="text-base font-semibold text-cs-gray-200">Android App</h3>
-                <p className="text-xs text-cs-gray-500 mt-0.5">Touch controls &bull; Xbox gamepad overlay</p>
-              </div>
-              <div className="ml-auto px-3 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06]">
-                <span className="text-[10px] font-semibold text-cs-gray-400 uppercase tracking-widest">Soon</span>
+
+              {/* Google Play Card */}
+              <div className="gradient-border p-6 flex flex-col items-center justify-center text-center">
+                <h4 className="text-sm font-semibold text-white mb-3 tracking-tight">
+                  Prefer the Play Store?
+                </h4>
+                <p className="text-xs text-cs-gray-400 mb-6">
+                  Automatic updates and verified installs.
+                </p>
+                <a
+                  href="https://play.google.com/store/apps/details?id=dev.crazystream.client"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl bg-white/[0.06] border border-white/[0.1] hover:border-cs-green/30 hover:bg-cs-green/5 transition-all duration-300"
+                >
+                  <PlayStoreIcon />
+                  <div className="text-left">
+                    <span className="block text-[10px] text-cs-gray-400 uppercase tracking-wider leading-none">
+                      Get it on
+                    </span>
+                    <span className="block text-sm font-semibold text-white leading-tight">
+                      Google Play
+                    </span>
+                  </div>
+                </a>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* Additional info */}
-      <section className="section-padding pb-24 sm:pb-32">
+      {/* ================================================================ */}
+      {/*  SECURITY NOTE                                                   */}
+      {/* ================================================================ */}
+      <motion.section
+        variants={sectionFade}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true }}
+        className="section-padding pb-12"
+      >
+        <div className="max-w-4xl mx-auto">
+          <div className="info-box info-box-warning flex items-start gap-4">
+            <Shield className="w-6 h-6 text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-sm font-bold text-amber-400 mb-1">
+                Security Notice
+              </h3>
+              <p className="text-sm text-cs-gray-300 leading-relaxed">
+                Never expose private hosts directly to the internet. Use
+                the CrazyStream relay service or secure tunnel
+                configurations for remote connections. All traffic is
+                encrypted with DTLS 1.2 by default.
+              </p>
+            </div>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* ================================================================ */}
+      {/*  VERIFY YOUR DOWNLOAD                                            */}
+      {/* ================================================================ */}
+      <section className="section-padding py-16 sm:py-20">
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Verify downloads */}
-            <div className="gradient-border p-6 sm:p-8">
+            {/* Verify Section */}
+            <motion.div
+              variants={sectionFade}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="gradient-border p-6 sm:p-8"
+            >
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2.5 tracking-tight">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cs-green">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                </svg>
+                <Shield className="w-5 h-5 text-cs-green" />
                 Verify Your Download
               </h3>
               <p className="text-sm text-cs-gray-300 mb-5 leading-relaxed">
-                Always verify the SHA-256 checksum of your download to ensure file integrity.
+                Always verify the SHA-256 checksum to ensure file integrity
+                and authenticity.
               </p>
-              <div className="code-block">
-                <div className="code-block-header">PowerShell</div>
-                <pre className="p-4">
+
+              {/* PowerShell */}
+              <div className="code-block mb-4">
+                <div className="code-block-header">PowerShell (Windows)</div>
+                <pre>
                   <code className="text-sm font-mono text-cs-gray-200">
-                    Get-FileHash .\CrazyStreamHost-v0.1.0-win64.exe
+{`Get-FileHash .\\CrazyStreamHost-${VERSION}-win64.exe -Algorithm SHA256`}
                   </code>
                 </pre>
               </div>
-            </div>
 
-            {/* Need help */}
-            <div className="gradient-border p-6 sm:p-8">
+              {/* Bash */}
+              <div className="code-block">
+                <div className="code-block-header">bash (macOS / Linux)</div>
+                <pre>
+                  <code className="text-sm font-mono text-cs-gray-200">
+{`sha256sum CrazyStreamHost-${VERSION}-amd64.deb`}
+                  </code>
+                </pre>
+              </div>
+            </motion.div>
+
+            {/* Need Help */}
+            <motion.div
+              variants={sectionFade}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="gradient-border p-6 sm:p-8"
+            >
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2.5 tracking-tight">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cs-green">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                  <line x1="12" y1="17" x2="12.01" y2="17" />
-                </svg>
+                <HelpCircle className="w-5 h-5 text-cs-green" />
                 Need Help?
               </h3>
-              <p className="text-sm text-cs-gray-300 mb-5 leading-relaxed">
-                Check out the documentation for setup instructions, troubleshooting, and configuration guides.
+              <p className="text-sm text-cs-gray-300 mb-6 leading-relaxed">
+                Check out the documentation for setup instructions,
+                troubleshooting guides, and configuration references.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col gap-3">
                 <Button href="/docs/" variant="ghost" size="sm" showArrow>
-                  Quick Start Guide
+                  Setup Documentation
                 </Button>
-                <Button href="https://github.com/crazystream/crazystream/issues" variant="ghost" size="sm" external>
-                  Report an Issue
+                <Button
+                  href="https://github.com/crazystream/crazystream/issues"
+                  variant="ghost"
+                  size="sm"
+                  external
+                >
+                  Report an Issue on GitHub
                 </Button>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>

@@ -1,112 +1,41 @@
-import Button from '@/components/Button';
-import FeatureCard from '@/components/FeatureCard';
-import GamingModes from '@/components/GamingModes';
+'use client';
+
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+import {
+  Zap,
+  Shield,
+  Monitor,
+  Settings2,
+  Terminal,
+  Cloud,
+  Download,
+  ArrowRight,
+  Github,
+  Server,
+  Smartphone,
+} from 'lucide-react';
 
 /* -------------------------------------------------------------------------- */
-/*  SVG Icons                                                                  */
+/*  Animation helpers                                                          */
 /* -------------------------------------------------------------------------- */
 
-function BoltIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-    </svg>
-  );
-}
-
-function WaveIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-    </svg>
-  );
-}
-
-function GamepadIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="6" y1="12" x2="10" y2="12" />
-      <line x1="8" y1="10" x2="8" y2="14" />
-      <line x1="15" y1="13" x2="15.01" y2="13" />
-      <line x1="18" y1="11" x2="18.01" y2="11" />
-      <rect x="2" y="6" width="20" height="12" rx="2" />
-    </svg>
-  );
-}
-
-function MonitorIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-      <line x1="8" y1="21" x2="16" y2="21" />
-      <line x1="12" y1="17" x2="12" y2="21" />
-    </svg>
-  );
-}
-
-function ArrowRightIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="5" y1="12" x2="19" y2="12" />
-      <polyline points="12 5 19 12 12 19" />
-    </svg>
-  );
-}
-
-function DownloadIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="7 10 12 15 17 10" />
-      <line x1="12" y1="15" x2="12" y2="3" />
-    </svg>
-  );
-}
-
-function LinkIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-    </svg>
-  );
-}
-
-function PlayIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="5 3 19 12 5 21 5 3" />
-    </svg>
-  );
-}
-
-function ShieldIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
-  );
-}
-
-function GitHubIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
-    </svg>
-  );
-}
+const fadeInUp = {
+  initial: { opacity: 0, y: 30 },
+  animate: { opacity: 1, y: 0 },
+};
 
 /* -------------------------------------------------------------------------- */
-/*  Stat Item for Hero                                                        */
+/*  Hero Stat                                                                  */
 /* -------------------------------------------------------------------------- */
 
 function HeroStat({ value, label }: { value: string; label: string }) {
   return (
-    <div className="flex flex-col items-center gap-1">
-      <span className="text-2xl sm:text-3xl font-bold text-white font-mono tracking-tight">
+    <div className="flex flex-col items-center gap-1 px-4 sm:px-6">
+      <span className="text-xl sm:text-2xl font-bold text-white font-mono tracking-tight">
         {value}
       </span>
-      <span className="text-[11px] sm:text-xs text-cs-gray-400 uppercase tracking-wider font-medium">
+      <span className="text-[10px] sm:text-xs text-cs-gray-400 uppercase tracking-wider font-medium">
         {label}
       </span>
     </div>
@@ -114,118 +43,145 @@ function HeroStat({ value, label }: { value: string; label: string }) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Resolution Card                                                           */
+/*  Feature Card (inline for this page)                                        */
 /* -------------------------------------------------------------------------- */
 
-interface ResolutionCardProps {
-  resolution: string;
-  fps: string;
-  codec: string;
-  highlight?: boolean;
-  badge?: string;
+interface FeatureItemProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  delay?: number;
 }
 
-function ResolutionCard({ resolution, fps, codec, highlight = false, badge }: ResolutionCardProps) {
+function FeatureItem({ icon, title, description, delay = 0 }: FeatureItemProps) {
   return (
-    <div className={`gradient-border ${highlight ? '' : 'gradient-border-hover'} group relative overflow-hidden p-8 text-center transition-all duration-500 ${highlight ? 'glow-green-intense scale-105 z-10' : 'hover:-translate-y-1 hover:shadow-card-hover'}`}>
-      {/* Scan line effect */}
-      {highlight && <div className="absolute inset-0 scan-line-effect pointer-events-none" />}
+    <motion.div
+      variants={fadeInUp}
+      initial="initial"
+      whileInView="animate"
+      viewport={{ once: true }}
+      transition={{ duration: 0.5, delay }}
+      className="gradient-border gradient-border-hover group relative overflow-hidden p-6 sm:p-8 transition-all duration-500 hover:-translate-y-1 hover:shadow-card-hover"
+    >
+      {/* Top accent line */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cs-green/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-      {/* Badge */}
-      {badge && (
-        <div className="absolute top-4 right-4 px-2.5 py-1 rounded-md bg-cs-green/10 border border-cs-green/30">
-          <span className="text-[10px] font-bold text-cs-green tracking-widest uppercase">{badge}</span>
-        </div>
-      )}
-
-      {/* Top glow line */}
-      <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent ${highlight ? 'via-cs-green' : 'via-cs-green/40'} to-transparent ${highlight ? 'opacity-80' : 'opacity-0 group-hover:opacity-100'} transition-opacity duration-500`} />
+      {/* Subtle gradient hover overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-cs-green/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
       <div className="relative z-10">
-        <div className={`text-4xl sm:text-5xl font-extrabold mb-2 tracking-tight ${highlight ? 'text-gradient' : 'text-white'}`}>
-          {resolution}
+        {/* Icon container */}
+        <div className="relative w-14 h-14 rounded-xl bg-cs-green/10 border border-cs-green/20 flex items-center justify-center mb-6 group-hover:border-cs-green/40 group-hover:bg-cs-green/15 transition-all duration-300">
+          <div className="text-cs-green">{icon}</div>
+          <div className="absolute inset-0 rounded-xl bg-cs-green/0 group-hover:bg-cs-green/10 blur-xl transition-all duration-500" />
         </div>
-        <div className="text-3xl sm:text-4xl font-bold text-white mb-4 font-mono">
-          @{fps}
-        </div>
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.06]">
-          <div className={`w-1.5 h-1.5 rounded-full ${highlight ? 'bg-cs-green animate-pulse-slow' : 'bg-cs-gray-400'}`} />
-          <span className="text-xs font-mono font-medium text-cs-gray-200">{codec}</span>
-        </div>
+
+        <h3 className="text-lg font-bold text-white mb-3 tracking-tight">
+          {title}
+        </h3>
+        <p className="text-sm text-cs-gray-300 leading-relaxed">{description}</p>
       </div>
+    </motion.div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Architecture Node                                                          */
+/* -------------------------------------------------------------------------- */
+
+function ArchNode({
+  label,
+  sublabel,
+  icon,
+}: {
+  label: string;
+  sublabel: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <div className="glass gradient-border w-24 h-24 sm:w-28 sm:h-28 flex flex-col items-center justify-center gap-2 rounded-2xl">
+        <div className="text-cs-green">{icon}</div>
+        <span className="text-xs font-bold text-white tracking-tight">
+          {label}
+        </span>
+      </div>
+      <span className="text-[10px] text-cs-gray-400 uppercase tracking-widest font-medium">
+        {sublabel}
+      </span>
     </div>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Pipeline Step                                                             */
+/*  Step Card                                                                  */
 /* -------------------------------------------------------------------------- */
 
-function PipelineStep({ label, time, icon, isLast = false }: { label: string; time: string; icon: string; isLast?: boolean }) {
+function StepCard({
+  number,
+  title,
+  description,
+  delay = 0,
+}: {
+  number: number;
+  title: string;
+  description: string;
+  delay?: number;
+}) {
   return (
-    <div className="flex items-center gap-0 flex-1">
-      <div className="flex flex-col items-center text-center gap-2 flex-1">
-        <div className="w-12 h-12 rounded-xl bg-cs-green/10 border border-cs-green/20 flex items-center justify-center text-xl">
-          {icon}
-        </div>
-        <span className="text-xs font-medium text-cs-gray-200">{label}</span>
-        <span className="text-[11px] font-mono text-cs-green font-semibold">{time}</span>
-      </div>
-      {!isLast && (
-        <div className="flex-shrink-0 w-8 sm:w-12 flex items-center justify-center -mt-8">
-          <div className="w-full h-px bg-gradient-to-r from-cs-green/40 to-cs-green/40 relative">
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-l-[6px] border-l-cs-green/40 border-y-[3px] border-y-transparent" />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/*  Step Card (How It Works)                                                  */
-/* -------------------------------------------------------------------------- */
-
-function StepCard({ number, title, description, icon }: { number: number; title: string; description: string; icon: React.ReactNode }) {
-  return (
-    <div className="relative flex flex-col items-center text-center group">
-      {/* Number badge */}
+    <motion.div
+      variants={fadeInUp}
+      initial="initial"
+      whileInView="animate"
+      viewport={{ once: true }}
+      transition={{ duration: 0.5, delay }}
+      className="relative flex flex-col items-center text-center"
+    >
       <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-cs-green text-cs-dark text-xs font-bold flex items-center justify-center z-20 shadow-glow-sm">
         {number}
       </div>
-      {/* Icon */}
-      <div className="relative w-16 h-16 rounded-2xl bg-cs-green/10 border border-cs-green/20 flex items-center justify-center mb-6 text-cs-green group-hover:border-cs-green/40 transition-all duration-300">
-        {icon}
-        <div className="absolute inset-0 rounded-2xl bg-cs-green/0 group-hover:bg-cs-green/10 blur-xl transition-all duration-500" />
+      <div className="w-16 h-16 rounded-2xl bg-cs-green/10 border border-cs-green/20 flex items-center justify-center mb-6 text-cs-green">
+        {number === 1 && <Server size={24} />}
+        {number === 2 && <Zap size={24} />}
+        {number === 3 && <Monitor size={24} />}
       </div>
-      <h3 className="text-lg font-bold text-white mb-3 tracking-tight">{title}</h3>
-      <p className="text-sm text-cs-gray-300 leading-relaxed max-w-xs">{description}</p>
-    </div>
+      <h3 className="text-lg font-bold text-white mb-3 tracking-tight">
+        {title}
+      </h3>
+      <p className="text-sm text-cs-gray-300 leading-relaxed max-w-xs">
+        {description}
+      </p>
+    </motion.div>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Tech Badge                                                                */
+/*  Windows Icon (inline SVG)                                                  */
 /* -------------------------------------------------------------------------- */
 
-function TechBadge({ label, sublabel }: { label: string; sublabel: string }) {
+function WindowsIcon({ className }: { className?: string }) {
   return (
-    <div className="flex flex-col items-center gap-1.5 px-6 py-4">
-      <span className="text-sm font-bold text-white tracking-tight">{label}</span>
-      <span className="text-[10px] text-cs-gray-400 uppercase tracking-widest">{sublabel}</span>
-    </div>
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+    >
+      <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801" />
+    </svg>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Page                                                                      */
+/*  Page                                                                       */
 /* -------------------------------------------------------------------------- */
 
 export default function HomePage() {
   return (
     <>
       {/* ================================================================== */}
-      {/*  HERO                                                              */}
+      {/*  HERO SECTION                                                      */}
       {/* ================================================================== */}
       <section className="relative overflow-hidden min-h-[90vh] flex items-center">
         {/* Background layers */}
@@ -234,63 +190,92 @@ export default function HomePage() {
 
         {/* Floating orbs */}
         <div className="orb orb-green w-[600px] h-[600px] top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse-glow" />
-        <div className="orb orb-green-dim w-[400px] h-[400px] top-3/4 left-1/4 animate-float-slow animation-delay-200" />
+        <div className="orb orb-green-dim w-[400px] h-[400px] top-3/4 left-[15%] animate-float-slow animation-delay-200" />
         <div className="orb orb-green-dim w-[300px] h-[300px] top-1/3 right-[10%] animate-float-slower animation-delay-600" />
 
         <div className="relative section-padding w-full pt-20 sm:pt-28 lg:pt-32 pb-16 sm:pb-24">
           <div className="max-w-5xl mx-auto text-center">
-            {/* Version badge */}
-            <div className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full glass border border-cs-green/20 mb-10 animate-fade-in">
-              <div className="relative w-2 h-2">
-                <div className="absolute inset-0 rounded-full bg-cs-green animate-pulse-slow" />
-                <div className="absolute inset-0 rounded-full bg-cs-green/40 animate-ping" style={{ animationDuration: '3s' }} />
-              </div>
-              <span className="text-xs font-semibold text-cs-green tracking-wide">
-                v0.1.0-alpha &mdash; Now Available
-              </span>
-            </div>
-
             {/* Main headline */}
-            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold tracking-tight leading-[1.05] mb-8 animate-fade-in-up">
-              Stream Games.
-              <br />
-              <span className="text-gradient">Zero Lag.</span>
-            </h1>
+            <motion.h1
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, ease: 'easeOut' }}
+              className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold tracking-tighter leading-[0.95] mb-6"
+            >
+              <span className="text-gradient">CRAZYSTREAM</span>
+            </motion.h1>
 
-            {/* Subtitle */}
-            <p className="text-lg sm:text-xl text-cs-gray-200 max-w-2xl mx-auto mb-5 leading-relaxed animate-fade-in-up animation-delay-200">
-              Ultra low latency game streaming powered by{' '}
-              <span className="text-white font-semibold">NvFBC + NVENC</span>{' '}
-              hardware pipeline. P2P direct connection with AI-powered adaptive quality.
-            </p>
+            {/* Tagline */}
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.15 }}
+              className="text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-tight mb-4"
+            >
+              Cloud Gaming, Unlocked.
+            </motion.p>
 
-            <p className="text-sm text-cs-gray-400 max-w-lg mx-auto mb-12 animate-fade-in-up animation-delay-300">
-              Glass-to-glass in under 15ms &bull; 4K HDR support &bull;
-              H.264 / H.265 / AV1
-            </p>
+            {/* Subheading */}
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="text-base sm:text-lg text-cs-gray-200 max-w-2xl mx-auto mb-12 leading-relaxed"
+            >
+              One hub. Multiple apps. Secure, low-latency, anywhere.
+            </motion.p>
 
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20 animate-fade-in-up animation-delay-400">
-              <Button href="/downloads/" size="lg" showArrow>
-                <DownloadIcon />
-                Download Now
-              </Button>
-              <Button href="/docs/" variant="secondary" size="lg">
-                Read the Docs
-              </Button>
-            </div>
+            {/* CTA Buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.45 }}
+              className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20"
+            >
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold rounded-xl bg-cs-green text-cs-dark hover:bg-cs-green-300 active:bg-cs-green-500 shadow-glow hover:shadow-glow-lg transition-all duration-300 group/btn relative overflow-hidden"
+              >
+                <span className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
+                  <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                </span>
+                <span className="relative z-10 flex items-center gap-2">
+                  <Zap size={18} />
+                  Launch Dashboard
+                  <ArrowRight size={16} className="transition-transform duration-300 group-hover/btn:translate-x-1" />
+                </span>
+              </Link>
+              <Link
+                href="/downloads"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl bg-transparent text-white border border-white/[0.12] hover:border-cs-green/40 hover:text-cs-green hover:bg-cs-green/5 hover:shadow-glow-sm transition-all duration-300"
+              >
+                <Download size={18} />
+                Download Host
+              </Link>
+              <Link
+                href="/downloads"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl bg-transparent text-white border border-white/[0.12] hover:border-cs-green/40 hover:text-cs-green hover:bg-cs-green/5 hover:shadow-glow-sm transition-all duration-300"
+              >
+                <Monitor size={18} />
+                Download Client
+              </Link>
+            </motion.div>
 
             {/* Stats bar */}
-            <div className="animate-fade-in-up animation-delay-600">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+            >
               <div className="inline-flex items-center glass rounded-2xl px-2 sm:px-4 py-4 sm:py-5">
                 <div className="flex items-center divide-x divide-white/[0.06]">
-                  <HeroStat value="9ms" label="Latency" />
-                  <HeroStat value="4K" label="Max Resolution" />
-                  <HeroStat value="240" label="Max FPS" />
-                  <HeroStat value="P2P" label="Connection" />
+                  <HeroStat value="< 15ms" label="Latency" />
+                  <HeroStat value="4K@60" label="HDR" />
+                  <HeroStat value="240" label="FPS" />
+                  <HeroStat value="P2P" label="Encrypted" />
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
 
@@ -299,35 +284,20 @@ export default function HomePage() {
       </section>
 
       {/* ================================================================== */}
-      {/*  TRUSTED TECH STACK                                                */}
-      {/* ================================================================== */}
-      <section className="relative py-12 sm:py-16 overflow-hidden">
-        <div className="section-divider mb-12" />
-        <div className="section-padding">
-          <p className="text-center text-xs text-cs-gray-500 uppercase tracking-[0.2em] font-semibold mb-8">
-            Powered by Industry-Leading Technology
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-0 divide-x divide-white/[0.06] rounded-2xl glass">
-            <TechBadge label="NVENC" sublabel="Hardware Encode" />
-            <TechBadge label="NvFBC" sublabel="GPU Capture" />
-            <TechBadge label="DTLS 1.2" sublabel="Encryption" />
-            <TechBadge label="Opus" sublabel="Audio Codec" />
-            <TechBadge label="ICE/STUN" sublabel="P2P Direct" />
-            <TechBadge label="Reed-Solomon" sublabel="FEC Protection" />
-          </div>
-        </div>
-        <div className="section-divider mt-12" />
-      </section>
-
-      {/* ================================================================== */}
-      {/*  FEATURES GRID                                                     */}
+      {/*  FEATURE HIGHLIGHTS                                                */}
       {/* ================================================================== */}
       <section className="section-padding py-24 sm:py-32 relative">
         {/* Background accent */}
         <div className="absolute inset-0 dot-overlay opacity-20 mask-fade-y pointer-events-none" />
 
         <div className="relative">
-          <div className="text-center mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
             <p className="text-xs text-cs-green uppercase tracking-[0.2em] font-semibold mb-4">
               Core Features
             </p>
@@ -338,192 +308,181 @@ export default function HomePage() {
               Every millisecond matters. CrazyStream is engineered from the ground
               up for the lowest possible latency without compromising quality.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <FeatureCard
-              icon={<BoltIcon />}
-              title="Ultra Low Latency"
-              description="P2P direct connection bypasses relay servers. NvFBC capture + NVENC encoding delivers glass-to-glass latency as low as 9ms on LAN."
-              stats="9-15ms glass-to-glass"
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <FeatureItem
+              icon={<Zap size={24} />}
+              title="Low Latency"
+              description="Sub-15ms end-to-end with NvFBC capture and NVENC hardware encoding"
+              delay={0}
             />
-            <FeatureCard
-              icon={<WaveIcon />}
-              title="Adaptive QoS"
-              description="Kalman filter-based quality engine continuously monitors network conditions. Adjusts bitrate, framerate, and resolution in real-time."
-              stats="Real-time adaptation"
+            <FeatureItem
+              icon={<Shield size={24} />}
+              title="Secure Relay"
+              description="DTLS 1.3 encrypted P2P tunnels with TURN fallback"
+              delay={0.1}
             />
-            <FeatureCard
-              icon={<GamepadIcon />}
-              title="Gaming Modes"
-              description="Choose Competitive for max FPS, Cinematic for 4K HDR, or Balanced for the best of both. Switch mid-session instantly."
-              stats="3 preset modes"
+            <FeatureItem
+              icon={<Monitor size={24} />}
+              title="Multi-Platform"
+              description="Windows, macOS, Linux, and Android clients"
+              delay={0.2}
             />
-            <FeatureCard
-              icon={<MonitorIcon />}
-              title="Multi-Codec"
-              description="Full hardware-accelerated H.264, H.265, and AV1 encoding and decoding. Automatic codec selection based on GPU and network."
-              stats="H.264 / H.265 / AV1"
+            <FeatureItem
+              icon={<Settings2 size={24} />}
+              title="Session Control"
+              description="Granular session management with token-based auth"
+              delay={0.3}
+            />
+            <FeatureItem
+              icon={<Terminal size={24} />}
+              title="Dev Tools"
+              description="Network diagnostics, jitter analysis, and performance profiling"
+              delay={0.4}
+            />
+            <FeatureItem
+              icon={<Cloud size={24} />}
+              title="Cloud Native"
+              description="Deploy anywhere: bare metal, cloud VMs, or edge nodes"
+              delay={0.5}
             />
           </div>
         </div>
       </section>
 
       {/* ================================================================== */}
-      {/*  LATENCY PIPELINE                                                  */}
+      {/*  ARCHITECTURE DIAGRAM                                              */}
       {/* ================================================================== */}
-      <section className="section-padding py-20 sm:py-28 relative overflow-hidden">
+      <section className="section-padding py-24 sm:py-32 relative overflow-hidden">
         <div className="orb orb-green-dim w-[500px] h-[500px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
 
         <div className="relative">
-          <div className="text-center mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
             <p className="text-xs text-cs-green uppercase tracking-[0.2em] font-semibold mb-4">
-              The Pipeline
+              Architecture
             </p>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-5">
-              Every Frame,{' '}
-              <span className="text-gradient">Under 15ms</span>
+              How It <span className="text-gradient">Works</span>
             </h2>
-            <p className="text-cs-gray-300 max-w-lg mx-auto">
-              From screen capture to pixel display &mdash; the entire pipeline is
-              hardware-accelerated and optimized for minimal latency.
+            <p className="text-cs-gray-300 max-w-lg mx-auto leading-relaxed">
+              Peer-to-peer streaming with intelligent signaling and encrypted
+              direct connections.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="gradient-border p-8 sm:p-12">
-            <div className="flex items-start justify-between overflow-x-auto">
-              <PipelineStep icon="🖥️" label="NvFBC Capture" time="~0.1ms" />
-              <PipelineStep icon="⚡" label="NVENC Encode" time="~2ms" />
-              <PipelineStep icon="🌐" label="P2P Network" time="~5-10ms" />
-              <PipelineStep icon="🎮" label="HW Decode" time="~1ms" />
-              <PipelineStep icon="✨" label="Render" time="~0.5ms" isLast />
-            </div>
-            <div className="mt-8 pt-6 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <ShieldIcon />
-                <span className="text-sm text-cs-gray-300">End-to-end DTLS 1.2 encrypted</span>
+          {/* Diagram */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, delay: 0.1 }}
+            className="gradient-border p-8 sm:p-12 mb-16"
+          >
+            {/* Top row: Client -> Signaling -> Host */}
+            <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-0 mb-12">
+              {/* Client */}
+              <ArchNode
+                label="Client"
+                sublabel="Your Device"
+                icon={<Monitor size={24} />}
+              />
+
+              {/* Connection line: Client -> Signaling */}
+              <div className="hidden md:flex items-center flex-1 max-w-[160px] px-4">
+                <div className="w-full relative">
+                  <div className="h-px bg-gradient-to-r from-cs-green/40 via-cs-green/60 to-cs-green/40" />
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-l-[6px] border-l-cs-green/60 border-y-[3px] border-y-transparent" />
+                  <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] text-cs-gray-400 whitespace-nowrap font-mono">
+                    WebSocket
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-mono font-bold text-cs-green">Total: ~9-15ms</span>
-                <span className="text-xs text-cs-gray-500">(LAN conditions)</span>
+
+              {/* Mobile arrow */}
+              <div className="md:hidden text-cs-green/40">
+                <ArrowRight size={20} className="rotate-90" />
+              </div>
+
+              {/* Signaling Server */}
+              <ArchNode
+                label="Signaling"
+                sublabel="Coordination"
+                icon={<Server size={24} />}
+              />
+
+              {/* Connection line: Signaling -> Host */}
+              <div className="hidden md:flex items-center flex-1 max-w-[160px] px-4">
+                <div className="w-full relative">
+                  <div className="h-px bg-gradient-to-r from-cs-green/40 via-cs-green/60 to-cs-green/40" />
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-l-[6px] border-l-cs-green/60 border-y-[3px] border-y-transparent" />
+                  <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] text-cs-gray-400 whitespace-nowrap font-mono">
+                    WebSocket
+                  </span>
+                </div>
+              </div>
+
+              {/* Mobile arrow */}
+              <div className="md:hidden text-cs-green/40">
+                <ArrowRight size={20} className="rotate-90" />
+              </div>
+
+              {/* Host */}
+              <ArchNode
+                label="Host"
+                sublabel="Gaming PC"
+                icon={<Zap size={24} />}
+              />
+            </div>
+
+            {/* P2P Direct Connection line */}
+            <div className="hidden md:block relative max-w-xl mx-auto mb-8">
+              <div className="relative">
+                {/* Curved line representation using a bordered div */}
+                <div className="h-12 border-b-2 border-l-2 border-r-2 border-dashed border-cs-green/30 rounded-b-3xl" />
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 px-4 py-1.5 rounded-full bg-cs-card border border-cs-green/30">
+                  <span className="text-xs font-mono font-bold text-cs-green">
+                    P2P Direct (DTLS)
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
 
-      {/* ================================================================== */}
-      {/*  RESOLUTION / FPS SHOWCASE                                         */}
-      {/* ================================================================== */}
-      <section className="section-padding py-24 sm:py-32 relative">
-        <div className="absolute inset-0 grid-overlay opacity-30 mask-fade-y pointer-events-none" />
+            {/* Mobile P2P label */}
+            <div className="md:hidden flex items-center justify-center mb-8">
+              <div className="px-4 py-2 rounded-full bg-cs-card border border-cs-green/30">
+                <span className="text-xs font-mono font-bold text-cs-green">
+                  P2P Direct (DTLS)
+                </span>
+              </div>
+            </div>
+          </motion.div>
 
-        <div className="relative">
-          <div className="text-center mb-16">
-            <p className="text-xs text-cs-green uppercase tracking-[0.2em] font-semibold mb-4">
-              Resolution & Performance
-            </p>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-5">
-              Your Display.{' '}
-              <span className="text-gradient">Your Rules.</span>
-            </h2>
-            <p className="text-cs-gray-300 max-w-lg mx-auto">
-              From competitive 1080p@240 to cinematic 4K@60 — CrazyStream
-              adapts to your display and play style.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 lg:gap-8 max-w-4xl mx-auto items-center">
-            <ResolutionCard
-              resolution="4K"
-              fps="60"
-              codec="H.265 / AV1"
-            />
-            <ResolutionCard
-              resolution="1440p"
-              fps="144"
-              codec="H.265"
-              highlight
-              badge="Popular"
-            />
-            <ResolutionCard
-              resolution="1080p"
-              fps="240"
-              codec="H.264 / H.265"
-            />
-          </div>
-
-          <p className="text-center text-[11px] text-cs-gray-500 mt-10 max-w-xl mx-auto">
-            Also supports 1440p Ultrawide, 900p, and 720p. Actual performance depends on
-            host GPU, network conditions, and client hardware. HDR supported on compatible displays.
-          </p>
-        </div>
-      </section>
-
-      {/* ================================================================== */}
-      {/*  GAMING MODES                                                      */}
-      {/* ================================================================== */}
-      <section className="section-padding py-24 sm:py-32 relative">
-        <div className="orb orb-green-dim w-[600px] h-[600px] -bottom-64 -right-64" />
-
-        <div className="relative">
-          <div className="text-center mb-16">
-            <p className="text-xs text-cs-green uppercase tracking-[0.2em] font-semibold mb-4">
-              Streaming Profiles
-            </p>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-5">
-              Modes for Every{' '}
-              <span className="text-gradient">Play Style</span>
-            </h2>
-            <p className="text-cs-gray-300 max-w-lg mx-auto">
-              One size doesn&apos;t fit all. Choose a streaming mode that matches
-              the game you&apos;re playing. Switch anytime, even mid-session.
-            </p>
-          </div>
-
-          <GamingModes />
-        </div>
-      </section>
-
-      {/* ================================================================== */}
-      {/*  HOW IT WORKS                                                      */}
-      {/* ================================================================== */}
-      <section className="section-padding py-24 sm:py-32 relative">
-        <div className="absolute inset-0 dot-overlay opacity-20 mask-fade-y pointer-events-none" />
-
-        <div className="relative">
-          <div className="text-center mb-16">
-            <p className="text-xs text-cs-green uppercase tracking-[0.2em] font-semibold mb-4">
-              Getting Started
-            </p>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-5">
-              Up and Running in{' '}
-              <span className="text-gradient">3 Steps</span>
-            </h2>
-            <p className="text-cs-gray-300 max-w-lg mx-auto">
-              No complex configuration. Install, connect, and start streaming in
-              minutes.
-            </p>
-          </div>
-
+          {/* 3 step cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16 max-w-4xl mx-auto">
             <StepCard
               number={1}
-              title="Install Host"
-              description="Download and install CrazyStream Host on the PC with your NVIDIA GPU. It runs quietly in the background."
-              icon={<MonitorIcon />}
+              title="Connect"
+              description="Client and host register with the signaling server. ICE candidates are exchanged to find the best path."
+              delay={0}
             />
             <StepCard
               number={2}
-              title="Connect Client"
-              description="Install the Client on the device you want to stream to. Sign in and your host appears automatically."
-              icon={<LinkIcon />}
+              title="Stream"
+              description="NvFBC captures the screen, NVENC encodes at hardware speed, and frames are sent over the P2P tunnel."
+              delay={0.15}
             />
             <StepCard
               number={3}
-              title="Start Streaming"
-              description="Click play. CrazyStream handles codec selection, quality tuning, and network optimization automatically."
-              icon={<PlayIcon />}
+              title="Play"
+              description="The client decodes, renders, and feeds your input back to the host in real-time. Zero compromise."
+              delay={0.3}
             />
           </div>
 
@@ -537,45 +496,152 @@ export default function HomePage() {
       </section>
 
       {/* ================================================================== */}
-      {/*  OPEN SOURCE                                                       */}
+      {/*  DOWNLOAD PREVIEW                                                  */}
       {/* ================================================================== */}
-      <section className="section-padding py-20 sm:py-28">
-        <div className="gradient-border p-8 sm:p-12 relative overflow-hidden">
-          <div className="absolute inset-0 grid-overlay opacity-20 pointer-events-none" />
-          <div className="orb orb-green-dim w-[400px] h-[400px] -top-32 -right-32" />
+      <section className="section-padding py-24 sm:py-32 relative">
+        <div className="absolute inset-0 grid-overlay opacity-20 mask-fade-y pointer-events-none" />
 
-          <div className="relative flex flex-col lg:flex-row items-center gap-10">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-cs-gray-200">
-                  <GitHubIcon />
+        <div className="relative">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
+            <p className="text-xs text-cs-green uppercase tracking-[0.2em] font-semibold mb-4">
+              Downloads
+            </p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-5">
+              Get Started in <span className="text-gradient">Seconds</span>
+            </h2>
+            <p className="text-cs-gray-300 max-w-lg mx-auto leading-relaxed">
+              Download the Host for your gaming PC and the Client for any device
+              you want to stream to.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
+            {/* Host Download Card */}
+            <motion.div
+              variants={fadeInUp}
+              initial="initial"
+              whileInView="animate"
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0 }}
+              className="gradient-border gradient-border-hover group relative overflow-hidden p-8 transition-all duration-500 hover:shadow-card-hover"
+            >
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cs-green/50 to-transparent" />
+
+              <div className="relative z-10">
+                <div className="relative w-14 h-14 rounded-2xl bg-cs-green/10 border border-cs-green/20 flex items-center justify-center mb-6 group-hover:border-cs-green/40 transition-all duration-300">
+                  <Server size={24} className="text-cs-green" />
+                  <div className="absolute inset-0 rounded-2xl bg-cs-green/0 group-hover:bg-cs-green/10 blur-xl transition-all duration-500" />
                 </div>
-                <span className="text-xs font-semibold text-cs-green uppercase tracking-widest">
-                  Open Source
-                </span>
+
+                <h3 className="text-xl font-bold text-white mb-2 tracking-tight">
+                  CrazyStream Host
+                </h3>
+                <p className="text-sm text-cs-gray-300 leading-relaxed mb-6">
+                  Install on the PC with your NVIDIA GPU. Captures your screen and
+                  streams to connected clients.
+                </p>
+
+                {/* Platform icons */}
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                    <WindowsIcon className="text-blue-400" />
+                    <span className="text-xs font-medium text-blue-300">
+                      Windows
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-cs-gray-500 uppercase tracking-wider">
+                    macOS / Linux coming soon
+                  </span>
+                </div>
+
+                <Link
+                  href="/downloads"
+                  className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 text-sm font-semibold rounded-xl bg-cs-green text-cs-dark hover:bg-cs-green-300 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+                >
+                  <Download size={16} />
+                  Download Host
+                </Link>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4 text-white">
-                Built in the Open
-              </h2>
-              <p className="text-sm text-cs-gray-300 leading-relaxed max-w-lg">
-                CrazyStream is fully open source under the MIT license. Browse the
-                code, submit PRs, report bugs, or fork it for your own use. We
-                believe great streaming software should be accessible to everyone.
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button
-                href="https://github.com/crazystream/crazystream"
-                variant="secondary"
-                size="lg"
-                external
-                showArrow
-              >
-                <GitHubIcon />
-                View on GitHub
-              </Button>
-            </div>
+            </motion.div>
+
+            {/* Client Download Card */}
+            <motion.div
+              variants={fadeInUp}
+              initial="initial"
+              whileInView="animate"
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.15 }}
+              className="gradient-border gradient-border-hover group relative overflow-hidden p-8 transition-all duration-500 hover:shadow-card-hover"
+            >
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cs-green/50 to-transparent" />
+
+              <div className="relative z-10">
+                <div className="relative w-14 h-14 rounded-2xl bg-cs-green/10 border border-cs-green/20 flex items-center justify-center mb-6 group-hover:border-cs-green/40 transition-all duration-300">
+                  <Monitor size={24} className="text-cs-green" />
+                  <div className="absolute inset-0 rounded-2xl bg-cs-green/0 group-hover:bg-cs-green/10 blur-xl transition-all duration-500" />
+                </div>
+
+                <h3 className="text-xl font-bold text-white mb-2 tracking-tight">
+                  CrazyStream Client
+                </h3>
+                <p className="text-sm text-cs-gray-300 leading-relaxed mb-6">
+                  Install on any device you want to stream to. Connects to your
+                  host for a seamless gaming experience.
+                </p>
+
+                {/* Platform icons */}
+                <div className="flex items-center gap-3 mb-6 flex-wrap">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                    <WindowsIcon className="text-blue-400" />
+                    <span className="text-xs font-medium text-blue-300">
+                      Windows
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                    <Smartphone size={14} className="text-cs-gray-400" />
+                    <span className="text-xs text-cs-gray-400">Android</span>
+                  </div>
+                  <span className="text-[10px] text-cs-gray-500 uppercase tracking-wider">
+                    macOS soon
+                  </span>
+                </div>
+
+                <Link
+                  href="/downloads"
+                  className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 text-sm font-semibold rounded-xl bg-cs-green text-cs-dark hover:bg-cs-green-300 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+                >
+                  <Download size={16} />
+                  Download Client
+                </Link>
+              </div>
+            </motion.div>
           </div>
+
+          {/* Link to full download center */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="text-center"
+          >
+            <Link
+              href="/downloads"
+              className="inline-flex items-center gap-2 text-sm font-medium text-cs-green hover:text-cs-green-200 transition-colors duration-200 group"
+            >
+              View all downloads
+              <ArrowRight
+                size={16}
+                className="transition-transform duration-200 group-hover:translate-x-1"
+              />
+            </Link>
+          </motion.div>
         </div>
       </section>
 
@@ -590,28 +656,44 @@ export default function HomePage() {
           <div className="orb orb-green w-[500px] h-[500px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse-glow" />
 
           <div className="relative px-8 sm:px-16 lg:px-24 py-20 sm:py-28 text-center">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-5">
-              Ready to{' '}
-              <span className="text-gradient">Stream?</span>
-            </h2>
-            <p className="text-cs-gray-200 max-w-md mx-auto mb-10 leading-relaxed">
-              Download CrazyStream and experience game streaming the way it
-              should be &mdash; fast, sharp, and reliable.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button href="/downloads/" size="lg" showArrow>
-                <DownloadIcon />
-                Download for Windows
-              </Button>
-              <Button
-                href="https://github.com/crazystream/crazystream"
-                variant="secondary"
-                size="lg"
-                external
-              >
-                View Source Code
-              </Button>
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+            >
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-5">
+                Ready to{' '}
+                <span className="text-gradient">Stream?</span>
+              </h2>
+              <p className="text-cs-gray-200 max-w-md mx-auto mb-10 leading-relaxed">
+                Start streaming your games with zero compromise.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold rounded-xl bg-cs-green text-cs-dark hover:bg-cs-green-300 active:bg-cs-green-500 shadow-glow hover:shadow-glow-lg transition-all duration-300 group/btn relative overflow-hidden"
+                >
+                  <span className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
+                    <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                  </span>
+                  <span className="relative z-10 flex items-center gap-2">
+                    <Zap size={18} />
+                    Launch Dashboard
+                    <ArrowRight size={16} className="transition-transform duration-300 group-hover/btn:translate-x-1" />
+                  </span>
+                </Link>
+                <a
+                  href="https://github.com/crazystream/crazystream"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl bg-transparent text-white border border-white/[0.12] hover:border-cs-green/40 hover:text-cs-green hover:bg-cs-green/5 hover:shadow-glow-sm transition-all duration-300"
+                >
+                  <Github size={18} />
+                  Star on GitHub
+                </a>
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>

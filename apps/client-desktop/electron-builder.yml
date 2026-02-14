@@ -8,7 +8,6 @@ copyright: Copyright (c) CrazyStream
 npmRebuild: false
 
 directories:
-  buildResources: build
   output: release
 
 files:
@@ -21,7 +20,6 @@ win:
     - target: nsis
       arch:
         - x64
-  icon: build/icon.ico
   artifactName: "CrazyStream-${version}-Setup.${ext}"
   publisherName: CrazyStream
 
@@ -30,9 +28,6 @@ nsis:
   perMachine: true
   allowToChangeInstallationDirectory: true
   deleteAppDataOnUninstall: false
-  installerIcon: build/icon.ico
-  uninstallerIcon: build/icon.ico
-  installerHeaderIcon: build/icon.ico
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: CrazyStream

@@ -520,12 +520,31 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Generate Gradle wrapper (if missing)
+      - name: Ensure Gradle wrapper JAR exists
         working-directory: apps/android
         run: |
-          if [ ! -f "gradlew" ]; then
-            echo "Gradle wrapper not found, generating..."
-            gradle wrapper --gradle-version 8.5
+          WRAPPER_JAR="gradle/wrapper/gradle-wrapper.jar"
+          if [ ! -f "$WRAPPER_JAR" ]; then
+            echo "gradle-wrapper.jar not found, downloading from Gradle distributions..."
+            mkdir -p gradle/wrapper
+            # Extract Gradle version from wrapper properties to build the download URL
+            GRADLE_VERSION=$(grep -oP 'gradle-\K[0-9]+\.[0-9]+(\.[0-9]+)?' gradle/wrapper/gradle-wrapper.properties)
+            echo "Detected Gradle version: $GRADLE_VERSION"
+            WRAPPER_JAR_URL="https://raw.githubusercontent.com/gradle/gradle/v${GRADLE_VERSION}.0/gradle/wrapper/gradle-wrapper.jar"
+            echo "Downloading wrapper JAR from: $WRAPPER_JAR_URL"
+            curl -fsSL -o "$WRAPPER_JAR" "$WRAPPER_JAR_URL" --retry 3 --retry-delay 5
+            if [ ! -s "$WRAPPER_JAR" ]; then
+              echo "Direct download failed or empty, falling back to extracting from Gradle distribution..."
+              DIST_URL="https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
+              echo "Downloading Gradle distribution from: $DIST_URL"
+              curl -fsSL -o /tmp/gradle-dist.zip "$DIST_URL" --retry 3 --retry-delay 5
+              unzip -jo /tmp/gradle-dist.zip "gradle-${GRADLE_VERSION}/lib/gradle-wrapper-*.jar" -d /tmp/gradle-wrapper-extract
+              cp /tmp/gradle-wrapper-extract/gradle-wrapper-*.jar "$WRAPPER_JAR"
+              rm -rf /tmp/gradle-dist.zip /tmp/gradle-wrapper-extract
+            fi
+            echo "gradle-wrapper.jar size: $(stat -c%s "$WRAPPER_JAR" 2>/dev/null || stat -f%z "$WRAPPER_JAR") bytes"
+          else
+            echo "gradle-wrapper.jar already exists"
           fi
           chmod +x gradlew
           echo "Gradle wrapper version:"

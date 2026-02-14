@@ -27,7 +27,7 @@ public:
     InputSender& operator=(const InputSender&) = delete;
 
     /// Initialize with a socket and peer address.
-    bool initialize(int socket_fd, const struct sockaddr* peer, int peer_len);
+    bool initialize(int socket_fd, const ::sockaddr* peer, int peer_len);
 
     /// Send an input event to the host immediately.
     /// Returns true on success.

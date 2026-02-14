@@ -35,7 +35,7 @@ StatsReporter::~StatsReporter() {
 // initialize
 // ---------------------------------------------------------------------------
 
-bool StatsReporter::initialize(int socket_fd, const struct sockaddr* peer, int peer_len) {
+bool StatsReporter::initialize(int socket_fd, const ::sockaddr* peer, int peer_len) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     socket_fd_ = socket_fd;
@@ -250,28 +250,27 @@ void StatsReporter::sendFeedback() {
         feedback.last_seq_received = recent_packets_.back().seq;
     }
 
-    feedback.estimated_bandwidth_kbps = static_cast<uint32_t>(calculateBandwidthKbps());
+    feedback.estimated_bw_kbps = static_cast<uint32_t>(calculateBandwidthKbps());
 
     double loss = calculatePacketLoss();
-    feedback.packet_loss_percent_x100 = static_cast<uint16_t>(loss * 10000.0);
+    feedback.packet_loss_x100 = static_cast<uint16_t>(loss * 10000.0);
 
     double jitter_us = calculateJitterUs();
     feedback.avg_jitter_us = static_cast<uint16_t>(
         std::min(jitter_us, static_cast<double>(UINT16_MAX)));
 
-    feedback.one_way_delay_gradient_us = static_cast<uint32_t>(
-        std::max(0, calculateDelayGradientUs()));
+    feedback.delay_gradient_us = calculateDelayGradientUs();
 
     // Include NACK sequences from the NACK sender
     feedback.nack_count = 0;
-    feedback.nack_seq[0] = 0;
-    feedback.nack_seq[1] = 0;
+    feedback.nack_seq_0 = 0;
+    feedback.nack_seq_1 = 0;
 
     if (nack_sender_) {
         auto missing = nack_sender_->getMissingSequences();
         feedback.nack_count = static_cast<uint16_t>(std::min(missing.size(), static_cast<size_t>(UINT16_MAX)));
-        if (missing.size() >= 1) feedback.nack_seq[0] = missing[0];
-        if (missing.size() >= 2) feedback.nack_seq[1] = missing[1];
+        if (missing.size() >= 1) feedback.nack_seq_0 = missing[0];
+        if (missing.size() >= 2) feedback.nack_seq_1 = missing[1];
     }
 
     // Serialize and send
@@ -281,7 +280,7 @@ void StatsReporter::sendFeedback() {
                          reinterpret_cast<const char*>(buf.data()),
                          static_cast<int>(buf.size()),
                          0,
-                         reinterpret_cast<const struct sockaddr*>(peer_addr_.data()),
+                         reinterpret_cast<const ::sockaddr*>(peer_addr_.data()),
                          peer_addr_len_);
 
     if (sent <= 0) {

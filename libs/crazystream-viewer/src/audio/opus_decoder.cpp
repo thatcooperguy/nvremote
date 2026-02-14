@@ -10,7 +10,7 @@
 
 #include <cs/common.h>
 
-#include <opus/opus.h>
+#include <opus.h>
 
 namespace cs {
 

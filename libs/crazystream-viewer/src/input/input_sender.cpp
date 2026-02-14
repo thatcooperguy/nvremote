@@ -45,7 +45,7 @@ InputSender::~InputSender() {
 // ---------------------------------------------------------------------------
 // initialize()
 // ---------------------------------------------------------------------------
-bool InputSender::initialize(int socket_fd, const struct sockaddr* peer, int peer_len) {
+bool InputSender::initialize(int socket_fd, const ::sockaddr* peer, int peer_len) {
     if (socket_fd < 0 || !peer || peer_len <= 0) {
         CS_LOG(ERR, "InputSender::initialize: invalid arguments");
         return false;
@@ -173,7 +173,7 @@ bool InputSender::sendInput(const InputEvent& event) {
         reinterpret_cast<const char*>(packet.data()),
         static_cast<int>(packet.size()),
         0,
-        reinterpret_cast<const struct sockaddr*>(peer_addr_.data()),
+        reinterpret_cast<const ::sockaddr*>(peer_addr_.data()),
         peer_addr_len_);
 
     if (sent < 0) {

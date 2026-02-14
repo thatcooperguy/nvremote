@@ -23,6 +23,7 @@
 // Forward-declare OpenSSL types
 typedef struct ssl_st SSL;
 typedef struct ssl_ctx_st SSL_CTX;
+typedef struct bio_st BIO;
 
 namespace cs {
 
@@ -77,8 +78,8 @@ private:
     std::string dtls_fingerprint_;
 
     // BIO memory buffers for DTLS (we do our own I/O)
-    struct bio_st* rbio_ = nullptr;  // read BIO: network -> OpenSSL
-    struct bio_st* wbio_ = nullptr;  // write BIO: OpenSSL -> network
+    ::BIO* rbio_ = nullptr;  // read BIO: network -> OpenSSL
+    ::BIO* wbio_ = nullptr;  // write BIO: OpenSSL -> network
 
     // Callback
     PacketCallback callback_;

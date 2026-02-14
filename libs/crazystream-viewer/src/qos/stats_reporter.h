@@ -34,7 +34,7 @@ public:
     StatsReporter& operator=(const StatsReporter&) = delete;
 
     /// Initialize with a socket and peer address for sending feedback.
-    bool initialize(int socket_fd, const struct sockaddr* peer, int peer_len);
+    bool initialize(int socket_fd, const ::sockaddr* peer, int peer_len);
 
     /// Set the NACK sender to query for missing sequences.
     void setNackSender(NackSender* nack_sender);

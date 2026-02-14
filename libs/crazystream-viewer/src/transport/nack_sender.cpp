@@ -30,7 +30,7 @@ NackSender::~NackSender() {
 // initialize
 // ---------------------------------------------------------------------------
 
-bool NackSender::initialize(int socket_fd, const struct sockaddr* peer, int peer_len) {
+bool NackSender::initialize(int socket_fd, const ::sockaddr* peer, int peer_len) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     socket_fd_ = socket_fd;
@@ -250,7 +250,7 @@ void NackSender::sendNackPacket(const std::vector<uint16_t>& missing_seqs) {
                          reinterpret_cast<const char*>(packet.data()),
                          static_cast<int>(packet.size()),
                          0,
-                         reinterpret_cast<const struct sockaddr*>(peer_addr_.data()),
+                         reinterpret_cast<const ::sockaddr*>(peer_addr_.data()),
                          peer_addr_len_);
 
     if (sent > 0) {

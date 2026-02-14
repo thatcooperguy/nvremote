@@ -287,9 +287,9 @@ std::vector<IceCandidate> Viewer::gatherIceCandidates(const std::vector<std::str
         addr.sin_port = 0;  // Let OS assign
         addr.sin_addr.s_addr = INADDR_ANY;
 
-        if (::bind(sock, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) == 0) {
+        if (::bind(sock, reinterpret_cast<::sockaddr*>(&addr), sizeof(addr)) == 0) {
             socklen_t len = sizeof(addr);
-            ::getsockname(sock, reinterpret_cast<struct sockaddr*>(&addr), &len);
+            ::getsockname(sock, reinterpret_cast<::sockaddr*>(&addr), &len);
 
             IceCandidate cand;
             cand.type = "host";
@@ -333,7 +333,7 @@ std::vector<IceCandidate> Viewer::gatherIceCandidates(const std::vector<std::str
         hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_DGRAM;
         if (::getaddrinfo(host.c_str(), nullptr, &hints, &res) == 0 && res) {
-            auto* sa = reinterpret_cast<struct sockaddr_in*>(res->ai_addr);
+            auto* sa = reinterpret_cast<::sockaddr_in*>(res->ai_addr);
             stun_addr.sin_addr = sa->sin_addr;
             ::freeaddrinfo(res);
         } else {
@@ -367,14 +367,14 @@ std::vector<IceCandidate> Viewer::gatherIceCandidates(const std::vector<std::str
 #endif
 
         ::sendto(sock, reinterpret_cast<const char*>(stun_req), sizeof(stun_req), 0,
-                 reinterpret_cast<struct sockaddr*>(&stun_addr), sizeof(stun_addr));
+                 reinterpret_cast<::sockaddr*>(&stun_addr), sizeof(stun_addr));
 
         // Wait for STUN Binding Response
         uint8_t stun_resp[256];
         struct sockaddr_in from = {};
         socklen_t from_len = sizeof(from);
         int n = ::recvfrom(sock, reinterpret_cast<char*>(stun_resp), sizeof(stun_resp), 0,
-                           reinterpret_cast<struct sockaddr*>(&from), &from_len);
+                           reinterpret_cast<::sockaddr*>(&from), &from_len);
 
         if (n >= 20) {
             // Check it's a Binding Response (0x0101)
@@ -473,7 +473,7 @@ P2PResult Viewer::connectP2P(const std::string& dtls_fingerprint) {
     local_addr.sin_port = 0;
     local_addr.sin_addr.s_addr = INADDR_ANY;
 
-    if (::bind(sock, reinterpret_cast<struct sockaddr*>(&local_addr), sizeof(local_addr)) != 0) {
+    if (::bind(sock, reinterpret_cast<::sockaddr*>(&local_addr), sizeof(local_addr)) != 0) {
         result.error = "Failed to bind socket";
         cs_close_socket(sock);
         return result;
@@ -481,7 +481,7 @@ P2PResult Viewer::connectP2P(const std::string& dtls_fingerprint) {
 
     // Get the local port
     socklen_t addr_len = sizeof(local_addr);
-    ::getsockname(sock, reinterpret_cast<struct sockaddr*>(&local_addr), &addr_len);
+    ::getsockname(sock, reinterpret_cast<::sockaddr*>(&local_addr), &addr_len);
 
     // Connect to peer
     std::lock_guard<std::mutex> lock(mutex_);
@@ -491,7 +491,7 @@ P2PResult Viewer::connectP2P(const std::string& dtls_fingerprint) {
         return result;
     }
 
-    if (::connect(sock, reinterpret_cast<struct sockaddr*>(&peer_addr_), peer_addr_len_) != 0) {
+    if (::connect(sock, reinterpret_cast<::sockaddr*>(&peer_addr_), peer_addr_len_) != 0) {
         result.error = "Failed to connect to peer";
         cs_close_socket(sock);
         return result;
@@ -511,7 +511,7 @@ P2PResult Viewer::connectP2P(const std::string& dtls_fingerprint) {
     result.local_ip = local_ips.empty() ? "0.0.0.0" : local_ips[0];
     result.local_port = ntohs(local_addr.sin_port);
 
-    auto* peer_in = reinterpret_cast<struct sockaddr_in*>(&peer_addr_);
+    auto* peer_in = reinterpret_cast<::sockaddr_in*>(&peer_addr_);
     char ip_buf[INET_ADDRSTRLEN];
     ::inet_ntop(AF_INET, &peer_in->sin_addr, ip_buf, sizeof(ip_buf));
     result.remote_ip = ip_buf;
@@ -619,7 +619,7 @@ bool Viewer::initTransport() {
     nack_sender_ = std::make_unique<NackSender>();
     if (p2p_socket_ >= 0 && peer_addr_len_ > 0) {
         nack_sender_->initialize(p2p_socket_,
-                                 reinterpret_cast<struct sockaddr*>(&peer_addr_),
+                                 reinterpret_cast<::sockaddr*>(&peer_addr_),
                                  peer_addr_len_);
         nack_sender_->start();
     }
@@ -628,7 +628,7 @@ bool Viewer::initTransport() {
     stats_reporter_ = std::make_unique<StatsReporter>();
     if (p2p_socket_ >= 0 && peer_addr_len_ > 0) {
         stats_reporter_->initialize(p2p_socket_,
-                                    reinterpret_cast<struct sockaddr*>(&peer_addr_),
+                                    reinterpret_cast<::sockaddr*>(&peer_addr_),
                                     peer_addr_len_);
         stats_reporter_->setNackSender(nack_sender_.get());
         stats_reporter_->setCodecName(config_.codec);
@@ -699,7 +699,7 @@ bool Viewer::initInput() {
     if (p2p_socket_ >= 0 && peer_addr_len_ > 0) {
         input_sender_ = std::make_unique<InputSender>();
         input_sender_->initialize(p2p_socket_,
-                                  reinterpret_cast<struct sockaddr*>(&peer_addr_),
+                                  reinterpret_cast<::sockaddr*>(&peer_addr_),
                                   peer_addr_len_);
 
         // Wire input capture -> sender

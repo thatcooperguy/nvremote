@@ -33,7 +33,7 @@ public:
     NackSender& operator=(const NackSender&) = delete;
 
     /// Initialize with a socket and peer address for sending NACKs.
-    bool initialize(int socket_fd, const struct sockaddr* peer, int peer_len);
+    bool initialize(int socket_fd, const ::sockaddr* peer, int peer_len);
 
     /// Notify that a packet with the given sequence number was received.
     void onPacketReceived(uint16_t seq);

@@ -9,13 +9,13 @@ export default defineConfig({
     react(),
     electron([
       {
-        entry: 'src/main/main.ts',
+        entry: path.resolve(__dirname, 'src/main/main.ts'),
         onstart(args) {
           args.startup();
         },
         vite: {
           build: {
-            outDir: 'dist-electron/main',
+            outDir: path.resolve(__dirname, 'dist-electron/main'),
             rollupOptions: {
               external: ['electron', 'electron-store'],
             },
@@ -23,13 +23,13 @@ export default defineConfig({
         },
       },
       {
-        entry: 'src/main/preload.ts',
+        entry: path.resolve(__dirname, 'src/main/preload.ts'),
         onstart(args) {
           args.reload();
         },
         vite: {
           build: {
-            outDir: 'dist-electron/preload',
+            outDir: path.resolve(__dirname, 'dist-electron/preload'),
             rollupOptions: {
               external: ['electron'],
             },
@@ -47,7 +47,7 @@ export default defineConfig({
   },
   root: 'src/renderer',
   build: {
-    outDir: '../../dist',
+    outDir: path.resolve(__dirname, 'dist'),
     emptyOutDir: true,
   },
 });

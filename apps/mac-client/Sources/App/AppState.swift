@@ -1,10 +1,10 @@
 // AppState.swift — Observable app state
-// CrazyStream macOS Client
+// GridStreamer macOS Client
 
 import Foundation
 import SwiftUI
 
-/// The central observable state object for the CrazyStream application.
+/// The central observable state object for the GridStreamer application.
 /// Manages authentication, host discovery, session negotiation, and streaming lifecycle.
 @MainActor
 final class AppState: ObservableObject {

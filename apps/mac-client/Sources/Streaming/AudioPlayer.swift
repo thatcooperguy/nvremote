@@ -1,5 +1,5 @@
 // AudioPlayer.swift — Low-latency audio playback via AVAudioEngine
-// CrazyStream macOS Client
+// GridStreamer macOS Client
 //
 // Plays decoded PCM audio using AVAudioEngine with a small buffer (2-3 frames)
 // for continuity. Uses a schedule-ahead model: decoded frames are queued onto
@@ -14,7 +14,7 @@ final class AudioPlayer: @unchecked Sendable {
 
     // MARK: - Configuration
 
-    /// Audio sample rate (48kHz for CrazyStream).
+    /// Audio sample rate (48kHz for GridStreamer).
     let sampleRate: Double = 48000.0
 
     /// Number of channels (stereo).

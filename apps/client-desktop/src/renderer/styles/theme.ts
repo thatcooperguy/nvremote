@@ -1,5 +1,5 @@
 /**
- * CrazyStream - Design System Theme
+ * GridStreamer - Design System Theme
  *
  * TypeScript constants mirroring CSS custom properties for use in
  * inline styles and styled components.

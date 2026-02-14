@@ -1,5 +1,5 @@
 // HostCardView.swift — Individual host card
-// CrazyStream macOS Client
+// GridStreamer macOS Client
 
 import SwiftUI
 

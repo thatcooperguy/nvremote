@@ -1,5 +1,5 @@
 // Config.swift — App configuration
-// CrazyStream macOS Client
+// GridStreamer macOS Client
 
 import Foundation
 
@@ -10,9 +10,9 @@ enum AppConfig {
 
     /// Google OAuth 2.0 client ID.
     /// Set this to your Google Cloud Console client ID for the macOS app.
-    /// Can be overridden by the CRAZYSTREAM_GOOGLE_CLIENT_ID environment variable.
+    /// Can be overridden by the GRIDSTREAMER_GOOGLE_CLIENT_ID environment variable.
     static var googleClientID: String {
-        if let envValue = ProcessInfo.processInfo.environment["CRAZYSTREAM_GOOGLE_CLIENT_ID"] {
+        if let envValue = ProcessInfo.processInfo.environment["GRIDSTREAMER_GOOGLE_CLIENT_ID"] {
             return envValue
         }
         return UserDefaults.standard.string(forKey: "google_client_id")
@@ -21,11 +21,11 @@ enum AppConfig {
 
     // MARK: - Signaling Server
 
-    /// WebSocket URL for the CrazyStream signaling server.
+    /// WebSocket URL for the GridStreamer signaling server.
     static var signalingServerURL: URL {
         let urlString = UserDefaults.standard.string(forKey: "signaling_url")
-            ?? ProcessInfo.processInfo.environment["CRAZYSTREAM_SIGNALING_URL"]
-            ?? "wss://signal.crazystream.app/ws"
+            ?? ProcessInfo.processInfo.environment["GRIDSTREAMER_SIGNALING_URL"]
+            ?? "wss://signal.gridstreamer.com/ws"
         return URL(string: urlString)!
     }
 
@@ -99,7 +99,7 @@ enum AppConfig {
 
     /// Enable verbose logging.
     static var verboseLogging: Bool {
-        ProcessInfo.processInfo.environment["CRAZYSTREAM_VERBOSE"] == "1"
+        ProcessInfo.processInfo.environment["GRIDSTREAMER_VERBOSE"] == "1"
     }
 
     // MARK: - Version

@@ -1,5 +1,5 @@
-// Typography.swift — Font system for CrazyStream
-// CrazyStream macOS Client
+// Typography.swift — Font system for GridStreamer
+// GridStreamer macOS Client
 
 import SwiftUI
 

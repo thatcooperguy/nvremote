@@ -1,18 +1,18 @@
 // KeychainHelper.swift — Secure token storage via macOS Keychain
-// CrazyStream macOS Client
+// GridStreamer macOS Client
 
 import Foundation
 import Security
 
 /// Thread-safe wrapper around the macOS Keychain for storing and retrieving
-/// authentication tokens. All items are stored under the CrazyStream service name
+/// authentication tokens. All items are stored under the GridStreamer service name
 /// with kSecClassGenericPassword.
 final class KeychainHelper: Sendable {
     /// Shared singleton instance.
     static let shared = KeychainHelper()
 
-    /// The Keychain service name under which all CrazyStream tokens are stored.
-    private let service = "com.crazystream.mac-client"
+    /// The Keychain service name under which all GridStreamer tokens are stored.
+    private let service = "com.gridstreamer.mac-client"
 
     private init() {}
 
@@ -99,7 +99,7 @@ final class KeychainHelper: Sendable {
         return true
     }
 
-    /// Delete all CrazyStream items from the Keychain.
+    /// Delete all GridStreamer items from the Keychain.
     @discardableResult
     func deleteAll() -> Bool {
         let query: [String: Any] = [

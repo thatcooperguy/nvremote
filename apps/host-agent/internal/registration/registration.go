@@ -1,4 +1,4 @@
-// Package registration handles host registration with the NVRemoteStream control plane.
+// Package registration handles host registration with the GridStreamer control plane.
 package registration
 
 import (
@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nvidia/nvstreamer/host-agent/internal/config"
+	"github.com/nvidia/gridstreamer/host-agent/internal/config"
 )
 
 const registrationFile = "registration.json"
@@ -25,7 +25,7 @@ type RegistrationRequest struct {
 	BootstrapToken    string `json:"bootstrap_token"`
 	HostName          string `json:"host_name"`
 	GPUModel          string `json:"gpu_model"`
-	NvstreamerVersion string `json:"nvstreamer_version"`
+	StreamerVersion string `json:"streamer_version"`
 	PublicIP          string `json:"public_ip,omitempty"`
 	OS                string `json:"os"`
 	Arch              string `json:"arch"`
@@ -49,17 +49,17 @@ func Register(cfg *config.Config) (*RegistrationResponse, error) {
 		gpuModel = "unknown"
 	}
 
-	nvVersion, err := detectNvstreamerVersion(cfg.NvstreamerPath)
+	streamerVersion, err := detectStreamerVersion(cfg.StreamerPath)
 	if err != nil {
-		slog.Warn("could not detect nvstreamer version", "error", err)
-		nvVersion = "unknown"
+		slog.Warn("could not detect streamer version", "error", err)
+		streamerVersion = "unknown"
 	}
 
 	reqBody := RegistrationRequest{
-		BootstrapToken:    cfg.BootstrapToken,
-		HostName:          cfg.HostName,
-		GPUModel:          gpuModel,
-		NvstreamerVersion: nvVersion,
+		BootstrapToken:  cfg.BootstrapToken,
+		HostName:        cfg.HostName,
+		GPUModel:        gpuModel,
+		StreamerVersion: streamerVersion,
 		OS:                runtime.GOOS,
 		Arch:              runtime.GOARCH,
 	}
@@ -160,20 +160,20 @@ func detectGPU() (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-// detectNvstreamerVersion attempts to get the version from nvstreamer.exe.
-func detectNvstreamerVersion(path string) (string, error) {
+// detectStreamerVersion attempts to get the version from gridstreamer-host.
+func detectStreamerVersion(path string) (string, error) {
 	if path == "" {
-		return "", fmt.Errorf("nvstreamer path not configured")
+		return "", fmt.Errorf("streamer path not configured")
 	}
 
 	if _, err := os.Stat(path); err != nil {
-		return "", fmt.Errorf("nvstreamer binary not found at %s: %w", path, err)
+		return "", fmt.Errorf("streamer binary not found at %s: %w", path, err)
 	}
 
 	cmd := exec.Command(path, "--version")
 	out, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("getting nvstreamer version: %w", err)
+		return "", fmt.Errorf("getting streamer version: %w", err)
 	}
 	return strings.TrimSpace(string(out)), nil
 }

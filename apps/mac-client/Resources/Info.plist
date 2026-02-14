@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>CrazyStream</string>
+    <string>GridStreamer</string>
     <key>CFBundleDisplayName</key>
-    <string>CrazyStream</string>
+    <string>GridStreamer</string>
     <key>CFBundleIdentifier</key>
-    <string>com.crazystream.mac-client</string>
+    <string>com.gridstreamer.mac-client</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>CFBundleShortVersionString</key>
@@ -15,7 +15,7 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleExecutable</key>
-    <string>CrazyStream</string>
+    <string>GridStreamer</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>NSHighResolutionCapable</key>
@@ -34,8 +34,8 @@
     <key>com.apple.security.device.audio-input</key>
     <true/>
     <key>NSLocalNetworkUsageDescription</key>
-    <string>CrazyStream needs local network access to discover and connect to streaming hosts.</string>
+    <string>GridStreamer needs local network access to discover and connect to streaming hosts.</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>CrazyStream uses the microphone for voice chat during game streaming.</string>
+    <string>GridStreamer uses the microphone for voice chat during game streaming.</string>
 </dict>
 </plist>

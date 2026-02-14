@@ -1,22 +1,22 @@
 // swift-tools-version: 5.9
-// CrazyStream macOS Client — Swift Package Manager manifest
+// GridStreamer macOS Client — Swift Package Manager manifest
 
 import PackageDescription
 
 let package = Package(
-    name: "CrazyStream",
+    name: "GridStreamer",
     platforms: [
         .macOS(.v13)
     ],
     products: [
         .executable(
-            name: "CrazyStream",
-            targets: ["CrazyStream"]
+            name: "GridStreamer",
+            targets: ["GridStreamer"]
         ),
     ],
     targets: [
         .executableTarget(
-            name: "CrazyStream",
+            name: "GridStreamer",
             path: "Sources",
             resources: [
                 .process("../Resources")

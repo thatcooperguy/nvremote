@@ -1,5 +1,5 @@
 // ContentView.swift — Main view router
-// CrazyStream macOS Client
+// GridStreamer macOS Client
 
 import SwiftUI
 

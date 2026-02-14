@@ -1,7 +1,7 @@
 // JitterBuffer.swift — Frame reassembly and jitter buffering
-// CrazyStream macOS Client
+// GridStreamer macOS Client
 //
-// Mirrors the C++ JitterBuffer from crazystream-viewer. Reassembles fragmented
+// Mirrors the C++ JitterBuffer from gridstreamer-viewer. Reassembles fragmented
 // video frames from individual UDP packets and buffers them to smooth out
 // network jitter. Frames are released in frame_number order once all fragments
 // are received. Incomplete frames older than max age are dropped.

@@ -1,7 +1,7 @@
 // STUNClient.swift — STUN Binding Request/Response (RFC 5389)
-// CrazyStream macOS Client
+// GridStreamer macOS Client
 //
-// Mirrors the C++ StunClient from crazystream-common. Sends a STUN Binding
+// Mirrors the C++ StunClient from gridstreamer-common. Sends a STUN Binding
 // Request to a public STUN server and parses the XOR-MAPPED-ADDRESS attribute
 // to discover our public IP:port for NAT traversal.
 
@@ -81,7 +81,7 @@ actor STUNClient {
             let nwPort = NWEndpoint.Port(integerLiteral: port)
             let connection = NWConnection(host: host, port: nwPort, using: .udp)
 
-            let queue = DispatchQueue(label: "com.crazystream.stun-\(UUID().uuidString)")
+            let queue = DispatchQueue(label: "com.gridstreamer.stun-\(UUID().uuidString)")
             var completed = false
             let completionLock = NSLock()
 

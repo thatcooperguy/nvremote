@@ -9,7 +9,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/nvidia/nvstreamer/host-agent/internal/streamer"
+	"github.com/nvidia/gridstreamer/host-agent/internal/streamer"
 )
 
 // SessionOffer represents a new session offer received from the control plane.

@@ -76,7 +76,7 @@ function FooterLogo() {
         </defs>
       </svg>
       <span className="text-lg font-bold tracking-tight">
-        CRAZY<span className="text-cs-green">STREAM</span>
+        GRID<span className="text-cs-green">STREAMER</span>
       </span>
     </div>
   );
@@ -176,7 +176,7 @@ export default function Footer() {
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-xs text-cs-gray-500">
-              &copy; 2025 CrazyStream. Open source under MIT License.
+              &copy; 2025 GridStreamer. Open source under MIT License.
             </p>
             <div className="flex items-center gap-6">
               <a

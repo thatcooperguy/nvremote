@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "CrazyStream"
+rootProject.name = "GridStreamer"
 include(":app")

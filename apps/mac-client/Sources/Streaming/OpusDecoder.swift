@@ -1,12 +1,12 @@
 // OpusDecoder.swift — Opus audio decode wrapper
-// CrazyStream macOS Client
+// GridStreamer macOS Client
 //
 // Lightweight Opus decoder using the system's Audio Toolbox framework.
 // Since macOS does not bundle libopus, this implementation uses a minimal
 // pure-Swift Opus frame parser that delegates to CoreAudio for the actual
 // PCM conversion, or falls back to a bundled Opus decoder if available.
 //
-// For the CrazyStream use case (48kHz stereo, 10ms frames), we implement
+// For the GridStreamer use case (48kHz stereo, 10ms frames), we implement
 // a simple wrapper that can work with the raw Opus bitstream.
 
 import Foundation
@@ -37,13 +37,13 @@ final class OpusDecoder: @unchecked Sendable {
 
     // MARK: - Configuration
 
-    /// Audio sample rate. CrazyStream uses 48kHz.
+    /// Audio sample rate. GridStreamer uses 48kHz.
     let sampleRate: Int = 48000
 
-    /// Number of audio channels. CrazyStream uses stereo.
+    /// Number of audio channels. GridStreamer uses stereo.
     let channels: Int = 2
 
-    /// Frame duration in milliseconds. CrazyStream uses 10ms frames.
+    /// Frame duration in milliseconds. GridStreamer uses 10ms frames.
     let frameDurationMs: Int = 10
 
     /// Samples per frame per channel.

@@ -11,7 +11,7 @@ export interface TurnServerConfig {
 /**
  * Provides the STUN server configuration used for ICE negotiation.
  *
- * CrazyStream is P2P-only — no TURN/relay servers are used.
+ * GridStreamer is P2P-only — no TURN/relay servers are used.
  * This enforces zero egress cost by design: all media flows directly
  * between host and viewer over ICE-lite + STUN.
  *
@@ -38,7 +38,7 @@ export class IceConfigService {
 
     if (this.config.get<string>('TURN_SERVERS')) {
       this.logger.warn(
-        'TURN_SERVERS env var is set but CrazyStream is P2P-only. ' +
+        'TURN_SERVERS env var is set but GridStreamer is P2P-only. ' +
           'TURN relay is disabled by design to enforce zero egress cost. ' +
           'Remove TURN_SERVERS from your environment.',
       );
@@ -54,7 +54,7 @@ export class IceConfigService {
     return [...this.stunServers];
   }
 
-  /** Always returns empty — CrazyStream is P2P-only, no TURN relay. */
+  /** Always returns empty — GridStreamer is P2P-only, no TURN relay. */
   getTurnServers(): TurnServerConfig[] {
     return [];
   }

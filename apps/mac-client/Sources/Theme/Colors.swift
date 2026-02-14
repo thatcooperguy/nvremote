@@ -1,9 +1,9 @@
-// Colors.swift — NVIDIA-inspired color palette for CrazyStream
-// CrazyStream macOS Client
+// Colors.swift — NVIDIA-inspired color palette for GridStreamer
+// GridStreamer macOS Client
 
 import SwiftUI
 
-/// Centralized color definitions for the CrazyStream dark theme.
+/// Centralized color definitions for the GridStreamer dark theme.
 /// All colors are NVIDIA-inspired with a very dark background and vivid green accents.
 enum CSColors {
     // MARK: - Primary Brand Colors

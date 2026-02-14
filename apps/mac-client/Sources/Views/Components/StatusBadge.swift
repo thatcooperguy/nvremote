@@ -1,5 +1,5 @@
 // StatusBadge.swift — Online/offline/streaming status badge
-// CrazyStream macOS Client
+// GridStreamer macOS Client
 
 import SwiftUI
 

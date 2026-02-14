@@ -1,5 +1,5 @@
 // GamingModeSelector.swift — Competitive/Balanced/Cinematic selector
-// CrazyStream macOS Client
+// GridStreamer macOS Client
 
 import SwiftUI
 

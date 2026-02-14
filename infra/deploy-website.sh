@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ##############################################################################
-# CrazyStream — Website Deployment Script
+# GridStreamer — Website Deployment Script
 #
 # Builds the Next.js static site and uploads to GCS.
 #
@@ -20,7 +20,7 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 PROJECT_ID="${PROJECT_ID:-gridbusiness-220920}"
 ENVIRONMENT="${ENVIRONMENT:-dev}"
-BUCKET_NAME="${BUCKET_NAME:-crazystream-website-${ENVIRONMENT}}"
+BUCKET_NAME="${BUCKET_NAME:-gridstreamer-website-${ENVIRONMENT}}"
 WEBSITE_DIR="$(cd "$(dirname "$0")/../apps/website" && pwd)"
 BUILD_DIR="${WEBSITE_DIR}/out"
 
@@ -37,7 +37,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo "============================================================"
-echo "  CrazyStream Website Deploy"
+echo "  GridStreamer Website Deploy"
 echo "  Project:  ${PROJECT_ID}"
 echo "  Bucket:   ${BUCKET_NAME}"
 echo "  Site dir: ${WEBSITE_DIR}"

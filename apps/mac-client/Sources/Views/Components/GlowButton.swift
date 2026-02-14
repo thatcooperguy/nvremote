@@ -1,5 +1,5 @@
 // GlowButton.swift — NVIDIA-themed button with glow effect
-// CrazyStream macOS Client
+// GridStreamer macOS Client
 
 import SwiftUI
 

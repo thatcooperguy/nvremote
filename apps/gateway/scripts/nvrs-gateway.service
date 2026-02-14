@@ -1,28 +1,28 @@
 [Unit]
-Description=NVIDIA Remote Stream Gateway
-Documentation=https://github.com/nvidia/nvstreamer
+Description=GridStreamer Gateway
+Documentation=https://github.com/nvidia/gridstreamer
 After=network.target network-online.target wg-quick@wg0.service
 Wants=network-online.target
 Requires=wg-quick@wg0.service
 
 [Service]
 Type=simple
-User=nvrs
-Group=nvrs
+User=gridstreamer
+Group=gridstreamer
 
-ExecStart=/usr/local/bin/nvrs-gateway
+ExecStart=/usr/local/bin/gridstreamer-gateway
 Restart=always
 RestartSec=5
 
 # Environment and config.
-EnvironmentFile=-/etc/nvrs-gateway/env
-WorkingDirectory=/etc/nvrs-gateway
+EnvironmentFile=-/etc/gridstreamer-gateway/env
+WorkingDirectory=/etc/gridstreamer-gateway
 
 # Security hardening.
 NoNewPrivileges=no
 ProtectSystem=strict
 ProtectHome=yes
-ReadWritePaths=/etc/wireguard /etc/nvrs-gateway
+ReadWritePaths=/etc/wireguard /etc/gridstreamer-gateway
 
 # The gateway needs NET_ADMIN to manage WireGuard peers.
 AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
@@ -31,7 +31,7 @@ CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW
 # Logging.
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=nvrs-gateway
+SyslogIdentifier=gridstreamer-gateway
 
 # Watchdog and resource limits.
 WatchdogSec=60

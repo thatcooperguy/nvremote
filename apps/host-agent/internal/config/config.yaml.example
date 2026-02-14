@@ -1,30 +1,28 @@
-# NVIDIA Remote Stream Host Agent Configuration
-# Default location: C:\ProgramData\NVRemoteStream\agent.yaml
+# GridStreamer Host Agent Configuration
+# Default location: C:\ProgramData\GridStreamer\agent.yaml
 
 # Control plane URL (required)
-control_plane_url: "https://nvrs.example.com"
+control_plane_url: "https://gridstreamer.example.com"
 
 # Bootstrap token for initial host registration (required)
-# Obtain this from the NVRemoteStream admin console.
+# Obtain this from the GridStreamer admin console.
 bootstrap_token: "your-bootstrap-token-here"
 
 # Human-readable name for this host (defaults to system hostname)
 # host_name: "my-gaming-pc"
 
-# Path to the nvstreamer executable
-nvstreamer_path: "C:\\Program Files\\NVIDIA\\nvstreamer\\nvstreamer.exe"
+# Path to the gridstreamer-host executable
+streamer_path: "C:\\Program Files\\GridStreamer\\gridstreamer-host.exe"
 
-# Ports used by nvstreamer for streaming
-nvstreamer_ports:
-  video: 8443
-  audio: 8444
-  input: 8445
+# STUN servers for ICE candidate gathering
+stun_servers:
+  - "stun.l.google.com:19302"
 
 # WireGuard gateway endpoint (typically assigned during registration)
-# gateway_endpoint: "gateway.nvrs.example.com:51820"
+# gateway_endpoint: "gateway.gridstreamer.example.com:51820"
 
 # Directory for agent state files (keys, registration data, logs)
-data_dir: "C:\\ProgramData\\NVRemoteStream"
+data_dir: "C:\\ProgramData\\GridStreamer"
 
 # Log level: debug, info, warn, error
 log_level: "info"

@@ -63,7 +63,7 @@ let onSessionEndedCallback: (() => void) | null = null;
 // Signaling socket configuration
 // ---------------------------------------------------------------------------
 
-const SIGNALING_URL = process.env.SIGNALING_URL || 'https://api.crazystream.gg';
+const SIGNALING_URL = process.env.SIGNALING_URL || 'https://api.gridstreamer.com';
 const SIGNALING_NAMESPACE = '/signaling';
 const CONNECT_TIMEOUT_MS = 10_000;
 const SESSION_REQUEST_TIMEOUT_MS = 15_000;

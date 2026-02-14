@@ -1,5 +1,5 @@
 // LoginView.swift — Google Sign-In view
-// CrazyStream macOS Client
+// GridStreamer macOS Client
 
 import SwiftUI
 
@@ -22,7 +22,7 @@ struct LoginView: View {
                     .foregroundColor(CSColors.nvidiaGreen)
                     .shadow(color: CSColors.glowGreen, radius: 20)
 
-                Text("CrazyStream")
+                Text("GridStreamer")
                     .font(CSTypography.largeTitle)
                     .foregroundColor(CSColors.textPrimary)
 

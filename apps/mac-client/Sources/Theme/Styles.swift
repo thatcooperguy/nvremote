@@ -1,11 +1,11 @@
 // Styles.swift — Reusable SwiftUI view modifiers and button styles
-// CrazyStream macOS Client
+// GridStreamer macOS Client
 
 import SwiftUI
 
 // MARK: - Card Modifier
 
-/// Applies the standard CrazyStream card appearance: dark surface, rounded corners, subtle border.
+/// Applies the standard GridStreamer card appearance: dark surface, rounded corners, subtle border.
 struct CSCardModifier: ViewModifier {
     var isHovered: Bool = false
     var isSelected: Bool = false
@@ -26,7 +26,7 @@ struct CSCardModifier: ViewModifier {
 }
 
 extension View {
-    /// Apply the standard CrazyStream card style.
+    /// Apply the standard GridStreamer card style.
     func csCard(isHovered: Bool = false, isSelected: Bool = false) -> some View {
         modifier(CSCardModifier(isHovered: isHovered, isSelected: isSelected))
     }

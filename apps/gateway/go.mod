@@ -1,4 +1,4 @@
-module github.com/nvidia/nvstreamer/gateway
+module github.com/nvidia/gridstreamer/gateway
 
 go 1.22
 

@@ -1,5 +1,5 @@
 // StreamView.swift — Full-screen streaming view with Metal rendering
-// CrazyStream macOS Client
+// GridStreamer macOS Client
 
 import SwiftUI
 import MetalKit

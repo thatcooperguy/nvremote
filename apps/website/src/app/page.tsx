@@ -202,7 +202,7 @@ export default function HomePage() {
               transition={{ duration: 0.7, ease: 'easeOut' }}
               className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold tracking-tighter leading-[0.95] mb-6"
             >
-              <span className="text-gradient">CRAZYSTREAM</span>
+              <span className="text-gradient">GRIDSTREAMER</span>
             </motion.h1>
 
             {/* Tagline */}
@@ -305,7 +305,7 @@ export default function HomePage() {
               Built for <span className="text-gradient">Performance</span>
             </h2>
             <p className="text-cs-gray-300 max-w-lg mx-auto leading-relaxed">
-              Every millisecond matters. CrazyStream is engineered from the ground
+              Every millisecond matters. GridStreamer is engineered from the ground
               up for the lowest possible latency without compromising quality.
             </p>
           </motion.div>
@@ -540,7 +540,7 @@ export default function HomePage() {
                 </div>
 
                 <h3 className="text-xl font-bold text-white mb-2 tracking-tight">
-                  CrazyStream Host
+                  GridStreamer Host
                 </h3>
                 <p className="text-sm text-cs-gray-300 leading-relaxed mb-6">
                   Install on the PC with your NVIDIA GPU. Captures your screen and
@@ -588,7 +588,7 @@ export default function HomePage() {
                 </div>
 
                 <h3 className="text-xl font-bold text-white mb-2 tracking-tight">
-                  CrazyStream Client
+                  GridStreamer Client
                 </h3>
                 <p className="text-sm text-cs-gray-300 leading-relaxed mb-6">
                   Install on any device you want to stream to. Connects to your

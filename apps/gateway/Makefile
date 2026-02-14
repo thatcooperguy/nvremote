@@ -1,11 +1,11 @@
-BINARY_NAME := nvrs-gateway
-MODULE := github.com/nvidia/nvstreamer/gateway
+BINARY_NAME := gridstreamer-gateway
+MODULE := github.com/nvidia/gridstreamer/gateway
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 BUILD_TIME := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-DOCKER_IMAGE := nvrs-gateway
+DOCKER_IMAGE := gridstreamer-gateway
 DOCKER_TAG ?= $(VERSION)
-DOCKER_REGISTRY ?= ghcr.io/nvidia/nvstreamer
+DOCKER_REGISTRY ?= ghcr.io/nvidia/gridstreamer
 
 GO := go
 GOFLAGS := -trimpath
@@ -46,8 +46,8 @@ deploy: build
 		exit 1; \
 	fi
 	scp bin/$(BINARY_NAME) $(GATEWAY_HOST):/usr/local/bin/$(BINARY_NAME)
-	scp scripts/nvrs-gateway.service $(GATEWAY_HOST):/etc/systemd/system/nvrs-gateway.service
-	ssh $(GATEWAY_HOST) "systemctl daemon-reload && systemctl restart nvrs-gateway"
+	scp scripts/gridstreamer-gateway.service $(GATEWAY_HOST):/etc/systemd/system/gridstreamer-gateway.service
+	ssh $(GATEWAY_HOST) "systemctl daemon-reload && systemctl restart gridstreamer-gateway"
 	@echo "Deployed $(BINARY_NAME) to $(GATEWAY_HOST)"
 
 ## test: Run all tests
@@ -80,7 +80,7 @@ clean:
 
 ## help: Show this help message
 help:
-	@echo "NVIDIA Remote Stream - Gateway Service"
+	@echo "GridStreamer - Gateway Service"
 	@echo ""
 	@echo "Usage: make [target]"
 	@echo ""

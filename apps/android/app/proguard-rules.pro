@@ -1,8 +1,8 @@
-# CrazyStream ProGuard Rules
+# GridStreamer ProGuard Rules
 
 # Keep data models for Gson serialization
--keep class com.crazystream.app.data.model.** { *; }
--keep class com.crazystream.app.data.signaling.** { *; }
+-keep class com.gridstreamer.app.data.model.** { *; }
+-keep class com.gridstreamer.app.data.signaling.** { *; }
 
 # Keep Gson TypeToken
 -keepattributes Signature

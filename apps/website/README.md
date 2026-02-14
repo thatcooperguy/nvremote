@@ -1,4 +1,4 @@
-# CRAZYSTREAM — Cloud Gaming, Unlocked.
+# GRIDSTREAMER — Cloud Gaming, Unlocked.
 
 One hub. Multiple apps. Secure, low-latency cloud gaming anywhere.
 
@@ -70,7 +70,7 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 
 # API Configuration
 NEXT_PUBLIC_API_URL=http://localhost:3000/api
-NEXT_PUBLIC_RELEASE_BASE_URL=https://releases.crazystream.dev
+NEXT_PUBLIC_RELEASE_BASE_URL=https://releases.gridstreamer.dev
 
 # Feature Flags
 NEXT_PUBLIC_ENABLE_WEB_CLIENT=false
@@ -141,7 +141,7 @@ apps/website/
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    CRAZYSTREAM WEBSITE                       │
+│                    GRIDSTREAMER WEBSITE                       │
 │                                                             │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
 │  │   Landing    │  │   Download   │  │     App      │      │
@@ -167,7 +167,7 @@ apps/website/
                             │
                             ▼
               ┌──────────────────────┐
-              │  CrazyStream Backend │
+              │  GridStreamer Backend │
               │  (server-api)        │
               │  NestJS + Prisma     │
               └──────────────────────┘
@@ -209,8 +209,8 @@ npx vercel
 ### GCP Cloud Run
 
 ```bash
-docker build -t crazystream-website .
-gcloud run deploy crazystream-website --image=crazystream-website
+docker build -t gridstreamer-website .
+gcloud run deploy gridstreamer-website --image=gridstreamer-website
 ```
 
 ### Static Export (for GCS)

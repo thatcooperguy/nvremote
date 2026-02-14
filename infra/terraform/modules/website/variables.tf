@@ -1,5 +1,5 @@
 ##############################################################################
-# CrazyStream — Website Module Variables
+# GridStreamer — Website Module Variables
 ##############################################################################
 
 variable "project_name" {

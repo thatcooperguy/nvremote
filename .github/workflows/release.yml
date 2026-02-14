@@ -1,5 +1,5 @@
 ###############################################################################
-# CrazyStream -- Release Workflow
+# GridStreamer -- Release Workflow
 #
 # Triggered on tag pushes matching v*.  Builds all platform artifacts and
 # creates a GitHub Release with the resulting binaries.
@@ -8,8 +8,8 @@
 #   1. build-native-libs       -- C++17 streaming core (Windows, MSVC + NVENC/FFmpeg)
 #   2. build-host-agent        -- Go host agent (Windows)
 #   3. build-host-agent-linux  -- Go host agent (Linux)
-#   4. build-host-bundle       -- Zip crazystream-host.exe + CrazyStreamAgent.exe (Windows)
-#   5. build-host-bundle-linux -- Tar.gz CrazyStreamAgent (Linux)
+#   4. build-host-bundle       -- Zip gridstreamer-host.exe + GridStreamerAgent.exe (Windows)
+#   5. build-host-bundle-linux -- Tar.gz GridStreamerAgent (Linux)
 #   6. build-client            -- Electron desktop client (Windows NSIS installer)
 #   7. build-client-linux      -- Electron desktop client (Linux AppImage)
 #   8. build-client-macos      -- Electron desktop client (macOS DMG)
@@ -34,8 +34,8 @@ env:
 jobs:
   ###########################################################################
   # Job 1: Build C++ native libraries
-  #   Produces: crazystream-host.exe  (GPU streaming host)
-  #             crazystream-viewer.node (N-API addon for Electron)
+  #   Produces: gridstreamer-host.exe  (GPU streaming host)
+  #             gridstreamer-viewer.node (N-API addon for Electron)
   ###########################################################################
   build-native-libs:
     name: Build Native Libs (C++17)
@@ -134,7 +134,7 @@ jobs:
           Get-ChildItem "$ffmpegDir\lib" -Filter *.lib | ForEach-Object { Write-Host "  $($_.Name)" }
 
       # -------------------------------------------------------------------
-      # Node.js headers -- needed for crazystream-viewer N-API compilation
+      # Node.js headers -- needed for gridstreamer-viewer N-API compilation
       # -------------------------------------------------------------------
       - name: Download Node.js headers and node.lib
         shell: pwsh
@@ -232,25 +232,25 @@ jobs:
       - name: Verify build outputs
         shell: pwsh
         run: |
-          $hostExe = "libs\build\crazystream-host\Release\crazystream-host.exe"
-          $viewerNode = "libs\build\crazystream-viewer\Release\crazystream-viewer.node"
+          $hostExe = "libs\build\gridstreamer-host\Release\gridstreamer-host.exe"
+          $viewerNode = "libs\build\gridstreamer-viewer\Release\gridstreamer-viewer.node"
 
           if (-not (Test-Path $hostExe)) {
-            Write-Error "crazystream-host.exe not found at $hostExe"
+            Write-Error "gridstreamer-host.exe not found at $hostExe"
             # List what was actually produced for debugging
-            Write-Host "Contents of libs\build\crazystream-host\"
-            Get-ChildItem "libs\build\crazystream-host" -Recurse -File | ForEach-Object { Write-Host "  $($_.FullName)" }
+            Write-Host "Contents of libs\build\gridstreamer-host\"
+            Get-ChildItem "libs\build\gridstreamer-host" -Recurse -File | ForEach-Object { Write-Host "  $($_.FullName)" }
             exit 1
           }
           if (-not (Test-Path $viewerNode)) {
-            Write-Error "crazystream-viewer.node not found at $viewerNode"
-            Write-Host "Contents of libs\build\crazystream-viewer\"
-            Get-ChildItem "libs\build\crazystream-viewer" -Recurse -File | ForEach-Object { Write-Host "  $($_.FullName)" }
+            Write-Error "gridstreamer-viewer.node not found at $viewerNode"
+            Write-Host "Contents of libs\build\gridstreamer-viewer\"
+            Get-ChildItem "libs\build\gridstreamer-viewer" -Recurse -File | ForEach-Object { Write-Host "  $($_.FullName)" }
             exit 1
           }
 
-          Write-Host "crazystream-host.exe: $('{0:N0}' -f (Get-Item $hostExe).Length) bytes"
-          Write-Host "crazystream-viewer.node: $('{0:N0}' -f (Get-Item $viewerNode).Length) bytes"
+          Write-Host "gridstreamer-host.exe: $('{0:N0}' -f (Get-Item $hostExe).Length) bytes"
+          Write-Host "gridstreamer-viewer.node: $('{0:N0}' -f (Get-Item $viewerNode).Length) bytes"
 
       # -------------------------------------------------------------------
       # Collect artifacts -- host exe, viewer addon, runtime DLLs
@@ -262,10 +262,10 @@ jobs:
           mkdir $out -Force | Out-Null
 
           # Host executable
-          Copy-Item "libs\build\crazystream-host\Release\crazystream-host.exe" "$out\"
+          Copy-Item "libs\build\gridstreamer-host\Release\gridstreamer-host.exe" "$out\"
 
           # Viewer N-API addon
-          Copy-Item "libs\build\crazystream-viewer\Release\crazystream-viewer.node" "$out\"
+          Copy-Item "libs\build\gridstreamer-viewer\Release\gridstreamer-viewer.node" "$out\"
 
           # FFmpeg DLLs needed at runtime
           $ffBin = "$env:RUNNER_TEMP\ffmpeg\bin"
@@ -327,15 +327,15 @@ jobs:
         working-directory: apps/host-agent
         run: |
           $tag = "${{ github.ref_name }}"
-          Write-Host "Building CrazyStreamAgent.exe for tag: $tag"
+          Write-Host "Building GridStreamerAgent.exe for tag: $tag"
 
-          go build -ldflags="-s -w -X main.version=$tag" -o CrazyStreamAgent.exe ./cmd/agent
+          go build -ldflags="-s -w -X main.version=$tag" -o GridStreamerAgent.exe ./cmd/agent
           if ($LASTEXITCODE -ne 0) {
             Write-Error "Go build failed"
             exit 1
           }
-          $size = (Get-Item CrazyStreamAgent.exe).Length
-          Write-Host "Built CrazyStreamAgent.exe ($('{0:N0}' -f $size) bytes)"
+          $size = (Get-Item GridStreamerAgent.exe).Length
+          Write-Host "Built GridStreamerAgent.exe ($('{0:N0}' -f $size) bytes)"
         env:
           GOOS: windows
           GOARCH: amd64
@@ -345,7 +345,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: host-agent
-          path: apps/host-agent/CrazyStreamAgent.exe
+          path: apps/host-agent/GridStreamerAgent.exe
           if-no-files-found: error
           retention-days: 5
 
@@ -374,9 +374,9 @@ jobs:
         working-directory: apps/host-agent
         run: |
           TAG="${{ github.ref_name }}"
-          echo "Building CrazyStreamAgent for tag: $TAG"
-          go build -ldflags="-s -w -X main.version=$TAG" -o CrazyStreamAgent ./cmd/agent
-          echo "Built CrazyStreamAgent ($(stat -c%s CrazyStreamAgent) bytes)"
+          echo "Building GridStreamerAgent for tag: $TAG"
+          go build -ldflags="-s -w -X main.version=$TAG" -o GridStreamerAgent ./cmd/agent
+          echo "Built GridStreamerAgent ($(stat -c%s GridStreamerAgent) bytes)"
         env:
           GOOS: linux
           GOARCH: amd64
@@ -386,7 +386,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: host-agent-linux
-          path: apps/host-agent/CrazyStreamAgent
+          path: apps/host-agent/GridStreamerAgent
           if-no-files-found: error
           retention-days: 5
 
@@ -422,22 +422,22 @@ jobs:
       - name: Create host bundle zip
         run: |
           TAG="${{ github.ref_name }}"
-          BUNDLE_NAME="CrazyStreamHost-${TAG}-win64"
+          BUNDLE_NAME="GridStreamerHost-${TAG}-win64"
           mkdir -p "$BUNDLE_NAME"
 
           # Copy host executable
-          if [ -f "native-libs/crazystream-host.exe" ]; then
-            cp native-libs/crazystream-host.exe "$BUNDLE_NAME/"
+          if [ -f "native-libs/gridstreamer-host.exe" ]; then
+            cp native-libs/gridstreamer-host.exe "$BUNDLE_NAME/"
           else
-            echo "::error::crazystream-host.exe not found in native-libs artifact"
+            echo "::error::gridstreamer-host.exe not found in native-libs artifact"
             exit 1
           fi
 
           # Copy agent executable
-          if [ -f "host-agent/CrazyStreamAgent.exe" ]; then
-            cp host-agent/CrazyStreamAgent.exe "$BUNDLE_NAME/"
+          if [ -f "host-agent/GridStreamerAgent.exe" ]; then
+            cp host-agent/GridStreamerAgent.exe "$BUNDLE_NAME/"
           else
-            echo "::error::CrazyStreamAgent.exe not found in host-agent artifact"
+            echo "::error::GridStreamerAgent.exe not found in host-agent artifact"
             exit 1
           fi
 
@@ -454,7 +454,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: host-bundle
-          path: "CrazyStreamHost-${{ github.ref_name }}-win64.zip"
+          path: "GridStreamerHost-${{ github.ref_name }}-win64.zip"
           if-no-files-found: error
           retention-days: 5
 
@@ -476,11 +476,11 @@ jobs:
       - name: Create host bundle tarball
         run: |
           TAG="${{ github.ref_name }}"
-          BUNDLE_NAME="CrazyStreamHost-${TAG}-linux-amd64"
+          BUNDLE_NAME="GridStreamerHost-${TAG}-linux-amd64"
           mkdir -p "$BUNDLE_NAME"
 
-          cp host-agent-linux/CrazyStreamAgent "$BUNDLE_NAME/"
-          chmod +x "$BUNDLE_NAME/CrazyStreamAgent"
+          cp host-agent-linux/GridStreamerAgent "$BUNDLE_NAME/"
+          chmod +x "$BUNDLE_NAME/GridStreamerAgent"
 
           echo "=== Bundle contents ==="
           ls -lh "$BUNDLE_NAME/"
@@ -492,7 +492,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: host-bundle-linux
-          path: "CrazyStreamHost-${{ github.ref_name }}-linux-amd64.tar.gz"
+          path: "GridStreamerHost-${{ github.ref_name }}-linux-amd64.tar.gz"
           if-no-files-found: error
           retention-days: 5
 
@@ -531,13 +531,13 @@ jobs:
 
           # Copy viewer N-API addon (try both paths in case of nesting)
           $viewerSrc = $null
-          if (Test-Path "native-libs\crazystream-viewer.node") {
-            $viewerSrc = "native-libs\crazystream-viewer.node"
-          } elseif (Test-Path "native-libs\native-artifacts\crazystream-viewer.node") {
-            $viewerSrc = "native-libs\native-artifacts\crazystream-viewer.node"
+          if (Test-Path "native-libs\gridstreamer-viewer.node") {
+            $viewerSrc = "native-libs\gridstreamer-viewer.node"
+          } elseif (Test-Path "native-libs\native-artifacts\gridstreamer-viewer.node") {
+            $viewerSrc = "native-libs\native-artifacts\gridstreamer-viewer.node"
           } else {
             # Search recursively
-            $found = Get-ChildItem "native-libs" -Recurse -Filter "crazystream-viewer.node" -File
+            $found = Get-ChildItem "native-libs" -Recurse -Filter "gridstreamer-viewer.node" -File
             if ($found) {
               $viewerSrc = $found[0].FullName
               Write-Host "Found viewer.node at: $viewerSrc"
@@ -546,9 +546,9 @@ jobs:
 
           if ($viewerSrc) {
             Copy-Item $viewerSrc "$resourceDir\"
-            Write-Host "Copied crazystream-viewer.node to resources"
+            Write-Host "Copied gridstreamer-viewer.node to resources"
           } else {
-            Write-Error "crazystream-viewer.node not found anywhere in native-libs artifact"
+            Write-Error "gridstreamer-viewer.node not found anywhere in native-libs artifact"
             exit 1
           }
 
@@ -593,7 +593,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: client-installer
-          path: apps/client-desktop/release/CrazyStream-*-Setup.exe
+          path: apps/client-desktop/release/GridStreamer-*-Setup.exe
           if-no-files-found: warn
           retention-days: 5
 
@@ -634,7 +634,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: client-linux
-          path: apps/client-desktop/release/CrazyStream-*.AppImage
+          path: apps/client-desktop/release/GridStreamer-*.AppImage
           if-no-files-found: warn
           retention-days: 5
 
@@ -704,18 +704,18 @@ jobs:
 
       - name: Verify build output
         run: |
-          ADDON="libs/build/crazystream-viewer/crazystream-viewer.node"
+          ADDON="libs/build/gridstreamer-viewer/gridstreamer-viewer.node"
           if [ ! -f "$ADDON" ]; then
-            echo "::error::crazystream-viewer.node not found"
+            echo "::error::gridstreamer-viewer.node not found"
             find libs/build -name "*.node" -o -name "*.dylib" | head -20
             exit 1
           fi
-          echo "crazystream-viewer.node: $(ls -lh "$ADDON" | awk '{print $5}')"
+          echo "gridstreamer-viewer.node: $(ls -lh "$ADDON" | awk '{print $5}')"
 
       - name: Collect macOS native artifacts
         run: |
           mkdir -p native-artifacts-macos
-          cp libs/build/crazystream-viewer/crazystream-viewer.node native-artifacts-macos/
+          cp libs/build/gridstreamer-viewer/gridstreamer-viewer.node native-artifacts-macos/
 
           # Copy dylib dependencies
           FFMPEG_LIB=$(brew --prefix ffmpeg)/lib
@@ -771,7 +771,7 @@ jobs:
           ls -lh native-libs-macos/
 
           # Copy viewer addon
-          cp native-libs-macos/crazystream-viewer.node "$RESOURCE_DIR/"
+          cp native-libs-macos/gridstreamer-viewer.node "$RESOURCE_DIR/"
 
           # Copy runtime dylibs
           cp native-libs-macos/*.dylib "$RESOURCE_DIR/" 2>/dev/null || echo "No dylibs to copy"
@@ -797,7 +797,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: client-macos
-          path: apps/client-desktop/release/CrazyStream-*.dmg
+          path: apps/client-desktop/release/GridStreamer-*.dmg
           if-no-files-found: warn
           retention-days: 5
 
@@ -871,24 +871,24 @@ jobs:
 
           # Handle both signed and unsigned APK names
           if [ -f "$APK_DIR/app-release-unsigned.apk" ]; then
-            mv "$APK_DIR/app-release-unsigned.apk" "$APK_DIR/CrazyStream-${TAG}.apk"
-            echo "Renamed app-release-unsigned.apk -> CrazyStream-${TAG}.apk"
+            mv "$APK_DIR/app-release-unsigned.apk" "$APK_DIR/GridStreamer-${TAG}.apk"
+            echo "Renamed app-release-unsigned.apk -> GridStreamer-${TAG}.apk"
           elif [ -f "$APK_DIR/app-release.apk" ]; then
-            mv "$APK_DIR/app-release.apk" "$APK_DIR/CrazyStream-${TAG}.apk"
-            echo "Renamed app-release.apk -> CrazyStream-${TAG}.apk"
+            mv "$APK_DIR/app-release.apk" "$APK_DIR/GridStreamer-${TAG}.apk"
+            echo "Renamed app-release.apk -> GridStreamer-${TAG}.apk"
           else
             echo "::error::No release APK found in $APK_DIR"
             ls -lhR "$APK_DIR/" 2>/dev/null || true
             exit 1
           fi
 
-          ls -lh "$APK_DIR/CrazyStream-${TAG}.apk"
+          ls -lh "$APK_DIR/GridStreamer-${TAG}.apk"
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: apps/android/app/build/outputs/apk/release/CrazyStream-*.apk
+          path: apps/android/app/build/outputs/apk/release/GridStreamer-*.apk
           if-no-files-found: warn
           retention-days: 5
 
@@ -964,18 +964,18 @@ jobs:
           files: |
             release-files/*
           body: |
-            ## CrazyStream ${{ github.ref_name }}
+            ## GridStreamer ${{ github.ref_name }}
 
             ### Downloads
 
             | Platform | Artifact | Description |
             |----------|----------|-------------|
-            | Windows (Host) | `CrazyStreamHost-${{ github.ref_name }}-win64.zip` | Streaming host + agent bundle |
-            | Linux (Host) | `CrazyStreamHost-${{ github.ref_name }}-linux-amd64.tar.gz` | Host agent (Go, no GPU streamer yet) |
-            | Windows (Client) | `CrazyStream-*-Setup.exe` | Desktop viewer (Electron) installer |
-            | Linux (Client) | `CrazyStream-*-x86_64.AppImage` | Desktop client (Electron AppImage) |
-            | macOS (Client) | `CrazyStream-*-universal.dmg` | Desktop client (Electron DMG) |
-            | Android | `CrazyStream-${{ github.ref_name }}.apk` | Android mobile client |
+            | Windows (Host) | `GridStreamerHost-${{ github.ref_name }}-win64.zip` | Streaming host + agent bundle |
+            | Linux (Host) | `GridStreamerHost-${{ github.ref_name }}-linux-amd64.tar.gz` | Host agent (Go, no GPU streamer yet) |
+            | Windows (Client) | `GridStreamer-*-Setup.exe` | Desktop viewer (Electron) installer |
+            | Linux (Client) | `GridStreamer-*-x86_64.AppImage` | Desktop client (Electron AppImage) |
+            | macOS (Client) | `GridStreamer-*-universal.dmg` | Desktop client (Electron DMG) |
+            | Android | `GridStreamer-${{ github.ref_name }}.apk` | Android mobile client |
 
             ### Requirements
             - **Host (Windows)**: NVIDIA GPU with NVENC support, Windows 10/11 x64

@@ -1,6 +1,6 @@
-appId: com.crazystream.client
-productName: CrazyStream
-copyright: Copyright (c) CrazyStream
+appId: com.gridstreamer.client
+productName: GridStreamer
+copyright: Copyright (c) GridStreamer
 
 # Prevent electron-builder from running its own npm install during packaging.
 # In npm workspace setups, this step restructures node_modules and deletes
@@ -20,8 +20,8 @@ win:
     - target: nsis
       arch:
         - x64
-  artifactName: "CrazyStream-${version}-Setup.${ext}"
-  publisherName: CrazyStream
+  artifactName: "GridStreamer-${version}-Setup.${ext}"
+  publisherName: GridStreamer
 
 nsis:
   oneClick: false
@@ -30,33 +30,33 @@ nsis:
   deleteAppDataOnUninstall: false
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: CrazyStream
+  shortcutName: GridStreamer
 
 linux:
   target:
     - target: AppImage
       arch:
         - x64
-  artifactName: "CrazyStream-${version}-x86_64.${ext}"
+  artifactName: "GridStreamer-${version}-x86_64.${ext}"
   category: Game
   desktop:
-    StartupWMClass: CrazyStream
+    StartupWMClass: GridStreamer
 
 mac:
   target:
     - target: dmg
       arch:
         - universal
-  artifactName: "CrazyStream-${version}-universal.${ext}"
+  artifactName: "GridStreamer-${version}-universal.${ext}"
   category: public.app-category.games
 
 dmg:
-  title: "CrazyStream ${version}"
+  title: "GridStreamer ${version}"
 
 protocols:
-  name: CrazyStream Protocol
+  name: GridStreamer Protocol
   schemes:
-    - crazystream
+    - gridstreamer
 
 extraResources:
   - from: resources/

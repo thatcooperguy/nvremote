@@ -1,7 +1,7 @@
 // ICEAgent.swift — ICE-lite candidate gathering and connectivity checks
-// CrazyStream macOS Client
+// GridStreamer macOS Client
 //
-// Mirrors the C++ IceAgent from crazystream-common. Gathers local host and
+// Mirrors the C++ IceAgent from gridstreamer-common. Gathers local host and
 // server-reflexive (srflx) candidates, exchanges them with the peer via signaling,
 // and performs simultaneous UDP hole-punching connectivity checks.
 

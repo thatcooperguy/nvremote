@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.crazystream.app"
+    namespace = "com.gridstreamer.app"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.crazystream.app"
+        applicationId = "com.gridstreamer.app"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

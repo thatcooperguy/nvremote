@@ -153,7 +153,7 @@ export function SettingsPage(): React.ReactElement {
         <div style={styles.aboutContent}>
           <div style={styles.aboutRow}>
             <span style={styles.aboutLabel}>Application</span>
-            <span style={styles.aboutValue}>CrazyStream</span>
+            <span style={styles.aboutValue}>GridStreamer</span>
           </div>
           <div style={styles.settingDivider} />
           <div style={styles.aboutRow}>

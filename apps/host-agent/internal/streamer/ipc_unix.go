@@ -8,12 +8,12 @@ import (
 	"time"
 )
 
-// dialPipe connects to the crazystream-host process via a Unix domain socket.
+// dialPipe connects to the gridstreamer-host process via a Unix domain socket.
 // On Unix systems the "pipe name" from the config is mapped to a socket path.
 func dialPipe(pipeName string, timeout time.Duration) (net.Conn, error) {
 	socketPath := pipeName
 	if socketPath == defaultPipeName {
-		socketPath = "/tmp/crazystream-host.sock"
+		socketPath = "/tmp/gridstreamer-host.sock"
 	}
 
 	conn, err := net.DialTimeout("unix", socketPath, timeout)

@@ -17,34 +17,34 @@ interface PlatformInfo {
  */
 const platforms: Record<string, PlatformInfo> = {
   'windows-host': {
-    assetFilename: `CrazyStreamHost-${VERSION}-win64.zip`,
+    assetFilename: `GridStreamerHost-${VERSION}-win64.zip`,
     contentType: 'application/zip',
-    description: 'CrazyStream Host for Windows (x64)',
+    description: 'GridStreamer Host for Windows (x64)',
   },
   'windows-client': {
-    assetFilename: `CrazyStream-${VERSION.replace('v', '')}-Setup.exe`,
+    assetFilename: `GridStreamer-${VERSION.replace('v', '')}-Setup.exe`,
     contentType: 'application/vnd.microsoft.portable-executable',
-    description: 'CrazyStream Client for Windows (x64)',
+    description: 'GridStreamer Client for Windows (x64)',
   },
   'android-client': {
-    assetFilename: `CrazyStream-${VERSION}.apk`,
+    assetFilename: `GridStreamer-${VERSION}.apk`,
     contentType: 'application/vnd.android.package-archive',
-    description: 'CrazyStream Client for Android',
+    description: 'GridStreamer Client for Android',
   },
   'linux-host': {
-    assetFilename: `CrazyStreamHost-${VERSION}-linux-amd64.tar.gz`,
+    assetFilename: `GridStreamerHost-${VERSION}-linux-amd64.tar.gz`,
     contentType: 'application/gzip',
-    description: 'CrazyStream Host Agent for Linux (amd64)',
+    description: 'GridStreamer Host Agent for Linux (amd64)',
   },
   'macos-client': {
-    assetFilename: `CrazyStream-${VERSION.replace('v', '')}-universal.dmg`,
+    assetFilename: `GridStreamer-${VERSION.replace('v', '')}-universal.dmg`,
     contentType: 'application/x-apple-diskimage',
-    description: 'CrazyStream Client for macOS (Universal)',
+    description: 'GridStreamer Client for macOS (Universal)',
   },
   'linux-client': {
-    assetFilename: `CrazyStream-${VERSION.replace('v', '')}-x86_64.AppImage`,
+    assetFilename: `GridStreamer-${VERSION.replace('v', '')}-x86_64.AppImage`,
     contentType: 'application/x-executable',
-    description: 'CrazyStream Client for Linux (x86_64)',
+    description: 'GridStreamer Client for Linux (x86_64)',
   },
 };
 
@@ -59,7 +59,7 @@ async function getGitHubAssetUrl(
   const token = process.env.GITHUB_TOKEN;
   const headers: Record<string, string> = {
     Accept: 'application/vnd.github.v3+json',
-    'User-Agent': 'CrazyStream-Website',
+    'User-Agent': 'GridStreamer-Website',
   };
 
   if (token) {
@@ -137,7 +137,7 @@ export async function GET(
         headers: {
           Accept: 'application/octet-stream',
           Authorization: `Bearer ${token}`,
-          'User-Agent': 'CrazyStream-Website',
+          'User-Agent': 'GridStreamer-Website',
         },
         redirect: 'follow',
       });
@@ -150,7 +150,7 @@ export async function GET(
             'Content-Disposition': `attachment; filename="${info.assetFilename}"`,
             'Content-Length': asset.size.toString(),
             'Cache-Control': 'public, max-age=3600',
-            'X-CrazyStream-Version': VERSION,
+            'X-GridStreamer-Version': VERSION,
           },
         });
       }
@@ -170,19 +170,19 @@ export async function GET(
       'Content-Disposition': `attachment; filename="${info.assetFilename}"`,
       'Content-Length': placeholder.byteLength.toString(),
       'Cache-Control': 'no-cache',
-      'X-CrazyStream-Version': VERSION,
-      'X-CrazyStream-Placeholder': 'true',
+      'X-GridStreamer-Version': VERSION,
+      'X-GridStreamer-Placeholder': 'true',
     },
   });
 }
 
 function buildPlaceholder(info: PlatformInfo): Uint8Array {
   const header = [
-    `CRAZYSTREAM ${VERSION}`,
+    `GRIDSTREAMER ${VERSION}`,
     `File: ${info.assetFilename}`,
     `Description: ${info.description}`,
     ``,
-    `This is a placeholder installer for the CrazyStream alpha.`,
+    `This is a placeholder installer for the GridStreamer alpha.`,
     `The CI build for this platform has not completed yet.`,
     ``,
     `Once the GitHub Actions release workflow finishes, real binaries`,

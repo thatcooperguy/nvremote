@@ -1,5 +1,5 @@
 // Package heartbeat implements the periodic health reporting and real-time signaling
-// connection between the host agent and the NVRemoteStream control plane.
+// connection between the host agent and the GridStreamer control plane.
 package heartbeat
 
 import (
@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nvidia/nvstreamer/host-agent/internal/config"
-	"github.com/nvidia/nvstreamer/host-agent/internal/p2p"
-	"github.com/nvidia/nvstreamer/host-agent/internal/streamer"
+	"github.com/nvidia/gridstreamer/host-agent/internal/config"
+	"github.com/nvidia/gridstreamer/host-agent/internal/p2p"
+	"github.com/nvidia/gridstreamer/host-agent/internal/streamer"
 )
 
 const (

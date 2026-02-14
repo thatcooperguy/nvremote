@@ -57,7 +57,7 @@ const authApi = {
 };
 
 // ---------------------------------------------------------------------------
-// Viewer (native crazystream-viewer addon)
+// Viewer (native gridstreamer-viewer addon)
 // ---------------------------------------------------------------------------
 
 interface ViewerStartConfig {

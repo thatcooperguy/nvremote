@@ -74,3 +74,4 @@ wg-*.conf
 *.p12
 *.pfx
 credentials.json
+nul

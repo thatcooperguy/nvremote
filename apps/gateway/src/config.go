@@ -9,7 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const defaultConfigPath = "/etc/nvrs-gateway/config.yaml"
+const defaultConfigPath = "/etc/gridstreamer-gateway/config.yaml"
 
 // Config holds all configuration for the gateway service.
 type Config struct {
@@ -22,7 +22,7 @@ type Config struct {
 	// WireGuardPort is the UDP port WireGuard listens on.
 	WireGuardPort int `yaml:"wireguard_port"`
 
-	// ControlPlaneURL is the base URL of the NVRS control plane API.
+	// ControlPlaneURL is the base URL of the GRIDSTREAMER control plane API.
 	ControlPlaneURL string `yaml:"control_plane_url"`
 
 	// GatewayToken is the bearer token used to authenticate API requests.
@@ -59,7 +59,7 @@ func LoadConfig() (*Config, error) {
 
 	// Attempt to load from config file.
 	configPath := defaultConfigPath
-	if envPath := os.Getenv("NVRS_CONFIG_PATH"); envPath != "" {
+	if envPath := os.Getenv("GRIDSTREAMER_CONFIG_PATH"); envPath != "" {
 		configPath = envPath
 	}
 
@@ -100,33 +100,33 @@ func loadConfigFile(cfg *Config, path string) error {
 // applyEnvOverrides applies environment variable overrides to the config.
 // Environment variables take precedence over config file values.
 func applyEnvOverrides(cfg *Config) {
-	if v := os.Getenv("NVRS_LISTEN_ADDR"); v != "" {
+	if v := os.Getenv("GRIDSTREAMER_LISTEN_ADDR"); v != "" {
 		cfg.ListenAddr = v
 	}
-	if v := os.Getenv("NVRS_WG_INTERFACE"); v != "" {
+	if v := os.Getenv("GRIDSTREAMER_WG_INTERFACE"); v != "" {
 		cfg.WireGuardInterface = v
 	}
-	if v := os.Getenv("NVRS_WG_PORT"); v != "" {
+	if v := os.Getenv("GRIDSTREAMER_WG_PORT"); v != "" {
 		if port, err := strconv.Atoi(v); err == nil {
 			cfg.WireGuardPort = port
 		}
 	}
-	if v := os.Getenv("NVRS_CONTROL_PLANE_URL"); v != "" {
+	if v := os.Getenv("GRIDSTREAMER_CONTROL_PLANE_URL"); v != "" {
 		cfg.ControlPlaneURL = v
 	}
-	if v := os.Getenv("NVRS_GATEWAY_TOKEN"); v != "" {
+	if v := os.Getenv("GRIDSTREAMER_GATEWAY_TOKEN"); v != "" {
 		cfg.GatewayToken = v
 	}
-	if v := os.Getenv("NVRS_TUNNEL_SUBNET"); v != "" {
+	if v := os.Getenv("GRIDSTREAMER_TUNNEL_SUBNET"); v != "" {
 		cfg.TunnelSubnet = v
 	}
-	if v := os.Getenv("NVRS_PUBLIC_IP"); v != "" {
+	if v := os.Getenv("GRIDSTREAMER_PUBLIC_IP"); v != "" {
 		cfg.PublicIP = v
 	}
-	if v := os.Getenv("NVRS_GATEWAY_ID"); v != "" {
+	if v := os.Getenv("GRIDSTREAMER_GATEWAY_ID"); v != "" {
 		cfg.GatewayID = v
 	}
-	if v := os.Getenv("NVRS_HEARTBEAT_INTERVAL"); v != "" {
+	if v := os.Getenv("GRIDSTREAMER_HEARTBEAT_INTERVAL"); v != "" {
 		if interval, err := strconv.Atoi(v); err == nil {
 			cfg.HeartbeatInterval = interval
 		}
@@ -136,10 +136,10 @@ func applyEnvOverrides(cfg *Config) {
 // validateConfig ensures all required configuration values are set.
 func validateConfig(cfg *Config) error {
 	if cfg.GatewayToken == "" {
-		return fmt.Errorf("gateway token is required (set NVRS_GATEWAY_TOKEN or gateway_token in config)")
+		return fmt.Errorf("gateway token is required (set GRIDSTREAMER_GATEWAY_TOKEN or gateway_token in config)")
 	}
 	if cfg.PublicIP == "" {
-		return fmt.Errorf("public IP is required (set NVRS_PUBLIC_IP or public_ip in config)")
+		return fmt.Errorf("public IP is required (set GRIDSTREAMER_PUBLIC_IP or public_ip in config)")
 	}
 	if cfg.WireGuardPort < 1 || cfg.WireGuardPort > 65535 {
 		return fmt.Errorf("WireGuard port must be between 1 and 65535, got %d", cfg.WireGuardPort)

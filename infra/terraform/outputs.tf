@@ -40,10 +40,10 @@ output "dns_nameservers" {
 
 output "website_url" {
   description = "Website URL"
-  value       = var.domain_name != "" ? "https://${var.domain_name}" : "https://crazystream-website-luz2bubotq-uw.a.run.app"
+  value       = var.domain_name != "" ? "https://${var.domain_name}" : "https://gridstreamer-website-luz2bubotq-uw.a.run.app"
 }
 
 output "api_url_domain" {
   description = "API URL with custom domain"
-  value       = var.domain_name != "" ? "https://api.${var.domain_name}" : "https://crazystream-api-luz2bubotq-uw.a.run.app"
+  value       = var.domain_name != "" ? "https://api.${var.domain_name}" : "https://gridstreamer-api-luz2bubotq-uw.a.run.app"
 }

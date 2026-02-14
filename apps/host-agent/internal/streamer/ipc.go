@@ -1,4 +1,4 @@
-// Package streamer manages the crazystream-host.exe process lifecycle and IPC communication.
+// Package streamer manages the gridstreamer-host.exe process lifecycle and IPC communication.
 package streamer
 
 import (
@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	// defaultPipeName is the default Windows named pipe for crazystream-host IPC.
-	defaultPipeName = `\\.\pipe\crazystream-host`
+	// defaultPipeName is the default Windows named pipe for gridstreamer-host IPC.
+	defaultPipeName = `\\.\pipe\gridstreamer-host`
 
 	// ipcConnectTimeout is how long to wait when opening the named pipe connection.
 	ipcConnectTimeout = 5 * time.Second
@@ -24,20 +24,20 @@ const (
 	ipcWriteTimeout = 5 * time.Second
 )
 
-// IpcCommand is the JSON structure sent to crazystream-host over the named pipe.
+// IpcCommand is the JSON structure sent to gridstreamer-host over the named pipe.
 type IpcCommand struct {
 	Command string                 `json:"command"`
 	Params  map[string]interface{} `json:"params,omitempty"`
 }
 
-// IpcResponse is the JSON structure received from crazystream-host over the named pipe.
+// IpcResponse is the JSON structure received from gridstreamer-host over the named pipe.
 type IpcResponse struct {
 	Status  string                 `json:"status"` // "ok" or "error"
 	Error   string                 `json:"error,omitempty"`
 	Data    map[string]interface{} `json:"data,omitempty"`
 }
 
-// IpcClient communicates with crazystream-host.exe over a Windows named pipe using
+// IpcClient communicates with gridstreamer-host.exe over a Windows named pipe using
 // newline-delimited JSON messages.
 type IpcClient struct {
 	pipeName string
@@ -57,7 +57,7 @@ func NewIpcClient(pipeName string) *IpcClient {
 	}
 }
 
-// Connect opens a connection to the crazystream-host named pipe.
+// Connect opens a connection to the gridstreamer-host named pipe.
 // On Windows, named pipes are accessed via net.Dial("pipe", ...) or by opening
 // the UNC path. We use the npipe-style approach via net.DialTimeout.
 func (c *IpcClient) Connect() error {

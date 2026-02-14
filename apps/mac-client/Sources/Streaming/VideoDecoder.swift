@@ -1,5 +1,5 @@
 // VideoDecoder.swift — VideoToolbox hardware H.264/H.265 decode
-// CrazyStream macOS Client
+// GridStreamer macOS Client
 //
 // Uses VTDecompressionSession for hardware-accelerated video decoding.
 // Outputs IOSurface-backed CVPixelBuffers for zero-copy handoff to Metal.

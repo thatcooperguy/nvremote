@@ -277,7 +277,7 @@ export function StreamView(): React.ReactElement {
               />
             </svg>
             <span style={viewStyles.placeholderText}>
-              CrazyStream Viewer Active
+              GridStreamer Viewer Active
             </span>
             <span style={viewStyles.placeholderSubtext}>
               Native render surface -- streaming content appears here

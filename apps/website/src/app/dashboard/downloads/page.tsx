@@ -17,13 +17,13 @@ import { cn } from '@/lib/utils';
 
 const installedApps = [
   {
-    name: 'CrazyStream Host',
+    name: 'GridStreamer Host',
     version: 'v0.2.1-alpha',
     description: 'Stream capture and encoding service',
     upToDate: true,
   },
   {
-    name: 'CrazyStream Client',
+    name: 'GridStreamer Client',
     version: 'v0.2.1-alpha',
     description: 'Stream receiver and decoder',
     upToDate: true,
@@ -114,7 +114,7 @@ export default function DashboardDownloadsPage() {
             transition={{ duration: 0.4, delay: 0.1 }}
             className="text-sm text-cs-gray-400 mt-1"
           >
-            Manage your CrazyStream installations
+            Manage your GridStreamer installations
           </motion.p>
         </div>
         <motion.button

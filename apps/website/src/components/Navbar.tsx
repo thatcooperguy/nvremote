@@ -60,7 +60,7 @@ function Logo() {
         <div className="absolute inset-0 rounded-lg bg-cs-green/0 group-hover:bg-cs-green/20 blur-xl transition-all duration-500 group-hover:scale-150" />
       </div>
       <span className="text-xl font-bold tracking-tight">
-        CRAZY<span className="text-cs-green">STREAM</span>
+        GRID<span className="text-cs-green">STREAMER</span>
       </span>
     </Link>
   );

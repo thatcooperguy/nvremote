@@ -1,5 +1,5 @@
 // MetalRenderer.swift — Metal-based video rendering
-// CrazyStream macOS Client
+// GridStreamer macOS Client
 //
 // Renders decoded CVPixelBuffers (NV12 IOSurface-backed) to screen via Metal.
 // Performs NV12 -> RGB conversion in a fragment shader and presents frames

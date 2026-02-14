@@ -1,9 +1,9 @@
 {
-  "name": "crazystream-client",
+  "name": "gridstreamer-client",
   "version": "0.1.0",
-  "description": "CrazyStream — Cloud Gaming Desktop Client",
+  "description": "GridStreamer — Cloud Gaming Desktop Client",
   "main": "dist-electron/main/main.js",
-  "author": "CrazyStream",
+  "author": "GridStreamer",
   "license": "UNLICENSED",
   "private": true,
   "scripts": {

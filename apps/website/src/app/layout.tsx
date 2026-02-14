@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'CRAZYSTREAM — Cloud Gaming, Unlocked.',
+  title: 'GRIDSTREAMER — Cloud Gaming, Unlocked.',
   description:
     'One hub. Multiple apps. Secure, low-latency cloud gaming anywhere. Stream with sub-15ms latency, 4K@60 HDR, and P2P encrypted connections powered by NvFBC + NVENC.',
   keywords: [
@@ -25,13 +25,13 @@ export const metadata: Metadata = {
     'DTLS',
     '4K HDR',
   ],
-  authors: [{ name: 'CrazyStream Team' }],
+  authors: [{ name: 'GridStreamer Team' }],
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://crazystream.gg',
-    siteName: 'CrazyStream',
-    title: 'CRAZYSTREAM — Cloud Gaming, Unlocked.',
+    url: 'https://gridstreamer.com',
+    siteName: 'GridStreamer',
+    title: 'GRIDSTREAMER — Cloud Gaming, Unlocked.',
     description:
       'One hub. Multiple apps. Secure, low-latency cloud gaming anywhere. Sub-15ms latency, 4K@60 HDR, 240 FPS, P2P encrypted.',
     images: [
@@ -39,13 +39,13 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'CrazyStream — Cloud Gaming, Unlocked.',
+        alt: 'GridStreamer — Cloud Gaming, Unlocked.',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'CRAZYSTREAM — Cloud Gaming, Unlocked.',
+    title: 'GRIDSTREAMER — Cloud Gaming, Unlocked.',
     description:
       'One hub. Multiple apps. Secure, low-latency cloud gaming anywhere.',
     images: ['/og-image.png'],

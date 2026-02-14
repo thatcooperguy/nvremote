@@ -1,5 +1,5 @@
 // StatCard.swift — Latency/FPS/bitrate stat display card
-// CrazyStream macOS Client
+// GridStreamer macOS Client
 
 import SwiftUI
 

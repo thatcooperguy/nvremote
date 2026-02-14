@@ -94,7 +94,7 @@ export class AuthService {
   ): Promise<TokenResponseDto> {
     const accessToken = this.jwtService.sign(
       { sub: userId, email },
-      { issuer: 'crazystream-api', audience: 'crazystream' },
+      { issuer: 'gridstreamer-api', audience: 'gridstreamer' },
     );
 
     const refreshTokenValue = uuidv4();

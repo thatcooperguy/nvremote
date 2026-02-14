@@ -36,6 +36,7 @@
 #endif
 #include "input/input_capture.h"
 #include "input/input_sender.h"
+#include "input/clipboard_sync.h"
 
 #include <cs/common.h>
 #include <cs/transport/packet.h>
@@ -183,12 +184,14 @@ void Viewer::stop() {
     if (audio_thread_.joinable())   audio_thread_.join();
 
     // Release subsystems in reverse order
+    if (clipboard_sync_) clipboard_sync_->stop();
     if (input_capture_) input_capture_->release();
     if (audio_playback_) audio_playback_->stop();
     if (renderer_) renderer_->release();
     if (decoder_) decoder_->release();
 
     // Reset unique_ptrs
+    clipboard_sync_.reset();
     input_sender_.reset();
     input_capture_.reset();
     audio_playback_.reset();
@@ -748,6 +751,12 @@ bool Viewer::initTransport() {
                 case PacketType::AUDIO:
                     onAudioPacket(data, len);
                     break;
+                case PacketType::CLIPBOARD:
+                    onClipboardPacket(data, len);
+                    break;
+                case PacketType::CLIP_ACK:
+                    onClipboardAck(data, len);
+                    break;
                 default:
                     break;
             }
@@ -820,6 +829,22 @@ bool Viewer::initInput() {
     }
 
     CS_LOG(INFO, "Input capture initialized");
+
+    // --- Clipboard sync ---
+    clipboard_sync_ = std::make_unique<ClipboardSync>();
+    if (p2p_socket_ >= 0 && peer_addr_len_ > 0) {
+        clipboard_sync_->start([this](const std::vector<uint8_t>& data) {
+            if (p2p_socket_ >= 0) {
+                ::sendto(p2p_socket_,
+                         reinterpret_cast<const char*>(data.data()),
+                         static_cast<int>(data.size()), 0,
+                         reinterpret_cast<const ::sockaddr*>(&peer_addr_),
+                         peer_addr_len_);
+            }
+        });
+        CS_LOG(INFO, "Clipboard sync started");
+    }
+
     return true;
 #else
     return false;
@@ -884,6 +909,18 @@ void Viewer::onAudioPacket(const uint8_t* data, size_t len) {
         });
     }
     audio_queue_cv_.notify_one();
+}
+
+void Viewer::onClipboardPacket(const uint8_t* data, size_t len) {
+    if (clipboard_sync_) {
+        clipboard_sync_->onClipboardReceived(data, len);
+    }
+}
+
+void Viewer::onClipboardAck(const uint8_t* data, size_t len) {
+    if (clipboard_sync_) {
+        clipboard_sync_->onAckReceived(data, len);
+    }
 }
 
 // ---------------------------------------------------------------------------

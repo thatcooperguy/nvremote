@@ -45,6 +45,7 @@ class OpusDecoderWrapper;
 class IAudioPlayback;
 class InputCapture;
 class InputSender;
+class ClipboardSync;
 struct DecodedFrame;
 
 // ---------------------------------------------------------------------------
@@ -198,6 +199,8 @@ private:
     // --- Packet dispatch ---
     void onVideoPacket(const uint8_t* data, size_t len);
     void onAudioPacket(const uint8_t* data, size_t len);
+    void onClipboardPacket(const uint8_t* data, size_t len);
+    void onClipboardAck(const uint8_t* data, size_t len);
 
     // --- Codec type helper ---
     static uint8_t codecFromString(const std::string& name);
@@ -217,6 +220,7 @@ private:
     std::unique_ptr<IAudioPlayback>     audio_playback_;
     std::unique_ptr<InputCapture>       input_capture_;
     std::unique_ptr<InputSender>        input_sender_;
+    std::unique_ptr<ClipboardSync>      clipboard_sync_;
 
     // --- Threads ---
     std::thread receive_thread_;

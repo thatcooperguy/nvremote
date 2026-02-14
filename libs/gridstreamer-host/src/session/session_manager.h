@@ -29,6 +29,7 @@
 #include "qos/qos_controller.h"
 #include "audio/wasapi_capture.h"
 #include "audio/opus_encoder.h"
+#include "input/clipboard_inject.h"
 
 #include <atomic>
 #include <memory>
@@ -156,6 +157,7 @@ private:
     std::unique_ptr<OpusEncoderWrapper>   opus_encoder_;
     std::unique_ptr<cs::DtlsContext>      dtls_;
     std::unique_ptr<cs::IceAgent>         ice_;
+    std::unique_ptr<ClipboardInjector>    clipboard_;
 
     // -----------------------------------------------------------------------
     // Threading state

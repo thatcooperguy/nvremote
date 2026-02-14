@@ -378,6 +378,16 @@ bool SessionManager::startSession(const PeerInfo& peer) {
         stats_.connection_type = "p2p";
     }
 
+    // --- Start clipboard injector ---
+    clipboard_ = std::make_unique<ClipboardInjector>();
+    clipboard_->start([this](const std::vector<uint8_t>& data) {
+        if (transport_) {
+            // Use a dedicated sequence space (0) for clipboard — non-video
+            transport_->sendPacket(data, 0);
+        }
+    });
+    CS_LOG(INFO, "Clipboard injector started");
+
     // --- Start streaming threads ---
     should_stop_.store(false);
     streaming_.store(true);
@@ -410,6 +420,11 @@ void SessionManager::stopSession() {
     if (audio_thread_.joinable())    audio_thread_.join();
     if (feedback_thread_.joinable()) feedback_thread_.join();
 
+    // Stop clipboard
+    if (clipboard_) {
+        clipboard_->stop();
+    }
+
     // Stop audio capture
     if (audio_capture_ && audio_capture_->isRunning()) {
         audio_capture_->stop();
@@ -438,6 +453,7 @@ void SessionManager::stopSession() {
     }
 
     // Reset component pointers that are per-session
+    clipboard_.reset();
     transport_.reset();
     qos_.reset();
     fec_.reset();
@@ -835,6 +851,14 @@ void SessionManager::feedbackLoop() {
             // Handle NACKs
             if (!fb.nack_seqs.empty()) {
                 transport_->onNackReceived(fb.nack_seqs);
+            }
+        } else if (ptype == cs::PacketType::CLIPBOARD) {
+            if (clipboard_) {
+                clipboard_->onClipboardReceived(data, len);
+            }
+        } else if (ptype == cs::PacketType::CLIP_ACK) {
+            if (clipboard_) {
+                clipboard_->onAckReceived(data, len);
             }
         } else if (ptype == cs::PacketType::NACK) {
             // Standalone NACK packets -- extract sequence numbers

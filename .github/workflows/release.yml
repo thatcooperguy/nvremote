@@ -489,6 +489,22 @@ jobs:
             exit 1
           }
 
+          # Ensure 7zip-bin is properly installed (needed by electron-builder for NSIS)
+          npm install 7zip-bin --save-dev
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "7zip-bin install failed"
+            exit 1
+          }
+
+          # Verify 7za.exe exists
+          $sevenZip = "node_modules\7zip-bin\win\x64\7za.exe"
+          if (Test-Path $sevenZip) {
+            Write-Host "7za.exe found at $sevenZip"
+          } else {
+            Write-Warning "7za.exe not found. Listing 7zip-bin contents:"
+            Get-ChildItem "node_modules\7zip-bin" -Recurse -File | ForEach-Object { Write-Host "  $($_.FullName)" }
+          }
+
       - name: Build and package client
         shell: pwsh
         working-directory: apps/client-desktop

@@ -479,6 +479,13 @@ jobs:
           Write-Host "=== Resources directory contents ==="
           Get-ChildItem $resourceDir | ForEach-Object { Write-Host "  $($_.Name)  ($([math]::Round($_.Length/1KB)) KB)" }
 
+      - name: Exclude node_modules from Windows Defender
+        shell: pwsh
+        run: |
+          # Prevent Windows Defender from quarantining npm binary dependencies
+          Add-MpPreference -ExclusionPath "$env:GITHUB_WORKSPACE\node_modules" -ErrorAction SilentlyContinue
+          Add-MpPreference -ExclusionPath "$env:GITHUB_WORKSPACE\apps\client-desktop\node_modules" -ErrorAction SilentlyContinue
+
       - name: Install client dependencies
         shell: pwsh
         run: |
@@ -489,26 +496,18 @@ jobs:
             exit 1
           }
 
-          # Also install inside client-desktop to ensure binary deps are properly available
-          Set-Location apps/client-desktop
-          npm install
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "Client npm install failed"
-            exit 1
-          }
-          Set-Location $env:GITHUB_WORKSPACE
-
-          # Verify key binaries exist
-          $appBuilder = "node_modules\app-builder-bin\win\x64\app-builder.exe"
+          # Verify key binaries exist and are accessible
+          $appBuilder = Join-Path $env:GITHUB_WORKSPACE "node_modules\app-builder-bin\win\x64\app-builder.exe"
           if (Test-Path $appBuilder) {
-            Write-Host "app-builder.exe found at root: $appBuilder"
+            Write-Host "app-builder.exe found: $appBuilder"
+            Write-Host "File size: $((Get-Item $appBuilder).Length) bytes"
+            # Test if it's actually executable
+            $proc = Start-Process -FilePath $appBuilder -ArgumentList "--version" -Wait -PassThru -NoNewWindow -ErrorAction SilentlyContinue -RedirectStandardOutput NUL -RedirectStandardError NUL
+            Write-Host "app-builder.exe exit code: $($proc.ExitCode)"
           } else {
-            $abClient = "apps\client-desktop\node_modules\app-builder-bin\win\x64\app-builder.exe"
-            if (Test-Path $abClient) {
-              Write-Host "app-builder.exe found in client: $abClient"
-            } else {
-              Write-Warning "app-builder.exe not found in either location"
-            }
+            Write-Warning "app-builder.exe not found at root"
+            Write-Host "Searching for app-builder.exe..."
+            Get-ChildItem "node_modules" -Recurse -Filter "app-builder.exe" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $($_.FullName)" }
           }
 
       - name: Build and package client

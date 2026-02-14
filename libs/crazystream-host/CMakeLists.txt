@@ -104,11 +104,9 @@ target_include_directories(crazystream-host PRIVATE
 )
 
 # ---------------------------------------------------------------------------
-# Link crazystream-common (header-only sibling library)
+# Link crazystream-common (static library — networking, DTLS, ICE, STUN)
 # ---------------------------------------------------------------------------
-target_include_directories(crazystream-host PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../crazystream-common/include
-)
+target_link_libraries(crazystream-host PRIVATE crazystream-common)
 
 # ---------------------------------------------------------------------------
 # nlohmann/json

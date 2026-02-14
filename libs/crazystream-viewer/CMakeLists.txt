@@ -172,11 +172,9 @@ target_include_directories(crazystream-viewer PRIVATE
 )
 
 # ---------------------------------------------------------------------------
-# crazystream-common (header-only sibling library)
+# crazystream-common (static library — networking, DTLS, ICE, STUN)
 # ---------------------------------------------------------------------------
-target_include_directories(crazystream-viewer PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../crazystream-common/include
-)
+target_link_libraries(crazystream-viewer PRIVATE crazystream-common)
 
 # ---------------------------------------------------------------------------
 # Node.js / N-API headers

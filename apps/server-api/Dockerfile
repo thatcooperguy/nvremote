@@ -28,6 +28,10 @@ RUN npm install --omit=dev && npx prisma generate
 
 COPY --from=builder /app/dist ./dist/
 
+# Startup script: run migrations then start the app
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
 EXPOSE 8080
 
-CMD ["node", "dist/main.js"]
+CMD ["/app/start.sh"]

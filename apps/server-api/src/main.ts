@@ -11,7 +11,8 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('PORT', 3001);
+  // Use process.env.PORT directly (Cloud Run sets this)
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : configService.get<number>('PORT', 3001);
   const corsOrigin = configService.get<string>('CORS_ORIGIN', 'http://localhost:3000');
 
   // Security
@@ -52,8 +53,8 @@ async function bootstrap(): Promise<void> {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, document);
 
-  await app.listen(port);
-  logger.log(`Application listening on port ${port}`);
+  await app.listen(port, '0.0.0.0');
+  logger.log(`Application listening on 0.0.0.0:${port}`);
   logger.log(`Swagger docs available at http://localhost:${port}/api/docs`);
 }
 

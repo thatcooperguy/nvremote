@@ -10,7 +10,7 @@ export interface User {
   role?: 'admin' | 'member';
 }
 
-interface AuthTokens {
+export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
   expiresAt: number;

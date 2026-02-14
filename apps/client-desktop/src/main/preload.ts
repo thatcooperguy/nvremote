@@ -304,6 +304,16 @@ const trayApi = {
 // Assemble and expose
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Platform info
+// ---------------------------------------------------------------------------
+
+const platformApi = {
+  os: process.platform as 'win32' | 'darwin' | 'linux',
+  /** Native streaming is currently only available on Windows. */
+  nativeStreamingSupported: process.platform === 'win32',
+};
+
 const api = {
   window: windowApi,
   auth: authApi,
@@ -312,6 +322,7 @@ const api = {
   connection: connectionApi,
   deepLink: deepLinkApi,
   tray: trayApi,
+  platform: platformApi,
 };
 
 contextBridge.exposeInMainWorld('nvrs', api);

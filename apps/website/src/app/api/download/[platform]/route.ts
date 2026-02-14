@@ -31,24 +31,18 @@ const platforms: Record<string, PlatformInfo> = {
     contentType: 'application/vnd.android.package-archive',
     description: 'CrazyStream Client for Android',
   },
-  // Linux and macOS builds will be added as CI is expanded
   'linux-host': {
-    assetFilename: `CrazyStreamHost-${VERSION}-amd64.deb`,
-    contentType: 'application/vnd.debian.binary-package',
-    description: 'CrazyStream Host for Linux (amd64)',
-  },
-  'macos-host': {
-    assetFilename: `CrazyStreamHost-${VERSION}-universal.pkg`,
-    contentType: 'application/x-newton-compatible-pkg',
-    description: 'CrazyStream Host for macOS (Universal)',
+    assetFilename: `CrazyStreamHost-${VERSION}-linux-amd64.tar.gz`,
+    contentType: 'application/gzip',
+    description: 'CrazyStream Host Agent for Linux (amd64)',
   },
   'macos-client': {
-    assetFilename: `CrazyStreamClient-${VERSION}-universal.dmg`,
+    assetFilename: `CrazyStream-0.1.0-universal.dmg`,
     contentType: 'application/x-apple-diskimage',
     description: 'CrazyStream Client for macOS (Universal)',
   },
   'linux-client': {
-    assetFilename: `CrazyStreamClient-${VERSION}-x86_64.AppImage`,
+    assetFilename: `CrazyStream-0.1.0-x86_64.AppImage`,
     contentType: 'application/x-executable',
     description: 'CrazyStream Client for Linux (x86_64)',
   },

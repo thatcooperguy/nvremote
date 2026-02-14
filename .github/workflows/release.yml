@@ -5,12 +5,16 @@
 # creates a GitHub Release with the resulting binaries.
 #
 # Jobs:
-#   1. build-native-libs   -- C++17 streaming core (Windows, MSVC + NVENC/FFmpeg)
-#   2. build-host-agent    -- Go host agent (Windows)
-#   3. build-host-bundle   -- Zip crazystream-host.exe + CrazyStreamAgent.exe
-#   4. build-client        -- Electron desktop client (Windows NSIS installer)
-#   5. build-android       -- Android APK (Kotlin/Compose)
-#   6. create-release      -- Publish GitHub Release with all artifacts
+#   1. build-native-libs       -- C++17 streaming core (Windows, MSVC + NVENC/FFmpeg)
+#   2. build-host-agent        -- Go host agent (Windows)
+#   3. build-host-agent-linux  -- Go host agent (Linux)
+#   4. build-host-bundle       -- Zip crazystream-host.exe + CrazyStreamAgent.exe (Windows)
+#   5. build-host-bundle-linux -- Tar.gz CrazyStreamAgent (Linux)
+#   6. build-client            -- Electron desktop client (Windows NSIS installer)
+#   7. build-client-linux      -- Electron desktop client (Linux AppImage)
+#   8. build-client-macos      -- Electron desktop client (macOS DMG)
+#   9. build-android           -- Android APK (Kotlin/Compose)
+#  10. create-release          -- Publish GitHub Release with all artifacts
 ###############################################################################
 
 name: Release
@@ -346,7 +350,48 @@ jobs:
           retention-days: 5
 
   ###########################################################################
-  # Job 3: Bundle host streamer + agent into a single zip
+  # Job 3: Build Go host agent (Linux)
+  ###########################################################################
+  build-host-agent-linux:
+    name: Build Host Agent (Go/Linux)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: apps/host-agent/go.sum
+
+      - name: Tidy Go modules
+        working-directory: apps/host-agent
+        run: go mod tidy
+
+      - name: Build host agent
+        working-directory: apps/host-agent
+        run: |
+          TAG="${{ github.ref_name }}"
+          echo "Building CrazyStreamAgent for tag: $TAG"
+          go build -ldflags="-s -w -X main.version=$TAG" -o CrazyStreamAgent ./cmd/agent
+          echo "Built CrazyStreamAgent ($(stat -c%s CrazyStreamAgent) bytes)"
+        env:
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: "0"
+
+      - name: Upload host agent
+        uses: actions/upload-artifact@v4
+        with:
+          name: host-agent-linux
+          path: apps/host-agent/CrazyStreamAgent
+          if-no-files-found: error
+          retention-days: 5
+
+  ###########################################################################
+  # Job 4: Bundle host streamer + agent into a single zip (Windows)
   ###########################################################################
   build-host-bundle:
     name: Bundle Host Package
@@ -414,7 +459,45 @@ jobs:
           retention-days: 5
 
   ###########################################################################
-  # Job 4: Build Electron desktop client (Windows installer)
+  # Job 5: Bundle host agent for Linux (no C++ streamer yet)
+  ###########################################################################
+  build-host-bundle-linux:
+    name: Bundle Host Package (Linux)
+    runs-on: ubuntu-latest
+    needs: [build-host-agent-linux]
+
+    steps:
+      - name: Download host agent artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: host-agent-linux
+          path: host-agent-linux
+
+      - name: Create host bundle tarball
+        run: |
+          TAG="${{ github.ref_name }}"
+          BUNDLE_NAME="CrazyStreamHost-${TAG}-linux-amd64"
+          mkdir -p "$BUNDLE_NAME"
+
+          cp host-agent-linux/CrazyStreamAgent "$BUNDLE_NAME/"
+          chmod +x "$BUNDLE_NAME/CrazyStreamAgent"
+
+          echo "=== Bundle contents ==="
+          ls -lh "$BUNDLE_NAME/"
+
+          tar -czf "${BUNDLE_NAME}.tar.gz" "$BUNDLE_NAME/"
+          echo "Created ${BUNDLE_NAME}.tar.gz ($(du -h ${BUNDLE_NAME}.tar.gz | cut -f1))"
+
+      - name: Upload host bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: host-bundle-linux
+          path: "CrazyStreamHost-${{ github.ref_name }}-linux-amd64.tar.gz"
+          if-no-files-found: error
+          retention-days: 5
+
+  ###########################################################################
+  # Job 6: Build Electron desktop client (Windows installer)
   ###########################################################################
   build-client:
     name: Build Desktop Client (Electron)
@@ -515,7 +598,89 @@ jobs:
           retention-days: 5
 
   ###########################################################################
-  # Job 5: Build Android client APK
+  # Job 7: Build Electron desktop client (Linux AppImage)
+  ###########################################################################
+  build-client-linux:
+    name: Build Desktop Client (Linux)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Create empty resources directory
+        run: mkdir -p apps/client-desktop/resources
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build and package client
+        working-directory: apps/client-desktop
+        run: |
+          npm run build
+          npx electron-builder --linux
+          echo ""
+          echo "=== Release directory contents ==="
+          find release -type f -exec ls -lh {} \;
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload client AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-linux
+          path: apps/client-desktop/release/CrazyStream-*.AppImage
+          if-no-files-found: warn
+          retention-days: 5
+
+  ###########################################################################
+  # Job 8: Build Electron desktop client (macOS DMG)
+  ###########################################################################
+  build-client-macos:
+    name: Build Desktop Client (macOS)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Create empty resources directory
+        run: mkdir -p apps/client-desktop/resources
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build and package client
+        working-directory: apps/client-desktop
+        run: |
+          npm run build
+          npx electron-builder --mac
+          echo ""
+          echo "=== Release directory contents ==="
+          find release -type f -exec ls -lh {} \;
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload client DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-macos
+          path: apps/client-desktop/release/CrazyStream-*.dmg
+          if-no-files-found: warn
+          retention-days: 5
+
+  ###########################################################################
+  # Job 9: Build Android client APK
   ###########################################################################
   build-android:
     name: Build Android Client
@@ -604,14 +769,17 @@ jobs:
           retention-days: 5
 
   ###########################################################################
-  # Job 6: Create GitHub Release with all artifacts
+  # Job 10: Create GitHub Release with all artifacts
   ###########################################################################
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     needs:
       - build-host-bundle
+      - build-host-bundle-linux
       - build-client
+      - build-client-linux
+      - build-client-macos
       - build-android
 
     steps:
@@ -635,13 +803,25 @@ jobs:
         run: |
           mkdir -p release-files
 
-          # Host bundle zip
+          # Windows host bundle zip
           cp release-artifacts/host-bundle/*.zip release-files/ 2>/dev/null && \
-            echo "Collected host bundle zip" || echo "Warning: host bundle zip not found"
+            echo "Collected Windows host bundle zip" || echo "Warning: Windows host bundle zip not found"
+
+          # Linux host bundle tarball
+          cp release-artifacts/host-bundle-linux/*.tar.gz release-files/ 2>/dev/null && \
+            echo "Collected Linux host bundle tarball" || echo "Warning: Linux host bundle tarball not found"
 
           # Windows client installer
           cp release-artifacts/client-installer/*.exe release-files/ 2>/dev/null && \
-            echo "Collected client installer exe" || echo "Warning: client installer exe not found"
+            echo "Collected Windows client installer exe" || echo "Warning: Windows client installer exe not found"
+
+          # Linux client AppImage
+          cp release-artifacts/client-linux/*.AppImage release-files/ 2>/dev/null && \
+            echo "Collected Linux client AppImage" || echo "Warning: Linux client AppImage not found"
+
+          # macOS client DMG
+          cp release-artifacts/client-macos/*.dmg release-files/ 2>/dev/null && \
+            echo "Collected macOS client DMG" || echo "Warning: macOS client DMG not found"
 
           # Android APK
           cp release-artifacts/android-apk/*.apk release-files/ 2>/dev/null && \
@@ -667,12 +847,18 @@ jobs:
             | Platform | Artifact | Description |
             |----------|----------|-------------|
             | Windows (Host) | `CrazyStreamHost-${{ github.ref_name }}-win64.zip` | Streaming host + agent bundle |
+            | Linux (Host) | `CrazyStreamHost-${{ github.ref_name }}-linux-amd64.tar.gz` | Host agent (Go, no GPU streamer yet) |
             | Windows (Client) | `CrazyStream-*-Setup.exe` | Desktop viewer (Electron) installer |
+            | Linux (Client) | `CrazyStream-*-x86_64.AppImage` | Desktop client (Electron AppImage) |
+            | macOS (Client) | `CrazyStream-*-universal.dmg` | Desktop client (Electron DMG) |
             | Android | `CrazyStream-${{ github.ref_name }}.apk` | Android mobile client |
 
             ### Requirements
-            - **Host**: NVIDIA GPU with NVENC support, Windows 10/11 x64
-            - **Desktop Client**: Windows 10/11 x64
+            - **Host (Windows)**: NVIDIA GPU with NVENC support, Windows 10/11 x64
+            - **Host (Linux)**: Agent-only (GPU streaming requires Windows host for now)
+            - **Desktop Client**: Windows 10/11 x64, Linux x86_64, or macOS (universal)
             - **Android Client**: Android 7.0+ (API 24)
+
+            > **Note**: Linux and macOS desktop clients currently support signaling, auth, and host management. GPU capture/decode streaming requires the Windows native addon.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

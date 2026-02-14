@@ -32,6 +32,27 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: CrazyStream
 
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+  artifactName: "CrazyStream-${version}-x86_64.${ext}"
+  category: Game
+  desktop:
+    StartupWMClass: CrazyStream
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - universal
+  artifactName: "CrazyStream-${version}-universal.${ext}"
+  category: public.app-category.games
+
+dmg:
+  title: "CrazyStream ${version}"
+
 protocols:
   name: CrazyStream Protocol
   schemes:

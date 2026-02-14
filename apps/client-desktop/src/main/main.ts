@@ -94,7 +94,11 @@ function createWindow(): void {
     titleBarStyle: 'hidden',
     backgroundColor: '#1A1A1A',
     show: false,
-    icon: path.join(__dirname, '../../build/icon.ico'),
+    icon: process.platform === 'win32'
+      ? path.join(__dirname, '../../build/icon.ico')
+      : process.platform === 'darwin'
+      ? path.join(__dirname, '../../build/icon.icns')
+      : path.join(__dirname, '../../build/icon.png'),
     webPreferences: {
       preload: getPreloadPath(),
       contextIsolation: true,

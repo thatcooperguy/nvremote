@@ -106,9 +106,14 @@ function getAddonSearchPaths(): string[] {
 // ---------------------------------------------------------------------------
 
 function createMockViewer(): ViewerModule {
+  const isWindows = process.platform === 'win32';
   console.warn(
-    '[Viewer] Native addon not found. Using mock viewer for development.\n' +
-    'Build the crazystream-viewer addon or set CRAZYSTREAM_VIEWER_PATH to use the real viewer.'
+    isWindows
+      ? '[Viewer] Native addon not found. Using mock viewer for development.\n' +
+        'Build the crazystream-viewer addon or set CRAZYSTREAM_VIEWER_PATH to use the real viewer.'
+      : `[Viewer] Native streaming addon is not available on ${process.platform}.\n` +
+        'GPU capture and hardware decoding require Windows with an NVIDIA GPU.\n' +
+        'The app will run in limited mode (signaling, authentication, and host management only).'
   );
 
   let running = false;

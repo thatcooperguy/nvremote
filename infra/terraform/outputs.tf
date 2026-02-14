@@ -32,3 +32,18 @@ output "ssh_command" {
   description = "SSH command to connect to the gateway instance"
   value       = "ssh ubuntu@${module.gateway.public_ip}"
 }
+
+output "dns_nameservers" {
+  description = "Cloud DNS nameservers (point registrar here)"
+  value       = var.domain_name != "" ? module.dns[0].nameservers : []
+}
+
+output "website_url" {
+  description = "Website URL"
+  value       = var.domain_name != "" ? "https://${var.domain_name}" : "https://crazystream-website-luz2bubotq-uw.a.run.app"
+}
+
+output "api_url_domain" {
+  description = "API URL with custom domain"
+  value       = var.domain_name != "" ? "https://api.${var.domain_name}" : "https://crazystream-api-luz2bubotq-uw.a.run.app"
+}

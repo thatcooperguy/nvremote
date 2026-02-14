@@ -72,3 +72,18 @@ module "gateway" {
   wireguard_port = var.wireguard_port
   ssh_public_key = var.ssh_public_key
 }
+
+# -----------------------------------------------------------------------------
+# DNS Module (conditional — only when domain_name is set)
+# -----------------------------------------------------------------------------
+module "dns" {
+  source = "./modules/dns"
+  count  = var.domain_name != "" ? 1 : 0
+
+  project_id                = var.project_id
+  project_name              = var.project_name
+  region                    = var.region
+  domain_name               = var.domain_name
+  website_cloud_run_service = "crazystream-website"
+  api_cloud_run_service     = "crazystream-api"
+}

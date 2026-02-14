@@ -10,10 +10,13 @@ import javax.inject.Singleton
 /**
  * OkHttp interceptor that attaches JWT bearer tokens to API requests
  * and handles automatic token refresh on 401 responses.
+ *
+ * Uses [dagger.Lazy] to break the circular dependency:
+ * AuthInterceptor -> AuthRepository -> CrazyStreamApi -> OkHttpClient -> AuthInterceptor
  */
 @Singleton
 class AuthInterceptor @Inject constructor(
-    private val authRepository: AuthRepository,
+    private val authRepository: dagger.Lazy<AuthRepository>,
 ) : Interceptor {
 
     companion object {
@@ -35,7 +38,7 @@ class AuthInterceptor @Inject constructor(
         }
 
         // Attach access token
-        val accessToken = runBlocking { authRepository.getAccessToken() }
+        val accessToken = runBlocking { authRepository.get().getAccessToken() }
         if (accessToken.isNullOrEmpty()) {
             return chain.proceed(originalRequest)
         }
@@ -50,9 +53,9 @@ class AuthInterceptor @Inject constructor(
         if (response.code == 401) {
             response.close()
 
-            val refreshed = runBlocking { authRepository.refreshAccessToken() }
+            val refreshed = runBlocking { authRepository.get().refreshAccessToken() }
             if (refreshed) {
-                val newToken = runBlocking { authRepository.getAccessToken() }
+                val newToken = runBlocking { authRepository.get().getAccessToken() }
                 if (!newToken.isNullOrEmpty()) {
                     val retryRequest = originalRequest.newBuilder()
                         .header(HEADER_AUTHORIZATION, TOKEN_PREFIX + newToken)
@@ -62,7 +65,7 @@ class AuthInterceptor @Inject constructor(
             }
 
             // Refresh failed — clear auth state
-            runBlocking { authRepository.clearAuth() }
+            runBlocking { authRepository.get().clearAuth() }
         }
 
         return response

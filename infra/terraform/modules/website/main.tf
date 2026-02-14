@@ -98,11 +98,11 @@ resource "google_compute_backend_bucket" "website_backend" {
   enable_cdn  = true
 
   cdn_policy {
-    cache_mode                   = "CACHE_ALL_STATIC"
-    default_ttl                  = 3600
-    max_ttl                      = 86400
-    serve_while_stale            = 86400
-    negative_caching             = true
+    cache_mode        = "CACHE_ALL_STATIC"
+    default_ttl       = 3600
+    max_ttl           = 86400
+    serve_while_stale = 86400
+    negative_caching  = true
   }
 }
 

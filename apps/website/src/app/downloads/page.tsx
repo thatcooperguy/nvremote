@@ -24,7 +24,7 @@ import Button from '@/components/Button';
 /*  Constants                                                                  */
 /* -------------------------------------------------------------------------- */
 
-const VERSION = 'v0.2.1-alpha';
+const VERSION = 'v0.3.0-alpha';
 const GITHUB_RELEASES = 'https://github.com/thatcooperguy/nvstreamer/releases';
 const BASE_URL = `${GITHUB_RELEASES}/download/${VERSION}`;
 
@@ -117,16 +117,16 @@ const hostDownloads: DownloadItem[] = [
     icon: <Monitor className="w-6 h-6" />,
     version: VERSION,
     size: '~48 MB',
-    sha256: 'a1b2c3d4e5f60718293a4b5c6d7e8f9001122334455667788990aabbccddeeff',
+    sha256: '', // TODO: compute real checksums in CI and inject at build time
     href: '/api/download/windows-host',
   },
   {
     platform: 'Linux Host',
-    ext: '.deb',
+    ext: '.tar.gz',
     icon: <Laptop className="w-6 h-6" />,
     version: VERSION,
-    size: '~42 MB',
-    sha256: 'b2c3d4e5f6071829a3b4c5d6e7f8091a12233445566778899a0bbccddee0ff11',
+    size: '~12 MB',
+    sha256: '',
     href: '/api/download/linux-host',
   },
   {
@@ -135,8 +135,10 @@ const hostDownloads: DownloadItem[] = [
     icon: <AppleIcon className="w-6 h-6" />,
     version: VERSION,
     size: '~45 MB',
-    sha256: 'c3d4e5f607182a93b4c5d6e7f809a1b223344556677889a90bccddee0f112233',
+    sha256: '',
     href: '/api/download/macos-host',
+    disabled: true,
+    comingSoon: true,
   },
 ];
 
@@ -151,7 +153,7 @@ const clientDownloads: DownloadItem[] = [
     icon: <Monitor className="w-6 h-6" />,
     version: VERSION,
     size: '~35 MB',
-    sha256: 'd4e5f6071829a3b4c5d6e7f8091a2b33445566778899a0bbccddee0ff1122334',
+    sha256: '',
     href: '/api/download/windows-client',
   },
   {
@@ -160,7 +162,7 @@ const clientDownloads: DownloadItem[] = [
     icon: <AppleIcon className="w-6 h-6" />,
     version: VERSION,
     size: '~38 MB',
-    sha256: 'e5f60718293a4b5c6d7e8f90a1b2c344556677889a90bbccddeeff001122334455',
+    sha256: '',
     href: '/api/download/macos-client',
   },
   {
@@ -169,7 +171,7 @@ const clientDownloads: DownloadItem[] = [
     icon: <Laptop className="w-6 h-6" />,
     version: VERSION,
     size: '~40 MB',
-    sha256: 'f607182a93b4c5d6e7f809a1b2c3d445566778899a0bbccddee0ff11223344556',
+    sha256: '',
     href: '/api/download/linux-client',
   },
   {
@@ -178,7 +180,7 @@ const clientDownloads: DownloadItem[] = [
     icon: <Smartphone className="w-6 h-6" />,
     version: VERSION,
     size: '~25 MB',
-    sha256: '071829a3b4c5d6e7f809a1b2c3d4e556677889a90bbccddee0ff1122334455667',
+    sha256: '',
     href: '/api/download/android-client',
   },
   {
@@ -515,7 +517,7 @@ export default function DownloadsPage() {
                 </h4>
                 <div className="bg-white rounded-xl p-3 mb-4">
                   <QRCodeSVG
-                    value="https://crazystream-website-649890645714.us-west1.run.app/api/download/android-client"
+                    value="https://crazystream.gg/api/download/android-client"
                     size={140}
                     level="M"
                     bgColor="#FFFFFF"

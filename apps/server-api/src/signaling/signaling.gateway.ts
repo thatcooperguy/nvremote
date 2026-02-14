@@ -95,7 +95,7 @@ export interface SessionOfferData {
 // ---------------------------------------------------------------------------
 
 @WebSocketGateway({
-  cors: { origin: process.env.CORS_ORIGIN || '*' },
+  cors: { origin: process.env.CORS_ORIGIN?.split(',').map(s => s.trim()) || ['https://crazystream.gg'] },
   namespace: '/signaling',
   transports: ['websocket', 'polling'],
   maxHttpBufferSize: 65536, // 64KB cap — prevents DoS via oversized payloads

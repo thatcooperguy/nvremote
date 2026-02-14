@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const VERSION = 'v0.2.1-alpha';
+const VERSION = 'v0.3.0-alpha';
 const GITHUB_REPO = 'thatcooperguy/nvstreamer';
 
 interface PlatformInfo {
@@ -22,7 +22,7 @@ const platforms: Record<string, PlatformInfo> = {
     description: 'CrazyStream Host for Windows (x64)',
   },
   'windows-client': {
-    assetFilename: `CrazyStream-0.1.0-Setup.exe`,
+    assetFilename: `CrazyStream-${VERSION.replace('v', '')}-Setup.exe`,
     contentType: 'application/vnd.microsoft.portable-executable',
     description: 'CrazyStream Client for Windows (x64)',
   },
@@ -37,12 +37,12 @@ const platforms: Record<string, PlatformInfo> = {
     description: 'CrazyStream Host Agent for Linux (amd64)',
   },
   'macos-client': {
-    assetFilename: `CrazyStream-0.1.0-universal.dmg`,
+    assetFilename: `CrazyStream-${VERSION.replace('v', '')}-universal.dmg`,
     contentType: 'application/x-apple-diskimage',
     description: 'CrazyStream Client for macOS (Universal)',
   },
   'linux-client': {
-    assetFilename: `CrazyStream-0.1.0-x86_64.AppImage`,
+    assetFilename: `CrazyStream-${VERSION.replace('v', '')}-x86_64.AppImage`,
     contentType: 'application/x-executable',
     description: 'CrazyStream Client for Linux (x86_64)',
   },

@@ -481,45 +481,45 @@ jobs:
 
       - name: Install client dependencies
         shell: pwsh
-        working-directory: apps/client-desktop
         run: |
-          # Install directly in client-desktop directory (ignore workspace config)
-          # This ensures all binary deps (electron-builder, app-builder-bin) are local
-          npm install --install-strategy=nested
+          # Install from workspace root to hoist all workspace deps
+          npm install
           if ($LASTEXITCODE -ne 0) {
             Write-Error "npm install failed"
             exit 1
           }
 
-          # Verify key binaries exist
+          # Force rebuild of all native/binary packages
+          npm rebuild
+          if ($LASTEXITCODE -ne 0) {
+            Write-Warning "npm rebuild had issues (non-fatal)"
+          }
+
+          # Debug: show app-builder-bin contents
+          $abDir = "node_modules\app-builder-bin\win\x64"
+          if (Test-Path $abDir) {
+            Write-Host "app-builder-bin directory contents:"
+            Get-ChildItem $abDir | ForEach-Object {
+              Write-Host "  $($_.Name) - $($_.Length) bytes - IsReparsePoint=$($_.Attributes -band [IO.FileAttributes]::ReparsePoint)"
+            }
+          } else {
+            Write-Warning "app-builder-bin win/x64 directory not found"
+          }
+
+          # Check if the exe is a symlink (npm on Windows may use junctions)
           $appBuilder = "node_modules\app-builder-bin\win\x64\app-builder.exe"
           if (Test-Path $appBuilder) {
-            Write-Host "app-builder.exe found ($((Get-Item $appBuilder).Length) bytes)"
-          } else {
-            Write-Warning "app-builder.exe not found locally"
-            Get-ChildItem "node_modules" -Recurse -Filter "app-builder.exe" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  Found: $($_.FullName)" }
+            $item = Get-Item $appBuilder
+            Write-Host "app-builder.exe: $($item.Length) bytes, Target=$($item.Target), LinkType=$($item.LinkType)"
           }
 
       - name: Build and package client
         shell: pwsh
         working-directory: apps/client-desktop
         run: |
-          # Build (tsc type-check + vite build for renderer + main + preload)
-          npx tsc --noEmit
+          npm run package
           if ($LASTEXITCODE -ne 0) {
-            Write-Error "TypeScript check failed"
-            exit 1
-          }
-          npx vite build
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "Vite build failed"
-            exit 1
-          }
-
-          # Package with electron-builder
-          npx electron-builder --win --config electron-builder.yml
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "Electron packaging failed"
+            Write-Error "Electron build/package failed"
             exit 1
           }
 

@@ -485,24 +485,30 @@ jobs:
           # Install from workspace root so all workspace deps (including electron) are hoisted
           npm install
           if ($LASTEXITCODE -ne 0) {
-            Write-Error "npm install failed"
+            Write-Error "Root npm install failed"
             exit 1
           }
 
-          # Ensure 7zip-bin is properly installed (needed by electron-builder for NSIS)
-          npm install 7zip-bin --save-dev
+          # Also install inside client-desktop to ensure binary deps are properly available
+          Set-Location apps/client-desktop
+          npm install
           if ($LASTEXITCODE -ne 0) {
-            Write-Error "7zip-bin install failed"
+            Write-Error "Client npm install failed"
             exit 1
           }
+          Set-Location $env:GITHUB_WORKSPACE
 
-          # Verify 7za.exe exists
-          $sevenZip = "node_modules\7zip-bin\win\x64\7za.exe"
-          if (Test-Path $sevenZip) {
-            Write-Host "7za.exe found at $sevenZip"
+          # Verify key binaries exist
+          $appBuilder = "node_modules\app-builder-bin\win\x64\app-builder.exe"
+          if (Test-Path $appBuilder) {
+            Write-Host "app-builder.exe found at root: $appBuilder"
           } else {
-            Write-Warning "7za.exe not found. Listing 7zip-bin contents:"
-            Get-ChildItem "node_modules\7zip-bin" -Recurse -File | ForEach-Object { Write-Host "  $($_.FullName)" }
+            $abClient = "apps\client-desktop\node_modules\app-builder-bin\win\x64\app-builder.exe"
+            if (Test-Path $abClient) {
+              Write-Host "app-builder.exe found in client: $abClient"
+            } else {
+              Write-Warning "app-builder.exe not found in either location"
+            }
           }
 
       - name: Build and package client

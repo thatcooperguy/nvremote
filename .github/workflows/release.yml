@@ -482,91 +482,19 @@ jobs:
       - name: Install client dependencies
         shell: pwsh
         run: |
-          # Install from workspace root to hoist all workspace deps
           npm install
           if ($LASTEXITCODE -ne 0) {
             Write-Error "npm install failed"
             exit 1
           }
 
-          # Force rebuild of all native/binary packages
-          npm rebuild
-          if ($LASTEXITCODE -ne 0) {
-            Write-Warning "npm rebuild had issues (non-fatal)"
-          }
-
-          # Debug: show app-builder-bin contents
-          $abDir = "node_modules\app-builder-bin\win\x64"
-          if (Test-Path $abDir) {
-            Write-Host "app-builder-bin directory contents:"
-            Get-ChildItem $abDir | ForEach-Object {
-              Write-Host "  $($_.Name) - $($_.Length) bytes - IsReparsePoint=$($_.Attributes -band [IO.FileAttributes]::ReparsePoint)"
-            }
-          } else {
-            Write-Warning "app-builder-bin win/x64 directory not found"
-          }
-
-          # Check if the exe is a symlink (npm on Windows may use junctions)
-          $appBuilder = "node_modules\app-builder-bin\win\x64\app-builder.exe"
-          if (Test-Path $appBuilder) {
-            $item = Get-Item $appBuilder
-            Write-Host "app-builder.exe: $($item.Length) bytes, Target=$($item.Target), LinkType=$($item.LinkType)"
-          }
-
-      - name: Disable Windows Defender real-time monitoring
-        shell: pwsh
-        run: |
-          # Disable real-time monitoring to prevent app-builder.exe ENOENT issues
-          Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
-
-      - name: Build client
+      - name: Build and package client
         shell: pwsh
         working-directory: apps/client-desktop
         run: |
-          npm run build
+          npm run package
           if ($LASTEXITCODE -ne 0) {
-            Write-Error "Build failed"
-            exit 1
-          }
-
-      - name: Debug app-builder binary
-        shell: pwsh
-        run: |
-          $exe = "node_modules\app-builder-bin\win\x64\app-builder.exe"
-          Write-Host "=== Testing app-builder.exe directly ==="
-          Write-Host "Exists: $(Test-Path $exe)"
-          Write-Host "File details:"
-          Get-Item $exe | Format-List Name, Length, LastWriteTime, Attributes
-
-          # Try running it directly
-          Write-Host "=== Direct execution test ==="
-          try {
-            & $exe --version 2>&1
-            Write-Host "Direct execution succeeded"
-          } catch {
-            Write-Host "Direct execution failed: $_"
-          }
-
-          # Try via cmd
-          Write-Host "=== CMD execution test ==="
-          cmd /c "$exe --version" 2>&1
-
-          # Check PE headers to ensure it's a valid executable
-          Write-Host "=== First 4 bytes of file (should be MZ) ==="
-          $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path $exe).Path)
-          Write-Host "Header: $([char]$bytes[0])$([char]$bytes[1]) (0x$($bytes[0].ToString('X2'))$($bytes[1].ToString('X2')))"
-          Write-Host "Total size: $($bytes.Length) bytes"
-
-      - name: Package client with electron-builder
-        shell: pwsh
-        working-directory: apps/client-desktop
-        run: |
-          # Set environment variable so cross-spawn can find the binary
-          $env:PATH = "$env:GITHUB_WORKSPACE\node_modules\.bin;$env:GITHUB_WORKSPACE\node_modules\app-builder-bin\win\x64;$env:PATH"
-
-          npx electron-builder --win --config electron-builder.yml
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "Electron packaging failed"
+            Write-Error "Electron build/package failed"
             exit 1
           }
 

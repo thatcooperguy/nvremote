@@ -2,6 +2,11 @@ appId: com.crazystream.client
 productName: CrazyStream
 copyright: Copyright (c) CrazyStream
 
+# Prevent electron-builder from running its own npm install during packaging.
+# In npm workspace setups, this step restructures node_modules and deletes
+# app-builder-bin, causing spawn ENOENT failures.
+npmRebuild: false
+
 directories:
   buildResources: build
   output: release

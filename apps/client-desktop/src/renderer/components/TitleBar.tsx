@@ -9,7 +9,7 @@ export function TitleBar(): React.ReactElement {
 
   useEffect(() => {
     window.nvrs.window.isMaximized().then(setIsMaximized);
-    const cleanup = window.nvrs.window.onMaximizedChange(setIsMaximized);
+    const cleanup = window.nvrs.window.onMaximizeChange(setIsMaximized);
     return cleanup;
   }, []);
 

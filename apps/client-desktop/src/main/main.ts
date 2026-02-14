@@ -29,12 +29,12 @@ import type { SessionOptions } from './p2p';
 // Encrypted token storage using electron-store
 // ---------------------------------------------------------------------------
 
-let store: import('electron-store').default | null = null;
+let store: import('electron-store') | null = null;
 
-async function getStore(): Promise<import('electron-store').default> {
+async function getStore(): Promise<import('electron-store')> {
   if (store) return store;
   // electron-store v8+ is ESM-only. Dynamic import is required.
-  const ElectronStore = (await import('electron-store')).default;
+  const { default: ElectronStore } = await import('electron-store');
   store = new ElectronStore({
     name: 'crazystream-secure',
     encryptionKey: 'crazystream-client-v1', // obfuscation; not a security boundary
@@ -454,7 +454,7 @@ function setupIpcHandlers(): void {
   // ── Tray updates ─────────────────────────────────────────────────────
   ipcMain.on('tray:update-disconnect', (_event, enabled: boolean) => {
     if (!tray) return;
-    const menu = tray.contextMenu;
+    const menu = tray.getContextMenu();
     const menuItem = menu?.getMenuItemById('disconnect') ?? null;
     if (menuItem) {
       menuItem.enabled = enabled;

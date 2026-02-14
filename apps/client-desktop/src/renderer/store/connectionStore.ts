@@ -13,6 +13,7 @@ export type ConnectionStatus =
   | 'signaling'
   | 'ice-gathering'
   | 'connecting'
+  | 'connected'
   | 'streaming'
   | 'error';
 

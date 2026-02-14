@@ -479,50 +479,45 @@ jobs:
           Write-Host "=== Resources directory contents ==="
           Get-ChildItem $resourceDir | ForEach-Object { Write-Host "  $($_.Name)  ($([math]::Round($_.Length/1KB)) KB)" }
 
-      - name: Exclude node_modules from Windows Defender
-        shell: pwsh
-        run: |
-          # Prevent Windows Defender from quarantining npm binary dependencies
-          Add-MpPreference -ExclusionPath "$env:GITHUB_WORKSPACE\node_modules" -ErrorAction SilentlyContinue
-          Add-MpPreference -ExclusionPath "$env:GITHUB_WORKSPACE\apps\client-desktop\node_modules" -ErrorAction SilentlyContinue
-
       - name: Install client dependencies
         shell: pwsh
+        working-directory: apps/client-desktop
         run: |
-          # Install from workspace root so all workspace deps (including electron) are hoisted
-          npm install
+          # Install directly in client-desktop directory (ignore workspace config)
+          # This ensures all binary deps (electron-builder, app-builder-bin) are local
+          npm install --install-strategy=nested
           if ($LASTEXITCODE -ne 0) {
-            Write-Error "Root npm install failed"
+            Write-Error "npm install failed"
             exit 1
           }
 
-          # Verify key binaries exist and are accessible
-          $appBuilder = Join-Path $env:GITHUB_WORKSPACE "node_modules\app-builder-bin\win\x64\app-builder.exe"
+          # Verify key binaries exist
+          $appBuilder = "node_modules\app-builder-bin\win\x64\app-builder.exe"
           if (Test-Path $appBuilder) {
-            Write-Host "app-builder.exe found: $appBuilder"
-            Write-Host "File size: $((Get-Item $appBuilder).Length) bytes"
-            # Test if it's actually executable
-            $proc = Start-Process -FilePath $appBuilder -ArgumentList "--version" -Wait -PassThru -NoNewWindow -ErrorAction SilentlyContinue -RedirectStandardOutput NUL -RedirectStandardError NUL
-            Write-Host "app-builder.exe exit code: $($proc.ExitCode)"
+            Write-Host "app-builder.exe found ($((Get-Item $appBuilder).Length) bytes)"
           } else {
-            Write-Warning "app-builder.exe not found at root"
-            Write-Host "Searching for app-builder.exe..."
-            Get-ChildItem "node_modules" -Recurse -Filter "app-builder.exe" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $($_.FullName)" }
+            Write-Warning "app-builder.exe not found locally"
+            Get-ChildItem "node_modules" -Recurse -Filter "app-builder.exe" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  Found: $($_.FullName)" }
           }
 
       - name: Build and package client
         shell: pwsh
         working-directory: apps/client-desktop
         run: |
-          # Build first (tsc + vite)
-          npm run build
+          # Build (tsc type-check + vite build for renderer + main + preload)
+          npx tsc --noEmit
           if ($LASTEXITCODE -ne 0) {
-            Write-Error "Build failed"
+            Write-Error "TypeScript check failed"
+            exit 1
+          }
+          npx vite build
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Vite build failed"
             exit 1
           }
 
-          # Run electron-builder with USE_HARD_LINKS=false to avoid chmod issues on Windows
-          npx electron-builder --win
+          # Package with electron-builder
+          npx electron-builder --win --config electron-builder.yml
           if ($LASTEXITCODE -ne 0) {
             Write-Error "Electron packaging failed"
             exit 1

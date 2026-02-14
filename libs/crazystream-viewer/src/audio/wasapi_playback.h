@@ -8,6 +8,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 #pragma once
 
+#include "audio_playback_interface.h"
+
 #include <cstdint>
 #include <mutex>
 #include <atomic>
@@ -23,35 +25,20 @@ using Microsoft::WRL::ComPtr;
 
 namespace cs {
 
-class WasapiPlayback {
+class WasapiPlayback : public IAudioPlayback {
 public:
     WasapiPlayback();
-    ~WasapiPlayback();
+    ~WasapiPlayback() override;
 
     // Non-copyable
     WasapiPlayback(const WasapiPlayback&) = delete;
     WasapiPlayback& operator=(const WasapiPlayback&) = delete;
 
-    /// Initialize WASAPI audio output.
-    /// @param sample_rate  Typically 48000
-    /// @param channels     Typically 2 (stereo)
-    bool initialize(uint32_t sample_rate, uint16_t channels);
-
-    /// Play PCM float samples. Blocks until the samples are submitted
-    /// to the WASAPI buffer (may wait for buffer space).
-    /// @param samples      Float PCM samples (interleaved stereo)
-    /// @param frame_count  Number of audio frames (1 frame = channels samples)
-    /// @return true on success
-    bool play(const float* samples, size_t frame_count);
-
-    /// Stop playback and release resources.
-    void stop();
-
-    /// Get the current audio output latency in milliseconds.
-    float getLatencyMs() const;
-
-    /// Returns true if playback is initialized and active.
-    bool isInitialized() const;
+    bool initialize(uint32_t sample_rate, uint16_t channels) override;
+    bool play(const float* samples, size_t frame_count) override;
+    void stop() override;
+    float getLatencyMs() const override;
+    bool isInitialized() const override;
 
 private:
 #ifdef _WIN32

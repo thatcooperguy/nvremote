@@ -60,6 +60,10 @@ set(HOST_SOURCES
     # IPC
     src/ipc/pipe_server.cpp
 
+    # Input
+    src/input/controller_inject.cpp
+    src/input/clipboard_inject.cpp
+
     # Session
     src/session/session_manager.cpp
 )
@@ -89,6 +93,10 @@ set(HOST_HEADERS
 
     # IPC
     src/ipc/pipe_server.h
+
+    # Input
+    src/input/controller_inject.h
+    src/input/clipboard_inject.h
 
     # Session
     src/session/session_manager.h

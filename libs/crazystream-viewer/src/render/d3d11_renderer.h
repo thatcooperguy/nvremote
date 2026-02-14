@@ -10,6 +10,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 #pragma once
 
+#include "renderer_interface.h"
 #include "render_surface.h"
 #include "../decode/decoder_interface.h"
 
@@ -28,29 +29,31 @@ using Microsoft::WRL::ComPtr;
 
 namespace cs {
 
-class D3D11Renderer {
+class D3D11Renderer : public IRenderer {
 public:
     D3D11Renderer();
-    ~D3D11Renderer();
+    ~D3D11Renderer() override;
 
     // Non-copyable
     D3D11Renderer(const D3D11Renderer&) = delete;
     D3D11Renderer& operator=(const D3D11Renderer&) = delete;
 
-#ifdef _WIN32
     /// Initialize the renderer, creating the D3D11 device and swap chain.
-    bool initialize(HWND hwnd, uint32_t width, uint32_t height);
-#endif
+    /// window_handle must be a valid HWND on Windows.
+    bool initialize(void* window_handle, uint32_t width, uint32_t height) override;
 
     /// Render a decoded frame to the swap chain.
     /// Returns the time spent rendering in milliseconds.
-    double renderFrame(const DecodedFrame& frame);
+    double renderFrame(const DecodedFrame& frame) override;
 
     /// Handle window resize.
-    bool resize(uint32_t width, uint32_t height);
+    bool resize(uint32_t width, uint32_t height) override;
 
     /// Release all GPU resources.
-    void release();
+    void release() override;
+
+    /// Get the last render time in milliseconds.
+    double getLastRenderTimeMs() const override;
 
     /// Get the shared render surface (for offscreen rendering).
     RenderSurface getSharedSurface() const;
@@ -62,9 +65,6 @@ public:
     /// Get the D3D11 device context.
     ID3D11DeviceContext* getDeviceContext() const;
 #endif
-
-    /// Get the last render time in milliseconds.
-    double getLastRenderTimeMs() const;
 
 private:
 #ifdef _WIN32

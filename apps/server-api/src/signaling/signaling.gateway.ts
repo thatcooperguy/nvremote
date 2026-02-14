@@ -70,6 +70,10 @@ interface P2PEstablishedPayload {
   connectionType?: 'p2p' | 'relay';
 }
 
+interface SessionReconnectPayload {
+  sessionId: string;
+}
+
 // ---------------------------------------------------------------------------
 // Data forwarded to the host agent when a new streaming session is created.
 // ---------------------------------------------------------------------------
@@ -91,9 +95,10 @@ export interface SessionOfferData {
 // ---------------------------------------------------------------------------
 
 @WebSocketGateway({
-  cors: { origin: '*' },
+  cors: { origin: process.env.CORS_ORIGIN || '*' },
   namespace: '/signaling',
   transports: ['websocket', 'polling'],
+  maxHttpBufferSize: 65536, // 64KB cap — prevents DoS via oversized payloads
 })
 export class SignalingGatewayWs
   implements OnGatewayConnection, OnGatewayDisconnect
@@ -197,6 +202,17 @@ export class SignalingGatewayWs
 
     if (!host) {
       throw new WsException('Host not found');
+    }
+
+    // Verify the authenticated user is a member of the host's org
+    const userId = client.data.userId;
+    if (userId) {
+      const membership = await this.prisma.orgMember.findUnique({
+        where: { userId_orgId: { userId, orgId: host.orgId } },
+      });
+      if (!membership) {
+        throw new WsException('Not authorized for this host');
+      }
     }
 
     // Associate the socket with this host
@@ -535,6 +551,69 @@ export class SignalingGatewayWs
     this.logger.log(
       `P2P connection established for session ${session.id} ` +
         `(type: ${connectionType}, reported by: ${from})`,
+    );
+
+    return { success: true };
+  }
+
+  // -----------------------------------------------------------------------
+  // session:reconnect -- ICE restart for minimal reconnect
+  // -----------------------------------------------------------------------
+
+  @SubscribeMessage('session:reconnect')
+  async handleSessionReconnect(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: SessionReconnectPayload,
+  ): Promise<{ success: boolean }> {
+    const session = await this.prisma.session.findUnique({
+      where: { id: payload.sessionId },
+    });
+
+    if (!session) {
+      throw new WsException('Session not found');
+    }
+
+    if (session.status !== 'ACTIVE') {
+      throw new WsException('Session is not active');
+    }
+
+    const isUser = client.data.userId === session.userId;
+    const isHost = client.data.hostId === session.hostId;
+
+    if (!isUser && !isHost) {
+      throw new WsException('Not a participant of this session');
+    }
+
+    const from = isUser ? 'client' : 'host';
+
+    // Notify the other peer to begin ICE restart
+    if (isUser) {
+      this.server.to(`host:${session.hostId}`).emit('session:reconnect', {
+        sessionId: session.id,
+        from,
+      });
+    } else {
+      this.server.to(`user:${session.userId}`).emit('session:reconnect', {
+        sessionId: session.id,
+        from,
+      });
+    }
+
+    // Update session metadata
+    const existingMeta = (session.metadata as Record<string, unknown>) ?? {};
+    await this.prisma.session.update({
+      where: { id: session.id },
+      data: {
+        metadata: {
+          ...existingMeta,
+          lastReconnectAt: new Date().toISOString(),
+          reconnectRequestedBy: from,
+        },
+      },
+    });
+
+    this.logger.log(
+      `Reconnect requested for session ${session.id} by ${from}`,
     );
 
     return { success: true };

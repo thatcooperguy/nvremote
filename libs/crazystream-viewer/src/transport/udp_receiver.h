@@ -68,6 +68,12 @@ private:
     int dtlsDecrypt(const uint8_t* ciphertext, size_t len,
                     uint8_t* plaintext, size_t max_plaintext);
 
+    /// Encrypt and send data over the DTLS connection.
+    bool dtlsEncryptAndSend(const uint8_t* plaintext, size_t len);
+
+    /// Exchange protocol version tag (CS01) with the host after DTLS handshake.
+    bool exchangeProtocolVersion();
+
     // Socket
     int socket_fd_ = -1;
 

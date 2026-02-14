@@ -190,6 +190,11 @@ private:
     float              avg_capture_ms_ = 0.0f;
     float              avg_encode_ms_  = 0.0f;
 
+    // Viewer liveness tracking (for pause-on-timeout)
+    std::atomic<bool>  viewer_alive_{true};
+    std::chrono::steady_clock::time_point last_feedback_time_;
+    static constexpr auto kViewerTimeout = std::chrono::seconds(15);
+
     // Initialization state
     bool               initialized_ = false;
     bool               prepared_    = false;

@@ -100,6 +100,7 @@ model Host {
   nvstreamerVersion String?
   nvstreamerPorts   Json?
   bootstrapToken    String?
+  bootstrapTokenExpiresAt DateTime?
   lastSeenAt        DateTime?
   createdAt         DateTime   @default(now())
 

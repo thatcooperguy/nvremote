@@ -46,6 +46,16 @@ export class HostsService {
       throw new BadRequestException('Invalid or expired bootstrap token');
     }
 
+    // Check token expiry
+    if (
+      placeholder.bootstrapTokenExpiresAt &&
+      placeholder.bootstrapTokenExpiresAt < new Date()
+    ) {
+      // Clean up expired placeholder
+      await this.prisma.host.delete({ where: { id: placeholder.id } });
+      throw new BadRequestException('Bootstrap token has expired');
+    }
+
     const tunnelIp = await this.allocateTunnelIp(placeholder.orgId);
 
     const host = await this.prisma.host.update({
@@ -204,6 +214,7 @@ export class HostsService {
     }
 
     const token = uuidv4();
+    const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     // Create a placeholder host record holding the token
     await this.prisma.host.create({
@@ -212,11 +223,12 @@ export class HostsService {
         name: '__pending_registration__',
         hostname: '__pending__',
         bootstrapToken: token,
+        bootstrapTokenExpiresAt: tokenExpiresAt,
         status: HostStatus.OFFLINE,
       },
     });
 
-    this.logger.log(`Bootstrap token created for org ${orgId} by user ${userId}`);
+    this.logger.log(`Bootstrap token created for org ${orgId} by user ${userId} (expires: ${tokenExpiresAt.toISOString()})`);
 
     return { token, orgId };
   }

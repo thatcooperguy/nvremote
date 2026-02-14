@@ -278,6 +278,63 @@ bool SessionManager::startSession(const PeerInfo& peer) {
             return false;
         }
         CS_LOG(INFO, "DTLS handshake completed");
+
+        // Exchange protocol version tag (CS01) with the viewer.
+        // Host sends first, then waits for the viewer's response.
+        if (dtls_->isEstablished()) {
+            std::vector<uint8_t> enc_out;
+            if (!dtls_->encrypt(cs::PROTOCOL_VERSION_TAG,
+                                cs::PROTOCOL_VERSION_TAG_LEN, enc_out)) {
+                CS_LOG(ERR, "Failed to send protocol version tag");
+                cs_close_socket(udp_socket_);
+                udp_socket_ = -1;
+                return false;
+            }
+            // Send encrypted version tag
+            if (!enc_out.empty()) {
+                ::sendto(udp_socket_, reinterpret_cast<const char*>(enc_out.data()),
+                         static_cast<int>(enc_out.size()), 0,
+                         reinterpret_cast<const ::sockaddr*>(&peer_addr_),
+                         sizeof(peer_addr_));
+            }
+
+            // Wait for viewer's version tag (5 second timeout)
+            uint8_t recv_buf[64];
+            fd_set read_fds;
+            struct timeval tv;
+            tv.tv_sec = 5;
+            tv.tv_usec = 0;
+            FD_ZERO(&read_fds);
+            FD_SET(static_cast<unsigned int>(udp_socket_), &read_fds);
+
+            int sel = ::select(udp_socket_ + 1, &read_fds, nullptr, nullptr, &tv);
+            if (sel > 0) {
+                ::sockaddr_in from = {};
+                socklen_t fromLen = sizeof(from);
+                int n = ::recvfrom(udp_socket_, reinterpret_cast<char*>(recv_buf),
+                                   sizeof(recv_buf), 0,
+                                   reinterpret_cast<::sockaddr*>(&from), &fromLen);
+                if (n > 0) {
+                    std::vector<uint8_t> plain;
+                    if (dtls_->decrypt(recv_buf, static_cast<size_t>(n), plain) &&
+                        plain.size() == cs::PROTOCOL_VERSION_TAG_LEN &&
+                        std::memcmp(plain.data(), cs::PROTOCOL_VERSION_TAG,
+                                    cs::PROTOCOL_VERSION_TAG_LEN) == 0) {
+                        CS_LOG(INFO, "Protocol version verified: CS01");
+                    } else {
+                        CS_LOG(ERR, "Protocol version mismatch from viewer");
+                        cs_close_socket(udp_socket_);
+                        udp_socket_ = -1;
+                        return false;
+                    }
+                }
+            } else {
+                CS_LOG(ERR, "Timeout waiting for viewer protocol version");
+                cs_close_socket(udp_socket_);
+                udp_socket_ = -1;
+                return false;
+            }
+        }
     }
 
     // --- Initialize transport ---
@@ -324,6 +381,8 @@ bool SessionManager::startSession(const PeerInfo& peer) {
     // --- Start streaming threads ---
     should_stop_.store(false);
     streaming_.store(true);
+    viewer_alive_.store(true);
+    last_feedback_time_ = std::chrono::steady_clock::now();
 
     stream_thread_   = std::thread(&SessionManager::streamingLoop, this);
     feedback_thread_ = std::thread(&SessionManager::feedbackLoop, this);
@@ -517,6 +576,24 @@ void SessionManager::streamingLoop() {
         if (target_fps == 0) target_fps = 60;
         uint64_t frame_interval_us = 1'000'000ULL / target_fps;
 
+        // --- Viewer liveness check: pause encoding if no QoS feedback ---
+        {
+            auto now = std::chrono::steady_clock::now();
+            if (now - last_feedback_time_ > kViewerTimeout) {
+                if (viewer_alive_.exchange(false)) {
+                    CS_LOG(WARN, "No QoS feedback for 15s — pausing encoding (viewer may be dead)");
+                }
+                // Sleep instead of encoding while viewer is unresponsive
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                continue;
+            } else if (!viewer_alive_.load()) {
+                viewer_alive_.store(true);
+                CS_LOG(INFO, "Viewer feedback resumed — resuming encoding");
+                // Send an IDR frame on resume so viewer can recover quickly
+                encoder_->forceIdr();
+            }
+        }
+
         // --- Check IDR request ---
         if (force_idr_flag_.exchange(false)) {
             encoder_->forceIdr();
@@ -582,8 +659,8 @@ void SessionManager::streamingLoop() {
             // Serialize header + payload fragment
             std::vector<uint8_t> pkt = hdr.serialize(payload + offset, chunk_len);
 
-            // Send via transport
-            transport_->sendVideoFrame(encoded, static_cast<uint16_t>(frame_number_ & 0xFFFF));
+            // Send via transport (pre-serialized packet.h format)
+            transport_->sendPacket(pkt, video_seq_);
 
             data_packets.push_back(std::move(pkt));
             ++video_seq_;
@@ -591,11 +668,25 @@ void SessionManager::streamingLoop() {
 
         // --- FEC ---
         if (fec_ && data_packets.size() > 1) {
-            auto fec_packets = fec_->encode(data_packets);
-            if (!fec_packets.empty()) {
-                transport_->sendFecPackets(fec_packets,
-                                           static_cast<uint16_t>(frame_number_ & 0xFFFF),
-                                           fec_->currentGroupId());
+            auto fec_payloads = fec_->encode(data_packets);
+            if (!fec_payloads.empty()) {
+                uint8_t group_id = fec_->currentGroupId();
+                for (size_t i = 0; i < fec_payloads.size(); ++i) {
+                    // Build FEC packet: [0xFC][seq:2][group_id][group_sz][fec_idx][frame_low][payload]
+                    std::vector<uint8_t> fec_pkt;
+                    fec_pkt.reserve(7 + fec_payloads[i].size());
+                    fec_pkt.push_back(static_cast<uint8_t>(cs::PacketType::FEC));
+                    uint16_t seq = video_seq_++;
+                    fec_pkt.push_back(static_cast<uint8_t>(seq >> 8));
+                    fec_pkt.push_back(static_cast<uint8_t>(seq & 0xFF));
+                    fec_pkt.push_back(group_id);
+                    fec_pkt.push_back(static_cast<uint8_t>(fec_payloads.size()));
+                    fec_pkt.push_back(static_cast<uint8_t>(i));
+                    fec_pkt.push_back(static_cast<uint8_t>(frame_number_ & 0xFF));
+                    fec_pkt.insert(fec_pkt.end(),
+                                   fec_payloads[i].begin(), fec_payloads[i].end());
+                    transport_->sendPacket(fec_pkt, seq);
+                }
             }
         }
 
@@ -665,9 +756,19 @@ void SessionManager::audioLoop() {
             std::vector<uint8_t> opus_data;
             if (opus_encoder_->encode(samples + offset * channels,
                                        opus_frame_size, opus_data)) {
-                // Send audio packet
-                transport_->sendAudioPacket(opus_data.data(), opus_data.size(),
-                                             audio_seq_);
+                // Build audio packet using packet.h format
+                cs::AudioPacketHeader ahdr;
+                std::memset(&ahdr, 0, sizeof(ahdr));
+                ahdr.setVersion(1);
+                ahdr.setType(static_cast<uint8_t>(cs::PacketType::AUDIO) & 0x3F);
+                ahdr.channel_id      = 0;  // stereo channel 0
+                ahdr.sequence_number = audio_seq_;
+                ahdr.timestamp_us    = static_cast<uint32_t>(hires_now_us() & 0xFFFFFFFF);
+
+                std::vector<uint8_t> audio_pkt = ahdr.serialize(
+                    opus_data.data(), opus_data.size());
+
+                transport_->sendPacket(audio_pkt, audio_seq_);
                 ++audio_seq_;
             }
             offset += opus_frame_size;
@@ -710,6 +811,10 @@ void SessionManager::feedbackLoop() {
         cs::PacketType ptype = cs::identifyPacket(data, len);
 
         if (ptype == cs::PacketType::QOS_FEEDBACK) {
+            // Track viewer liveness
+            last_feedback_time_ = std::chrono::steady_clock::now();
+            viewer_alive_.store(true);
+
             // Deserialize QoS feedback
             cs::QosFeedback fb = cs::QosFeedback::deserialize(data, len);
 

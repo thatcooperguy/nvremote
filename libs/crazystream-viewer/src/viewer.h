@@ -36,13 +36,13 @@
 namespace cs {
 
 class IDecoder;
-class D3D11Renderer;
+class IRenderer;
 class UdpReceiver;
 class JitterBuffer;
 class NackSender;
 class StatsReporter;
 class OpusDecoderWrapper;
-class WasapiPlayback;
+class IAudioPlayback;
 class InputCapture;
 class InputSender;
 struct DecodedFrame;
@@ -158,6 +158,15 @@ public:
     /// Register a callback for periodic stats updates.
     void setOnStatsUpdate(std::function<void(const ViewerStats&)> cb);
 
+    /// Register a callback for reconnect requests (fires when the viewer
+    /// detects a dead connection and wants the signaling layer to initiate
+    /// an ICE restart).
+    void setOnReconnectNeeded(std::function<void()> cb);
+
+    /// Called by the signaling layer after ICE restart completes and a new
+    /// P2P connection is ready. Resets transport with the new socket.
+    void onReconnected(int new_socket_fd, const std::string& dtls_fingerprint);
+
     // --- P2P Connection Management ---
 
     /// Gather ICE candidates using the provided STUN servers.
@@ -199,13 +208,13 @@ private:
 
     // --- Subsystems ---
     std::unique_ptr<IDecoder>           decoder_;
-    std::unique_ptr<D3D11Renderer>      renderer_;
+    std::unique_ptr<IRenderer>          renderer_;
     std::unique_ptr<UdpReceiver>        receiver_;
     std::unique_ptr<JitterBuffer>       jitter_buffer_;
     std::unique_ptr<NackSender>         nack_sender_;
     std::unique_ptr<StatsReporter>      stats_reporter_;
     std::unique_ptr<OpusDecoderWrapper> opus_decoder_;
-    std::unique_ptr<WasapiPlayback>     audio_playback_;
+    std::unique_ptr<IAudioPlayback>     audio_playback_;
     std::unique_ptr<InputCapture>       input_capture_;
     std::unique_ptr<InputSender>        input_sender_;
 
@@ -240,6 +249,20 @@ private:
     // --- Callbacks ---
     std::function<void()> on_disconnect_;
     std::function<void(const ViewerStats&)> on_stats_update_;
+    std::function<void()> on_reconnect_needed_;
+
+    // --- Reconnect state ---
+    enum class ConnectionState : uint8_t {
+        CONNECTED,
+        RECONNECTING,
+        DISCONNECTED,
+    };
+    std::atomic<ConnectionState> conn_state_{ConnectionState::CONNECTED};
+    std::chrono::steady_clock::time_point last_packet_time_;
+    int reconnect_attempts_ = 0;
+    static constexpr int kMaxReconnectAttempts = 3;
+    static constexpr auto kDeadConnectionTimeout = std::chrono::seconds(10);
+    static constexpr auto kReconnectTotalTimeout = std::chrono::seconds(30);
 
     // --- P2P state ---
     int p2p_socket_ = -1;

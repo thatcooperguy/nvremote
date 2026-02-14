@@ -29,6 +29,13 @@
 namespace cs {
 
 // ---------------------------------------------------------------------------
+// Protocol version -- exchanged immediately after DTLS handshake.
+// Both sides send this 4-byte tag; a mismatch means incompatible wire formats.
+// ---------------------------------------------------------------------------
+constexpr uint8_t PROTOCOL_VERSION_TAG[4] = { 'C', 'S', '0', '1' };
+constexpr size_t  PROTOCOL_VERSION_TAG_LEN = 4;
+
+// ---------------------------------------------------------------------------
 // Enums
 // ---------------------------------------------------------------------------
 
@@ -44,6 +51,9 @@ enum class PacketType : uint8_t {
     VIDEO        = 0x10,
     AUDIO        = 0x20,
     INPUT        = 0x30,
+    CONTROLLER   = 0x40,
+    CLIPBOARD    = 0x50,
+    CLIP_ACK     = 0x51,
     QOS_FEEDBACK = 0xFB,
     FEC          = 0xFC,
     NACK         = 0xFD,
@@ -340,6 +350,160 @@ struct ScrollEvent {
 };
 static_assert(sizeof(ScrollEvent) == 4, "ScrollEvent must be 4 bytes");
 
+// ---------------------------------------------------------------------------
+// Controller state packet -- 15 bytes on the wire.
+//
+// Full-state (not delta) so lost packets are self-healing.
+// Sent on-change only, polled at up to 120Hz on the viewer side.
+//
+//   [0]   type = 0x40
+//   [1]   controller_id (0-3, XInput limit)
+//   [2-3] sequence (network order)
+//   [4-5] buttons bitmask (network order, matches XINPUT_GAMEPAD)
+//   [6]   left_trigger  (0-255)
+//   [7]   right_trigger (0-255)
+//   [8-9]   thumb_lx (int16, network order)
+//   [10-11] thumb_ly (int16, network order)
+//   [12-13] thumb_rx (int16, network order)
+//   [14-15] thumb_ry (int16, network order)   -- total 16 bytes
+// ---------------------------------------------------------------------------
+struct ControllerPacket {
+    uint8_t  type;              // 0x40
+    uint8_t  controller_id;    // 0-3
+    uint16_t sequence;
+    uint16_t buttons;
+    uint8_t  left_trigger;
+    uint8_t  right_trigger;
+    int16_t  thumb_lx;
+    int16_t  thumb_ly;
+    int16_t  thumb_rx;
+    int16_t  thumb_ry;
+
+    void toNetwork() {
+        sequence = htons(sequence);
+        buttons  = htons(buttons);
+        thumb_lx = static_cast<int16_t>(htons(static_cast<uint16_t>(thumb_lx)));
+        thumb_ly = static_cast<int16_t>(htons(static_cast<uint16_t>(thumb_ly)));
+        thumb_rx = static_cast<int16_t>(htons(static_cast<uint16_t>(thumb_rx)));
+        thumb_ry = static_cast<int16_t>(htons(static_cast<uint16_t>(thumb_ry)));
+    }
+    void toHost() {
+        sequence = ntohs(sequence);
+        buttons  = ntohs(buttons);
+        thumb_lx = static_cast<int16_t>(ntohs(static_cast<uint16_t>(thumb_lx)));
+        thumb_ly = static_cast<int16_t>(ntohs(static_cast<uint16_t>(thumb_ly)));
+        thumb_rx = static_cast<int16_t>(ntohs(static_cast<uint16_t>(thumb_rx)));
+        thumb_ry = static_cast<int16_t>(ntohs(static_cast<uint16_t>(thumb_ry)));
+    }
+
+    std::vector<uint8_t> serialize() const {
+        ControllerPacket net = *this;
+        net.toNetwork();
+        std::vector<uint8_t> buf(sizeof(ControllerPacket));
+        std::memcpy(buf.data(), &net, sizeof(net));
+        return buf;
+    }
+
+    static bool deserialize(const uint8_t* data, size_t len,
+                            ControllerPacket& out) {
+        if (len < sizeof(ControllerPacket)) return false;
+        std::memcpy(&out, data, sizeof(ControllerPacket));
+        out.toHost();
+        return true;
+    }
+};
+static_assert(sizeof(ControllerPacket) == 16, "ControllerPacket must be 16 bytes");
+
+// ---------------------------------------------------------------------------
+// Clipboard packet -- 8 byte header + variable payload.
+//
+// Text-only in v1. Sent reliably via ACK + retry (3x at 200ms).
+//
+//   [0]   type = 0x50 (or 0x51 for ACK)
+//   [1]   direction: 0=viewer->host, 1=host->viewer
+//   [2-3] sequence (network order)
+//   [4]   format: 1=UTF-8 text
+//   [5-7] reserved (padding)
+//   [8-11] length (network order, of following payload)
+// ---------------------------------------------------------------------------
+enum class ClipboardDirection : uint8_t {
+    VIEWER_TO_HOST = 0,
+    HOST_TO_VIEWER = 1,
+};
+
+enum class ClipboardFormat : uint8_t {
+    TEXT_UTF8 = 1,
+};
+
+struct ClipboardPacketHeader {
+    uint8_t  type;              // 0x50
+    uint8_t  direction;         // ClipboardDirection
+    uint16_t sequence;
+    uint8_t  format;            // ClipboardFormat
+    uint8_t  reserved[3];
+    uint32_t length;            // payload length in bytes
+
+    void toNetwork() {
+        sequence = htons(sequence);
+        length   = htonl(length);
+    }
+    void toHost() {
+        sequence = ntohs(sequence);
+        length   = ntohl(length);
+    }
+
+    std::vector<uint8_t> serialize(const uint8_t* payload = nullptr,
+                                   size_t payloadLen = 0) const {
+        ClipboardPacketHeader net = *this;
+        net.toNetwork();
+        std::vector<uint8_t> buf(sizeof(ClipboardPacketHeader) + payloadLen);
+        std::memcpy(buf.data(), &net, sizeof(net));
+        if (payload && payloadLen > 0) {
+            std::memcpy(buf.data() + sizeof(net), payload, payloadLen);
+        }
+        return buf;
+    }
+
+    static bool deserialize(const uint8_t* data, size_t len,
+                            ClipboardPacketHeader& out) {
+        if (len < sizeof(ClipboardPacketHeader)) return false;
+        std::memcpy(&out, data, sizeof(ClipboardPacketHeader));
+        out.toHost();
+        return true;
+    }
+};
+static_assert(sizeof(ClipboardPacketHeader) == 12, "ClipboardPacketHeader must be 12 bytes");
+
+/// Clipboard ACK -- 4 bytes on the wire.
+///   [0]   type = 0x51
+///   [1]   reserved
+///   [2-3] ack_sequence (network order)
+struct ClipboardAckPacket {
+    uint8_t  type;          // 0x51
+    uint8_t  reserved;
+    uint16_t ack_sequence;
+
+    void toNetwork() { ack_sequence = htons(ack_sequence); }
+    void toHost()    { ack_sequence = ntohs(ack_sequence); }
+
+    std::vector<uint8_t> serialize() const {
+        ClipboardAckPacket net = *this;
+        net.toNetwork();
+        std::vector<uint8_t> buf(sizeof(ClipboardAckPacket));
+        std::memcpy(buf.data(), &net, sizeof(net));
+        return buf;
+    }
+
+    static bool deserialize(const uint8_t* data, size_t len,
+                            ClipboardAckPacket& out) {
+        if (len < sizeof(ClipboardAckPacket)) return false;
+        std::memcpy(&out, data, sizeof(ClipboardAckPacket));
+        out.toHost();
+        return true;
+    }
+};
+static_assert(sizeof(ClipboardAckPacket) == 4, "ClipboardAckPacket must be 4 bytes");
+
 #pragma pack(pop)
 
 // ---------------------------------------------------------------------------
@@ -351,20 +515,19 @@ static_assert(sizeof(ScrollEvent) == 4, "ScrollEvent must be 4 bytes");
 inline PacketType identifyPacket(const uint8_t* data, size_t len) {
     if (len == 0) return static_cast<PacketType>(0);
 
-    // QoS, FEC, NACK have a dedicated type byte as the first byte
+    // Dedicated type byte for control/data packets
     uint8_t first = data[0];
     if (first == static_cast<uint8_t>(PacketType::QOS_FEEDBACK)) return PacketType::QOS_FEEDBACK;
     if (first == static_cast<uint8_t>(PacketType::FEC))          return PacketType::FEC;
     if (first == static_cast<uint8_t>(PacketType::NACK))         return PacketType::NACK;
+    if (first == static_cast<uint8_t>(PacketType::CONTROLLER) && len >= sizeof(ControllerPacket))
+        return PacketType::CONTROLLER;
+    if (first == static_cast<uint8_t>(PacketType::CLIPBOARD) && len >= sizeof(ClipboardPacketHeader))
+        return PacketType::CLIPBOARD;
+    if (first == static_cast<uint8_t>(PacketType::CLIP_ACK) && len >= sizeof(ClipboardAckPacket))
+        return PacketType::CLIP_ACK;
 
     // Video / Audio / Input embed the type in the upper bits of byte 0.
-    // Extract the 6-bit type field (bits 5..0 for audio/input headers).
-    // For video the flags byte doesn't carry a "type" field; instead we
-    // distinguish by examining the codec byte at offset 1 (non-zero for
-    // valid video, zero otherwise).  This is a pragmatic heuristic: the
-    // signaling layer already knows which channel a datagram arrives on,
-    // but this helper is useful for debugging / generic routers.
-
     uint8_t type6 = first & 0x3F;
     if (type6 == 0x20 && len >= sizeof(AudioPacketHeader)) return PacketType::AUDIO;
     if (type6 == 0x30 && len >= sizeof(InputPacketHeader)) return PacketType::INPUT;

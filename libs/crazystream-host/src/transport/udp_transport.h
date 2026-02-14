@@ -1,31 +1,15 @@
 ///////////////////////////////////////////////////////////////////////////////
 // udp_transport.h -- UDP video/audio packet transport with DTLS encryption
 //
-// Fragments encoded video frames into MTU-sized packets, adds framing
-// headers, optionally encrypts via DTLS, and sends over a UDP socket.
-// Also handles audio packets and NACK-based retransmission from a
-// ring-buffer packet cache.
+// Sends pre-serialized packets over a UDP socket with optional DTLS 1.2
+// encryption.  All wire-format headers are defined in <cs/transport/packet.h>
+// and built by the session manager before handing packets to this layer.
 //
-// Packet wire format (after DTLS decryption):
-//
-//   Byte 0:      Packet type (0x01 = video, 0x02 = audio, 0xFC = FEC,
-//                              0x10 = QoS feedback, 0x20 = NACK)
-//   Byte 1-2:    Sequence number (network byte order)
-//   Bytes 3+:    Type-specific header + payload
-//
-// Video header (after common header):
-//   Byte 3-4:    Frame number (uint16)
-//   Byte 5:      Fragment index (0-based)
-//   Byte 6:      Fragment count (total fragments in this frame)
-//   Byte 7:      Flags (bit 0 = keyframe, bit 1 = end-of-frame)
-//   Bytes 8+:    Payload (encoded bitstream fragment)
-//
-// Audio header (after common header):
-//   Bytes 3+:    Opus-encoded audio data
+// Also handles NACK-based retransmission from a ring-buffer packet cache.
 ///////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include "encode/encoder_interface.h"
+#include <cs/transport/packet.h>
 
 #include <cstdint>
 #include <vector>
@@ -51,28 +35,24 @@ typedef struct ssl_st SSL;
 namespace cs::host {
 
 // ---------------------------------------------------------------------------
-// Packet types on the wire
-// ---------------------------------------------------------------------------
-enum PacketType : uint8_t {
-    PKT_TYPE_VIDEO         = 0x01,
-    PKT_TYPE_AUDIO         = 0x02,
-    PKT_TYPE_FEC           = 0xFC,
-    PKT_TYPE_QOS_FEEDBACK  = 0x10,
-    PKT_TYPE_NACK          = 0x20,
-};
-
-// ---------------------------------------------------------------------------
-// Constants
+// Wire-format constants derived from packet.h
 // ---------------------------------------------------------------------------
 constexpr size_t   MAX_MTU_SIZE       = 1400;   // Total UDP payload limit
-constexpr size_t   COMMON_HEADER_SIZE = 3;       // type(1) + seq(2)
-constexpr size_t   VIDEO_HEADER_SIZE  = 5;       // frame_num(2) + frag_idx(1) + frag_cnt(1) + flags(1)
-constexpr size_t   MAX_VIDEO_PAYLOAD  = MAX_MTU_SIZE - COMMON_HEADER_SIZE - VIDEO_HEADER_SIZE;
+constexpr size_t   MAX_VIDEO_PAYLOAD  = MAX_MTU_SIZE - sizeof(cs::VideoPacketHeader);  // 1384
+constexpr size_t   MAX_AUDIO_PAYLOAD  = MAX_MTU_SIZE - sizeof(cs::AudioPacketHeader);  // 1392
 constexpr size_t   PACKET_CACHE_SIZE  = 512;     // Ring buffer size for retransmission
 
-// Video flags
-constexpr uint8_t  VIDEO_FLAG_KEYFRAME    = 0x01;
-constexpr uint8_t  VIDEO_FLAG_END_OF_FRAME = 0x02;
+// Compile-time checks: ensure packet.h enums have the expected values
+static_assert(static_cast<uint8_t>(cs::PacketType::VIDEO) == 0x10,
+              "VIDEO packet type must be 0x10");
+static_assert(static_cast<uint8_t>(cs::PacketType::AUDIO) == 0x20,
+              "AUDIO packet type must be 0x20");
+static_assert(static_cast<uint8_t>(cs::PacketType::FEC)   == 0xFC,
+              "FEC packet type must be 0xFC");
+static_assert(sizeof(cs::VideoPacketHeader) == 16,
+              "VideoPacketHeader must be 16 bytes");
+static_assert(sizeof(cs::AudioPacketHeader) == 8,
+              "AudioPacketHeader must be 8 bytes");
 
 // ---------------------------------------------------------------------------
 // CachedPacket -- stored in the ring buffer for NACK retransmission
@@ -113,7 +93,7 @@ private:
 };
 
 // ---------------------------------------------------------------------------
-// UdpTransport -- sends video/audio packets over UDP
+// UdpTransport -- sends pre-built packets over UDP
 // ---------------------------------------------------------------------------
 class UdpTransport {
 public:
@@ -123,15 +103,14 @@ public:
     /// Initialize with an existing connected UDP socket and peer address.
     bool initialize(int socket_fd, const ::sockaddr_in& peer_addr);
 
-    /// Fragment and send a video frame.
-    bool sendVideoFrame(const EncodedPacket& packet, uint16_t frame_number);
+    /// Send a pre-serialized packet (header + payload already built by caller).
+    /// The packet is cached by |seq| for NACK retransmission, then sent.
+    bool sendPacket(const uint8_t* data, size_t len, uint16_t seq);
 
-    /// Send a single audio packet (already Opus-encoded).
-    bool sendAudioPacket(const uint8_t* data, size_t len, uint16_t seq);
-
-    /// Send pre-computed FEC packets for the current frame.
-    bool sendFecPackets(const std::vector<std::vector<uint8_t>>& fec_packets,
-                        uint16_t frame_number, uint8_t group_id);
+    /// Convenience: send a pre-serialized packet from a vector.
+    bool sendPacket(const std::vector<uint8_t>& pkt, uint16_t seq) {
+        return sendPacket(pkt.data(), pkt.size(), seq);
+    }
 
     /// Handle NACK: retransmit cached packets by sequence number.
     void onNackReceived(const std::vector<uint16_t>& seqs);
@@ -140,8 +119,8 @@ public:
     /// the clear (useful for testing or when WireGuard already encrypts).
     void setDtlsContext(DtlsContext* ctx) { dtls_ = ctx; }
 
-    /// Get the next sequence number (for tracking by bandwidth estimator).
-    uint16_t currentSeq() const { return seq_; }
+    /// Get total bytes sent.
+    uint64_t totalBytesSent() const { return bytes_sent_; }
 
     /// Callback invoked when we receive data on the socket.
     /// The session manager pumps the receive side and calls this.
@@ -151,9 +130,6 @@ public:
     /// Receive and dispatch one incoming packet (non-blocking).
     /// Returns true if a packet was received.
     bool receiveOne();
-
-    /// Get total bytes sent.
-    uint64_t totalBytesSent() const { return bytes_sent_; }
 
 private:
     /// Send a raw buffer (encrypt if DTLS is set, then UDP sendto).
@@ -165,7 +141,6 @@ private:
     int                 socket_fd_  = -1;
     ::sockaddr_in       peer_addr_  = {};
     DtlsContext*        dtls_       = nullptr;
-    uint16_t            seq_        = 0;
     uint64_t            bytes_sent_ = 0;
 
     // Ring buffer for NACK retransmission.

@@ -22,7 +22,11 @@
 ################################################################################
 
 cmake_minimum_required(VERSION 3.22)
-project(crazystream-viewer LANGUAGES CXX)
+if(APPLE)
+    project(crazystream-viewer LANGUAGES CXX OBJCXX)
+else()
+    project(crazystream-viewer LANGUAGES CXX)
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -92,32 +96,26 @@ endif()
 # ---------------------------------------------------------------------------
 # Source files
 # ---------------------------------------------------------------------------
+# Cross-platform sources
 set(VIEWER_SOURCES
     src/addon.cpp
     src/viewer.cpp
 
-    # Decode
-    src/decode/nvdec_decoder.cpp
-    src/decode/d3d11va_decoder.cpp
-
-    # Render
-    src/render/d3d11_renderer.cpp
-
-    # Transport
+    # Transport (cross-platform)
     src/transport/udp_receiver.cpp
     src/transport/jitter_buffer.cpp
     src/transport/nack_sender.cpp
 
-    # QoS
+    # QoS (cross-platform)
     src/qos/stats_reporter.cpp
 
-    # Audio
+    # Audio codec (cross-platform)
     src/audio/opus_decoder.cpp
-    src/audio/wasapi_playback.cpp
 
-    # Input
+    # Input (cross-platform)
     src/input/input_capture.cpp
     src/input/input_sender.cpp
+    src/input/clipboard_sync.cpp
 )
 
 set(VIEWER_HEADERS
@@ -125,11 +123,9 @@ set(VIEWER_HEADERS
 
     # Decode
     src/decode/decoder_interface.h
-    src/decode/nvdec_decoder.h
-    src/decode/d3d11va_decoder.h
 
     # Render
-    src/render/d3d11_renderer.h
+    src/render/renderer_interface.h
     src/render/render_surface.h
 
     # Transport
@@ -141,13 +137,43 @@ set(VIEWER_HEADERS
     src/qos/stats_reporter.h
 
     # Audio
+    src/audio/audio_playback_interface.h
     src/audio/opus_decoder.h
-    src/audio/wasapi_playback.h
 
     # Input
     src/input/input_capture.h
     src/input/input_sender.h
+    src/input/clipboard_sync.h
 )
+
+# Platform-specific sources
+if(WIN32)
+    list(APPEND VIEWER_SOURCES
+        src/decode/nvdec_decoder.cpp
+        src/decode/d3d11va_decoder.cpp
+        src/render/d3d11_renderer.cpp
+        src/audio/wasapi_playback.cpp
+        src/input/controller_capture.cpp
+    )
+    list(APPEND VIEWER_HEADERS
+        src/decode/nvdec_decoder.h
+        src/decode/d3d11va_decoder.h
+        src/render/d3d11_renderer.h
+        src/audio/wasapi_playback.h
+        src/input/controller_capture.h
+    )
+elseif(APPLE)
+    list(APPEND VIEWER_SOURCES
+        src/decode/videotoolbox_decoder.mm
+        src/render/metal_renderer.mm
+        src/audio/coreaudio_playback.mm
+    )
+    list(APPEND VIEWER_HEADERS
+        src/decode/videotoolbox_decoder.h
+        src/render/metal_renderer.h
+        src/audio/coreaudio_playback.h
+    )
+endif()
 
 # ---------------------------------------------------------------------------
 # Shared library target (.node extension for N-API addon)
@@ -260,6 +286,41 @@ if(WIN32)
         d3dcompiler
         winmm
         uuid
+    )
+endif()
+
+# ---------------------------------------------------------------------------
+# macOS frameworks
+# ---------------------------------------------------------------------------
+if(APPLE)
+    find_library(METAL_FRAMEWORK Metal REQUIRED)
+    find_library(METALKIT_FRAMEWORK MetalKit REQUIRED)
+    find_library(QUARTZCORE_FRAMEWORK QuartzCore REQUIRED)
+    find_library(COCOA_FRAMEWORK Cocoa REQUIRED)
+    find_library(VIDEOTOOLBOX_FRAMEWORK VideoToolbox REQUIRED)
+    find_library(COREMEDIA_FRAMEWORK CoreMedia REQUIRED)
+    find_library(COREVIDEO_FRAMEWORK CoreVideo REQUIRED)
+    find_library(AUDIOTOOLBOX_FRAMEWORK AudioToolbox REQUIRED)
+    find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
+
+    target_link_libraries(crazystream-viewer PRIVATE
+        ${METAL_FRAMEWORK}
+        ${METALKIT_FRAMEWORK}
+        ${QUARTZCORE_FRAMEWORK}
+        ${COCOA_FRAMEWORK}
+        ${VIDEOTOOLBOX_FRAMEWORK}
+        ${COREMEDIA_FRAMEWORK}
+        ${COREVIDEO_FRAMEWORK}
+        ${AUDIOTOOLBOX_FRAMEWORK}
+        ${FOUNDATION_FRAMEWORK}
+    )
+
+    # Enable Objective-C++ for .mm files
+    set_source_files_properties(
+        src/decode/videotoolbox_decoder.mm
+        src/render/metal_renderer.mm
+        src/audio/coreaudio_playback.mm
+        PROPERTIES COMPILE_FLAGS "-fobjc-arc"
     )
 endif()
 

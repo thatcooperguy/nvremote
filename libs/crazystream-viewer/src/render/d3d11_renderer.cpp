@@ -37,13 +37,14 @@ D3D11Renderer::~D3D11Renderer() {
 // ---------------------------------------------------------------------------
 
 #ifdef _WIN32
-bool D3D11Renderer::initialize(HWND hwnd, uint32_t width, uint32_t height) {
+bool D3D11Renderer::initialize(void* window_handle, uint32_t width, uint32_t height) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (initialized_) {
         release();
     }
 
+    HWND hwnd = static_cast<HWND>(window_handle);
     hwnd_ = hwnd;
     width_ = width;
     height_ = height;

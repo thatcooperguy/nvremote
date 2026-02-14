@@ -92,10 +92,10 @@ export class AuthService {
     userId: string,
     email: string,
   ): Promise<TokenResponseDto> {
-    const accessToken = this.jwtService.sign({
-      sub: userId,
-      email,
-    });
+    const accessToken = this.jwtService.sign(
+      { sub: userId, email },
+      { issuer: 'crazystream-api', audience: 'crazystream' },
+    );
 
     const refreshTokenValue = uuidv4();
     const expiresAt = new Date();

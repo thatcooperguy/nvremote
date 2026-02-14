@@ -10,16 +10,30 @@
 
 #include "viewer.h"
 
+#include "decode/decoder_interface.h"
+#ifdef _WIN32
 #include "decode/nvdec_decoder.h"
 #include "decode/d3d11va_decoder.h"
-#include "decode/decoder_interface.h"
+#elif defined(__APPLE__)
+#include "decode/videotoolbox_decoder.h"
+#endif
+#include "render/renderer_interface.h"
+#ifdef _WIN32
 #include "render/d3d11_renderer.h"
+#elif defined(__APPLE__)
+#include "render/metal_renderer.h"
+#endif
 #include "transport/udp_receiver.h"
 #include "transport/jitter_buffer.h"
 #include "transport/nack_sender.h"
 #include "qos/stats_reporter.h"
 #include "audio/opus_decoder.h"
+#include "audio/audio_playback_interface.h"
+#ifdef _WIN32
 #include "audio/wasapi_playback.h"
+#elif defined(__APPLE__)
+#include "audio/coreaudio_playback.h"
+#endif
 #include "input/input_capture.h"
 #include "input/input_sender.h"
 
@@ -115,6 +129,9 @@ bool Viewer::start(const ViewerConfig& config) {
     }
 
     running_.store(true);
+    conn_state_.store(ConnectionState::CONNECTED);
+    last_packet_time_ = std::chrono::steady_clock::now();
+    reconnect_attempts_ = 0;
 
     // Launch pipeline threads
     decode_thread_ = std::thread(&Viewer::decodeThreadFunc, this);
@@ -264,6 +281,60 @@ void Viewer::setOnDisconnect(std::function<void()> cb) {
 void Viewer::setOnStatsUpdate(std::function<void(const ViewerStats&)> cb) {
     std::lock_guard<std::mutex> lock(mutex_);
     on_stats_update_ = std::move(cb);
+}
+
+void Viewer::setOnReconnectNeeded(std::function<void()> cb) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    on_reconnect_needed_ = std::move(cb);
+}
+
+void Viewer::onReconnected(int new_socket_fd, const std::string& dtls_fingerprint) {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    CS_LOG(INFO, "Reconnecting with new socket fd=%d", new_socket_fd);
+
+    // Stop old transport
+    if (receiver_) {
+        receiver_->stop();
+    }
+    if (nack_sender_) {
+        nack_sender_->stop();
+    }
+    if (stats_reporter_) {
+        stats_reporter_->stop();
+    }
+
+    // Close old socket
+    if (p2p_socket_ >= 0) {
+        cs_close_socket(p2p_socket_);
+    }
+    p2p_socket_ = new_socket_fd;
+    config_.socket_fd = new_socket_fd;
+    config_.dtls_fingerprint = dtls_fingerprint;
+
+    // Flush jitter buffer (stale frames from old connection)
+    if (jitter_buffer_) {
+        jitter_buffer_->flush();
+    }
+
+    // Flush decoder (stale reference frames)
+    if (decoder_) {
+        decoder_->flush();
+    }
+
+    // Re-initialize transport with new socket
+    if (!initTransport()) {
+        CS_LOG(ERR, "Reconnect: transport re-init failed");
+        conn_state_.store(ConnectionState::DISCONNECTED);
+        if (on_disconnect_) on_disconnect_();
+        return;
+    }
+
+    conn_state_.store(ConnectionState::CONNECTED);
+    reconnect_attempts_ = 0;
+    last_packet_time_ = std::chrono::steady_clock::now();
+
+    CS_LOG(INFO, "Reconnect successful — streaming resumed");
 }
 
 // ---------------------------------------------------------------------------
@@ -542,37 +613,55 @@ void Viewer::disconnectP2P() {
 // ---------------------------------------------------------------------------
 
 bool Viewer::initRenderer() {
-#ifdef _WIN32
     if (!config_.window_handle) {
         CS_LOG(ERR, "No window handle provided");
         return false;
     }
 
-    renderer_ = std::make_unique<D3D11Renderer>();
-    if (!renderer_->initialize(config_.window_handle, config_.width, config_.height)) {
+#ifdef _WIN32
+    auto d3d11 = std::make_unique<D3D11Renderer>();
+    if (!d3d11->initialize(static_cast<void*>(config_.window_handle),
+                           config_.width, config_.height)) {
         CS_LOG(ERR, "D3D11 renderer initialization failed");
         return false;
     }
-
+    renderer_ = std::move(d3d11);
     CS_LOG(INFO, "D3D11 renderer initialized: %ux%u", config_.width, config_.height);
-    return true;
+#elif defined(__APPLE__)
+    auto metal = std::make_unique<MetalRenderer>();
+    if (!metal->initialize(config_.window_handle,
+                           config_.width, config_.height)) {
+        CS_LOG(ERR, "Metal renderer initialization failed");
+        return false;
+    }
+    renderer_ = std::move(metal);
+    CS_LOG(INFO, "Metal renderer initialized: %ux%u", config_.width, config_.height);
 #else
-    CS_LOG(ERR, "Renderer not supported on this platform");
+    CS_LOG(ERR, "No renderer available on this platform");
     return false;
 #endif
+
+    return true;
 }
 
 bool Viewer::initDecoder() {
     uint8_t codec = codecFromString(config_.codec);
 
+#ifdef _WIN32
+    // Get D3D11 device for zero-copy sharing (renderer is D3D11Renderer on Windows)
+    ID3D11Device* shared_device = nullptr;
+    if (renderer_) {
+        auto* d3d11_renderer = dynamic_cast<D3D11Renderer*>(renderer_.get());
+        if (d3d11_renderer) {
+            shared_device = d3d11_renderer->getDevice();
+        }
+    }
+
     // Try D3D11VA decoder first (shares device with renderer for zero-copy)
     auto d3d11va_dec = std::make_unique<D3D11VADecoder>();
-
-#ifdef _WIN32
-    if (renderer_) {
-        d3d11va_dec->setD3D11Device(renderer_->getDevice());
+    if (shared_device) {
+        d3d11va_dec->setD3D11Device(shared_device);
     }
-#endif
 
     if (d3d11va_dec->initialize(codec, config_.width, config_.height)) {
         decoder_ = std::move(d3d11va_dec);
@@ -582,18 +671,24 @@ bool Viewer::initDecoder() {
 
     // Fall back to generic NVDEC decoder (tries CUDA, then D3D11VA, then DXVA2, then software)
     auto nvdec = std::make_unique<NvdecDecoder>();
-
-#ifdef _WIN32
-    if (renderer_) {
-        nvdec->setD3D11Device(renderer_->getDevice());
+    if (shared_device) {
+        nvdec->setD3D11Device(shared_device);
     }
-#endif
 
     if (nvdec->initialize(codec, config_.width, config_.height)) {
         decoder_ = std::move(nvdec);
         CS_LOG(INFO, "Decoder initialized: %s", decoder_->getName().c_str());
         return true;
     }
+#elif defined(__APPLE__)
+    // VideoToolbox hardware decoder (H.264/HEVC via Apple Silicon)
+    auto vt_dec = std::make_unique<VideoToolboxDecoder>();
+    if (vt_dec->initialize(codec, config_.width, config_.height)) {
+        decoder_ = std::move(vt_dec);
+        CS_LOG(INFO, "Decoder initialized: %s", decoder_->getName().c_str());
+        return true;
+    }
+#endif
 
     CS_LOG(ERR, "All decoder backends failed");
     return false;
@@ -673,13 +768,25 @@ bool Viewer::initAudio() {
         return false;
     }
 
+#ifdef _WIN32
     audio_playback_ = std::make_unique<WasapiPlayback>();
     if (!audio_playback_->initialize(48000, 2)) {
         CS_LOG(WARN, "Failed to initialize WASAPI playback");
         return false;
     }
-
     CS_LOG(INFO, "Audio initialized: Opus + WASAPI @ 48kHz stereo");
+#elif defined(__APPLE__)
+    audio_playback_ = std::make_unique<CoreAudioPlayback>();
+    if (!audio_playback_->initialize(48000, 2)) {
+        CS_LOG(WARN, "Failed to initialize CoreAudio playback");
+        return false;
+    }
+    CS_LOG(INFO, "Audio initialized: Opus + CoreAudio @ 48kHz stereo");
+#else
+    CS_LOG(WARN, "No audio playback available on this platform");
+    return false;
+#endif
+
     return true;
 }
 
@@ -736,6 +843,9 @@ void Viewer::onVideoPacket(const uint8_t* data, size_t len) {
         // Truncated or invalid packet
         return;
     }
+
+    // Track last packet time for dead-connection detection
+    last_packet_time_ = std::chrono::steady_clock::now();
 
     uint64_t now = getTimestampUs();
 
@@ -794,6 +904,26 @@ void Viewer::decodeThreadFunc() {
         }
 
         if (!running_.load()) break;
+
+        // Dead-connection detection: no packets for 10 seconds
+        if (conn_state_.load() == ConnectionState::CONNECTED) {
+            auto now = std::chrono::steady_clock::now();
+            if (now - last_packet_time_ > kDeadConnectionTimeout) {
+                CS_LOG(WARN, "No packets for 10s — requesting reconnect");
+                conn_state_.store(ConnectionState::RECONNECTING);
+                reconnect_attempts_++;
+
+                if (reconnect_attempts_ > kMaxReconnectAttempts) {
+                    CS_LOG(ERR, "Max reconnect attempts exceeded — disconnecting");
+                    conn_state_.store(ConnectionState::DISCONNECTED);
+                    if (on_disconnect_) on_disconnect_();
+                    break;
+                }
+
+                if (on_reconnect_needed_) on_reconnect_needed_();
+            }
+        }
+
         if (!jitter_buffer_ || !decoder_) continue;
 
         // Pop complete frames from the jitter buffer

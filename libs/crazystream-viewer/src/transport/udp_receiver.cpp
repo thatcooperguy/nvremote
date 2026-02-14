@@ -172,6 +172,13 @@ void UdpReceiver::receiveLoop() {
             return;
         }
         CS_LOG(INFO, "UdpReceiver: DTLS handshake complete");
+
+        // Exchange protocol version tag (CS01) with the host
+        if (!exchangeProtocolVersion()) {
+            CS_LOG(ERR, "UdpReceiver: protocol version exchange failed");
+            running_.store(false);
+            return;
+        }
     }
 
     std::vector<uint8_t> recv_buf(MAX_DATAGRAM_SIZE);
@@ -348,6 +355,86 @@ int UdpReceiver::dtlsDecrypt(const uint8_t* ciphertext, size_t len,
     }
 
     return decrypted;
+}
+
+// ---------------------------------------------------------------------------
+// dtlsEncryptAndSend -- encrypt plaintext via DTLS and send over UDP
+// ---------------------------------------------------------------------------
+
+bool UdpReceiver::dtlsEncryptAndSend(const uint8_t* plaintext, size_t len) {
+    if (!ssl_) return false;
+
+    int written = SSL_write(ssl_, plaintext, static_cast<int>(len));
+    if (written <= 0) {
+        CS_LOG(WARN, "UdpReceiver: SSL_write failed");
+        return false;
+    }
+
+    // Read encrypted data from write BIO and send via UDP
+    int pending = BIO_ctrl_pending(wbio_);
+    if (pending > 0) {
+        std::vector<uint8_t> send_buf(pending);
+        int read_from_bio = BIO_read(wbio_, send_buf.data(), pending);
+        if (read_from_bio > 0) {
+            int sent = ::send(socket_fd_,
+                              reinterpret_cast<const char*>(send_buf.data()),
+                              read_from_bio, 0);
+            return sent > 0;
+        }
+    }
+
+    return false;
+}
+
+// ---------------------------------------------------------------------------
+// exchangeProtocolVersion -- verify CS01 tag after DTLS handshake
+// ---------------------------------------------------------------------------
+
+bool UdpReceiver::exchangeProtocolVersion() {
+    // Host sends CS01 first, viewer receives and verifies, then sends CS01 back.
+    std::vector<uint8_t> recv_buf(MAX_DATAGRAM_SIZE);
+    uint8_t plain_buf[64];
+
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+
+    while (running_.load() && std::chrono::steady_clock::now() < deadline) {
+        fd_set read_fds;
+        FD_ZERO(&read_fds);
+        FD_SET(static_cast<unsigned int>(socket_fd_), &read_fds);
+
+        struct timeval tv;
+        tv.tv_sec = 1;
+        tv.tv_usec = 0;
+
+        int sel = ::select(socket_fd_ + 1, &read_fds, nullptr, nullptr, &tv);
+        if (sel <= 0) continue;
+
+        int n = ::recv(socket_fd_, reinterpret_cast<char*>(recv_buf.data()),
+                       static_cast<int>(recv_buf.size()), 0);
+        if (n <= 0) continue;
+
+        // Decrypt the version tag
+        int decrypted = dtlsDecrypt(recv_buf.data(), static_cast<size_t>(n),
+                                     plain_buf, sizeof(plain_buf));
+        if (decrypted == static_cast<int>(PROTOCOL_VERSION_TAG_LEN) &&
+            std::memcmp(plain_buf, PROTOCOL_VERSION_TAG, PROTOCOL_VERSION_TAG_LEN) == 0) {
+            CS_LOG(INFO, "UdpReceiver: received protocol version CS01 from host");
+
+            // Send our version tag back
+            if (!dtlsEncryptAndSend(PROTOCOL_VERSION_TAG, PROTOCOL_VERSION_TAG_LEN)) {
+                CS_LOG(ERR, "UdpReceiver: failed to send protocol version response");
+                return false;
+            }
+
+            CS_LOG(INFO, "UdpReceiver: protocol version verified: CS01");
+            return true;
+        }
+
+        CS_LOG(WARN, "UdpReceiver: unexpected data during version exchange (len=%d)", decrypted);
+    }
+
+    CS_LOG(ERR, "UdpReceiver: protocol version exchange timed out");
+    return false;
 }
 
 } // namespace cs

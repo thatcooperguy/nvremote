@@ -16,6 +16,10 @@
 #include <cstring>
 #include <sstream>
 
+#ifdef _WIN32
+#include <sddl.h>
+#endif
+
 namespace cs::host {
 
 // ===========================================================================
@@ -304,6 +308,50 @@ std::string SimpleJson::serialize() const {
 static constexpr DWORD PIPE_BUFFER_SIZE = 8192;
 static constexpr DWORD PIPE_TIMEOUT_MS  = 5000;
 
+#ifdef _WIN32
+/// Create a SECURITY_ATTRIBUTES that restricts pipe access to the current user.
+/// Uses an SDDL string: "D:(A;;GA;;;$USER_SID)" = allow Generic All to current user.
+/// Returns true on success; caller must free with LocalFree(sa.lpSecurityDescriptor).
+static bool createCurrentUserSecurityAttributes(SECURITY_ATTRIBUTES& sa) {
+    // Get the current user's SID
+    HANDLE token = INVALID_HANDLE_VALUE;
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) {
+        return false;
+    }
+
+    DWORD needed = 0;
+    GetTokenInformation(token, TokenUser, nullptr, 0, &needed);
+    std::vector<uint8_t> buf(needed);
+    if (!GetTokenInformation(token, TokenUser, buf.data(), needed, &needed)) {
+        CloseHandle(token);
+        return false;
+    }
+    CloseHandle(token);
+
+    TOKEN_USER* pTokenUser = reinterpret_cast<TOKEN_USER*>(buf.data());
+    LPSTR sidString = nullptr;
+    if (!ConvertSidToStringSidA(pTokenUser->User.Sid, &sidString)) {
+        return false;
+    }
+
+    // Build SDDL: grant Generic All to the current user only
+    std::string sddl = std::string("D:(A;;GA;;;") + sidString + ")";
+    LocalFree(sidString);
+
+    PSECURITY_DESCRIPTOR pSD = nullptr;
+    if (!ConvertStringSecurityDescriptorToSecurityDescriptorA(
+            sddl.c_str(), SDDL_REVISION_1, &pSD, nullptr)) {
+        return false;
+    }
+
+    sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+    sa.lpSecurityDescriptor = pSD;
+    sa.bInheritHandle = FALSE;
+
+    return true;
+}
+#endif
+
 PipeServer::PipeServer(const std::string& pipe_name)
     : pipe_name_(pipe_name)
 {
@@ -374,6 +422,19 @@ void PipeServer::stop() {
 }
 
 bool PipeServer::createPipeInstance() {
+    // Create security attributes restricting access to the current user.
+    SECURITY_ATTRIBUTES sa = {};
+    PSECURITY_DESCRIPTOR pSD = nullptr;
+    SECURITY_ATTRIBUTES* pSA = nullptr;
+
+    if (createCurrentUserSecurityAttributes(sa)) {
+        pSA = &sa;
+        pSD = sa.lpSecurityDescriptor;
+    } else {
+        CS_LOG(WARN, "Failed to create pipe security descriptor, "
+                      "falling back to default (error=%lu)", GetLastError());
+    }
+
     pipe_handle_ = CreateNamedPipeA(
         full_pipe_path_.c_str(),
         PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
@@ -382,7 +443,12 @@ bool PipeServer::createPipeInstance() {
         PIPE_BUFFER_SIZE,     // output buffer size
         PIPE_BUFFER_SIZE,     // input buffer size
         PIPE_TIMEOUT_MS,      // default timeout
-        nullptr);             // default security
+        pSA);                 // current-user-only security
+
+    // Free the security descriptor (pipe keeps a copy internally)
+    if (pSD) {
+        LocalFree(pSD);
+    }
 
     if (pipe_handle_ == INVALID_HANDLE_VALUE) {
         CS_LOG(ERR, "CreateNamedPipe failed: %lu", GetLastError());

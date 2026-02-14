@@ -639,11 +639,11 @@ jobs:
           retention-days: 5
 
   ###########################################################################
-  # Job 8: Build Electron desktop client (macOS DMG)
+  # Job 8a: Build macOS native viewer addon (VideoToolbox + Metal)
   ###########################################################################
-  build-client-macos:
-    name: Build Desktop Client (macOS)
-    runs-on: macos-latest
+  build-native-libs-macos:
+    name: Build Native Libs (macOS)
+    runs-on: macos-14  # Apple Silicon runner
 
     steps:
       - name: Checkout repository
@@ -654,8 +654,130 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Create empty resources directory
-        run: mkdir -p apps/client-desktop/resources
+      - name: Install macOS dependencies
+        run: |
+          brew install opus openssl@3
+          # FFmpeg for avcodec/avutil/swscale
+          brew install ffmpeg
+
+      - name: Download Node.js headers
+        run: |
+          NODE_VERSION=$(node -v | sed 's/^v//')
+          echo "Node.js version: $NODE_VERSION"
+
+          HEADERS_URL="https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-headers.tar.gz"
+          echo "Downloading Node.js headers from $HEADERS_URL"
+          curl -L -o /tmp/node-headers.tar.gz "$HEADERS_URL" --retry 3
+          mkdir -p /tmp/node-headers
+          tar -xzf /tmp/node-headers.tar.gz -C /tmp/node-headers
+          HEADER_DIR=$(find /tmp/node-headers -maxdepth 1 -type d | tail -1)
+          echo "NODE_HEADER_DIR=${HEADER_DIR}/include/node" >> $GITHUB_ENV
+
+      - name: CMake configure
+        working-directory: libs
+        run: |
+          OPENSSL_ROOT=$(brew --prefix openssl@3)
+          OPUS_ROOT=$(brew --prefix opus)
+          FFMPEG_ROOT=$(brew --prefix ffmpeg)
+
+          echo "=== CMake Configuration ==="
+          echo "  OpenSSL:  $OPENSSL_ROOT"
+          echo "  Opus:     $OPUS_ROOT"
+          echo "  FFmpeg:   $FFMPEG_ROOT"
+          echo "  Node:     $NODE_HEADER_DIR"
+
+          cmake -B build -G "Unix Makefiles" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DOPENSSL_ROOT_DIR="$OPENSSL_ROOT" \
+            -DOPUS_INCLUDE_DIRS="$OPUS_ROOT/include/opus" \
+            -DOPUS_LIBRARIES="$OPUS_ROOT/lib/libopus.dylib" \
+            -DFFMPEG_ROOT="$FFMPEG_ROOT" \
+            -DCS_BUILD_HOST=OFF \
+            -DCS_BUILD_VIEWER=ON \
+            -DCS_BUILD_TESTS=OFF \
+            -DNODE_INCLUDE_DIR="$NODE_HEADER_DIR"
+
+      - name: CMake build
+        working-directory: libs
+        run: cmake --build build --config Release --parallel
+
+      - name: Verify build output
+        run: |
+          ADDON="libs/build/crazystream-viewer/crazystream-viewer.node"
+          if [ ! -f "$ADDON" ]; then
+            echo "::error::crazystream-viewer.node not found"
+            find libs/build -name "*.node" -o -name "*.dylib" | head -20
+            exit 1
+          fi
+          echo "crazystream-viewer.node: $(ls -lh "$ADDON" | awk '{print $5}')"
+
+      - name: Collect macOS native artifacts
+        run: |
+          mkdir -p native-artifacts-macos
+          cp libs/build/crazystream-viewer/crazystream-viewer.node native-artifacts-macos/
+
+          # Copy dylib dependencies
+          FFMPEG_LIB=$(brew --prefix ffmpeg)/lib
+          OPUS_LIB=$(brew --prefix opus)/lib
+          for lib in libavcodec libavutil libswscale libswresample libopus; do
+            found=$(find "$FFMPEG_LIB" "$OPUS_LIB" -name "${lib}*.dylib" -not -name "*.dSYM" 2>/dev/null | head -1)
+            if [ -n "$found" ]; then
+              cp "$found" native-artifacts-macos/
+              echo "Copied: $(basename $found)"
+            fi
+          done
+
+          echo "=== macOS native artifacts ==="
+          ls -lh native-artifacts-macos/
+
+      - name: Upload macOS native artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-libs-macos
+          path: native-artifacts-macos/
+          if-no-files-found: error
+          retention-days: 5
+
+  ###########################################################################
+  # Job 8b: Build Electron desktop client (macOS DMG)
+  ###########################################################################
+  build-client-macos:
+    name: Build Desktop Client (macOS)
+    runs-on: macos-14  # Apple Silicon
+    needs: [build-native-libs-macos]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download macOS native libs
+        uses: actions/download-artifact@v4
+        with:
+          name: native-libs-macos
+          path: native-libs-macos
+
+      - name: Copy native binaries to client resources
+        run: |
+          RESOURCE_DIR="apps/client-desktop/resources"
+          mkdir -p "$RESOURCE_DIR"
+
+          echo "=== Downloaded native libs ==="
+          ls -lh native-libs-macos/
+
+          # Copy viewer addon
+          cp native-libs-macos/crazystream-viewer.node "$RESOURCE_DIR/"
+
+          # Copy runtime dylibs
+          cp native-libs-macos/*.dylib "$RESOURCE_DIR/" 2>/dev/null || echo "No dylibs to copy"
+
+          echo "=== Resources directory ==="
+          ls -lh "$RESOURCE_DIR/"
 
       - name: Install dependencies
         run: npm install
@@ -856,9 +978,9 @@ jobs:
             ### Requirements
             - **Host (Windows)**: NVIDIA GPU with NVENC support, Windows 10/11 x64
             - **Host (Linux)**: Agent-only (GPU streaming requires Windows host for now)
-            - **Desktop Client**: Windows 10/11 x64, Linux x86_64, or macOS (universal)
+            - **Desktop Client (Windows)**: Windows 10/11 x64 (D3D11VA/NVDEC decode)
+            - **Desktop Client (macOS)**: macOS 13+ Apple Silicon (VideoToolbox decode, Metal render)
+            - **Desktop Client (Linux)**: Linux x86_64 (signaling + host management only)
             - **Android Client**: Android 7.0+ (API 24)
-
-            > **Note**: Linux and macOS desktop clients currently support signaling, auth, and host management. GPU capture/decode streaming requires the Windows native addon.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,9 +1,10 @@
 ///////////////////////////////////////////////////////////////////////////////
 // udp_transport.cpp -- UDP transport implementation
 //
-// Sends encoded video and audio packets over a UDP socket with optional
-// DTLS 1.2 encryption.  Video frames are fragmented to fit within MTU.
-// A ring-buffer packet cache supports NACK-based retransmission.
+// Sends pre-serialized packets over a UDP socket with optional DTLS 1.2
+// encryption.  Wire-format headers are built by the session manager using
+// the structures from <cs/transport/packet.h>; this layer is format-agnostic
+// and simply forwards bytes, caching them for NACK retransmission.
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "udp_transport.h"
@@ -160,7 +161,6 @@ UdpTransport::~UdpTransport() {
 bool UdpTransport::initialize(int socket_fd, const ::sockaddr_in& peer_addr) {
     socket_fd_ = socket_fd;
     peer_addr_ = peer_addr;
-    seq_       = 0;
     bytes_sent_ = 0;
 
     // Clear the packet cache.
@@ -177,137 +177,22 @@ bool UdpTransport::initialize(int socket_fd, const ::sockaddr_in& peer_addr) {
 }
 
 // ---------------------------------------------------------------------------
-// sendVideoFrame -- fragment a video frame and send as multiple packets
+// sendPacket -- send a pre-serialized packet and cache for NACK retransmission
 // ---------------------------------------------------------------------------
 
-bool UdpTransport::sendVideoFrame(const EncodedPacket& packet, uint16_t frame_number) {
+bool UdpTransport::sendPacket(const uint8_t* data, size_t len, uint16_t seq) {
     if (socket_fd_ < 0) return false;
-    if (packet.data.empty()) return false;
+    if (!data || len == 0) return false;
 
-    // Calculate number of fragments.
-    size_t total_payload = packet.data.size();
-    size_t frag_count_sz = (total_payload + MAX_VIDEO_PAYLOAD - 1) / MAX_VIDEO_PAYLOAD;
-    if (frag_count_sz > 255) {
-        CS_LOG(WARN, "UDP: frame too large (%zu bytes, %zu fragments > 255)",
-               total_payload, frag_count_sz);
-        return false;
-    }
-    uint8_t frag_count = static_cast<uint8_t>(frag_count_sz);
+    // Cache for potential NACK retransmission.
+    cachePacket(seq, data, len);
 
-    size_t offset = 0;
-    for (uint8_t frag_idx = 0; frag_idx < frag_count; ++frag_idx) {
-        size_t payload_len = std::min(MAX_VIDEO_PAYLOAD, total_payload - offset);
-
-        // Build packet: common_header + video_header + payload.
-        std::vector<uint8_t> buf;
-        buf.reserve(COMMON_HEADER_SIZE + VIDEO_HEADER_SIZE + payload_len);
-
-        // Common header.
-        buf.push_back(PKT_TYPE_VIDEO);
-        uint16_t seq = seq_++;
-        buf.push_back(static_cast<uint8_t>(seq >> 8));
-        buf.push_back(static_cast<uint8_t>(seq & 0xFF));
-
-        // Video header.
-        buf.push_back(static_cast<uint8_t>(frame_number >> 8));
-        buf.push_back(static_cast<uint8_t>(frame_number & 0xFF));
-        buf.push_back(frag_idx);
-        buf.push_back(frag_count);
-
-        uint8_t flags = 0;
-        if (packet.is_keyframe) flags |= VIDEO_FLAG_KEYFRAME;
-        if (frag_idx == frag_count - 1) flags |= VIDEO_FLAG_END_OF_FRAME;
-        buf.push_back(flags);
-
-        // Payload.
-        buf.insert(buf.end(), packet.data.begin() + offset,
-                   packet.data.begin() + offset + payload_len);
-
-        // Cache for potential NACK retransmission.
-        cachePacket(seq, buf.data(), buf.size());
-
-        // Send.
-        if (!sendRaw(buf.data(), buf.size())) {
-            CS_LOG(WARN, "UDP: failed to send video fragment %u/%u for frame %u",
-                   frag_idx + 1, frag_count, frame_number);
-            return false;
-        }
-
-        offset += payload_len;
-    }
-
-    CS_LOG(TRACE, "UDP: sent video frame %u (%zu bytes, %u fragments, keyframe=%d)",
-           frame_number, total_payload, frag_count, packet.is_keyframe);
-    return true;
-}
-
-// ---------------------------------------------------------------------------
-// sendAudioPacket -- send an Opus-encoded audio frame
-// ---------------------------------------------------------------------------
-
-bool UdpTransport::sendAudioPacket(const uint8_t* data, size_t len, uint16_t /*seq_hint*/) {
-    if (socket_fd_ < 0) return false;
-
-    std::vector<uint8_t> buf;
-    buf.reserve(COMMON_HEADER_SIZE + len);
-
-    // Common header.
-    buf.push_back(PKT_TYPE_AUDIO);
-    uint16_t seq = seq_++;
-    buf.push_back(static_cast<uint8_t>(seq >> 8));
-    buf.push_back(static_cast<uint8_t>(seq & 0xFF));
-
-    // Payload.
-    buf.insert(buf.end(), data, data + len);
-
-    cachePacket(seq, buf.data(), buf.size());
-
-    if (!sendRaw(buf.data(), buf.size())) {
-        CS_LOG(WARN, "UDP: failed to send audio packet (seq=%u)", seq);
+    // Send.
+    if (!sendRaw(data, len)) {
+        CS_LOG(WARN, "UDP: failed to send packet (seq=%u, len=%zu)", seq, len);
         return false;
     }
 
-    return true;
-}
-
-// ---------------------------------------------------------------------------
-// sendFecPackets -- send FEC redundancy packets
-// ---------------------------------------------------------------------------
-
-bool UdpTransport::sendFecPackets(const std::vector<std::vector<uint8_t>>& fec_packets,
-                                   uint16_t frame_number, uint8_t group_id) {
-    if (socket_fd_ < 0) return false;
-
-    for (size_t i = 0; i < fec_packets.size(); ++i) {
-        std::vector<uint8_t> buf;
-        buf.reserve(COMMON_HEADER_SIZE + 4 + fec_packets[i].size());
-
-        // Common header.
-        buf.push_back(PKT_TYPE_FEC);
-        uint16_t seq = seq_++;
-        buf.push_back(static_cast<uint8_t>(seq >> 8));
-        buf.push_back(static_cast<uint8_t>(seq & 0xFF));
-
-        // FEC-specific header.
-        buf.push_back(group_id);
-        buf.push_back(static_cast<uint8_t>(fec_packets.size())); // group_size
-        buf.push_back(static_cast<uint8_t>(i));                   // fec_index
-        buf.push_back(static_cast<uint8_t>(frame_number & 0xFF));
-
-        // FEC payload.
-        buf.insert(buf.end(), fec_packets[i].begin(), fec_packets[i].end());
-
-        cachePacket(seq, buf.data(), buf.size());
-
-        if (!sendRaw(buf.data(), buf.size())) {
-            CS_LOG(WARN, "UDP: failed to send FEC packet %zu/%zu",
-                   i + 1, fec_packets.size());
-            return false;
-        }
-    }
-
-    CS_LOG(TRACE, "UDP: sent %zu FEC packets for frame %u (group %u)",
-           fec_packets.size(), frame_number, group_id);
     return true;
 }
 

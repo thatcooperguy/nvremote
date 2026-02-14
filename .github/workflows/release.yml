@@ -509,9 +509,17 @@ jobs:
         shell: pwsh
         working-directory: apps/client-desktop
         run: |
-          npm run package
+          # Build first (tsc + vite)
+          npm run build
           if ($LASTEXITCODE -ne 0) {
-            Write-Error "Electron build/package failed"
+            Write-Error "Build failed"
+            exit 1
+          }
+
+          # Run electron-builder with USE_HARD_LINKS=false to avoid chmod issues on Windows
+          npx electron-builder --win
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Electron packaging failed"
             exit 1
           }
 

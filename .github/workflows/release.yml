@@ -513,21 +513,29 @@ jobs:
             Write-Host "app-builder.exe: $($item.Length) bytes, Target=$($item.Target), LinkType=$($item.LinkType)"
           }
 
-      - name: Build and package client
+      - name: Disable Windows Defender real-time monitoring
+        shell: pwsh
+        run: |
+          # Disable real-time monitoring to prevent app-builder.exe ENOENT issues
+          Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
+
+      - name: Build client
         shell: pwsh
         working-directory: apps/client-desktop
         run: |
-          npm run package
+          npm run build
           if ($LASTEXITCODE -ne 0) {
-            Write-Error "Electron build/package failed"
+            Write-Error "Build failed"
             exit 1
           }
 
-          Write-Host ""
-          Write-Host "=== Release directory contents ==="
-          Get-ChildItem "release" -Recurse -File | ForEach-Object {
-            Write-Host "  $($_.FullName)  ($([math]::Round($_.Length/1MB, 1)) MB)"
-          }
+      - name: Package client with electron-builder
+        shell: cmd
+        working-directory: apps/client-desktop
+        run: |
+          node ..\..\node_modules\electron-builder\out\cli\cli.js --win --config electron-builder.yml
+          if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+          dir /s release\*.exe
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

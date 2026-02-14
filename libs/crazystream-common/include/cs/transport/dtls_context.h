@@ -23,14 +23,22 @@
 #include <string>
 #include <memory>
 
+// Platform socket headers -- must be included before any namespace to avoid
+// unqualified sockaddr / sockaddr_storage being captured by cs::.
+#ifdef _WIN32
+#include <WinSock2.h>
+#include <ws2tcpip.h>
+#else
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif
+
 // Forward-declare OpenSSL types so consumers don't need OpenSSL headers.
 typedef struct ssl_st      SSL;
 typedef struct ssl_ctx_st  SSL_CTX;
 typedef struct x509_st     X509;
 typedef struct evp_pkey_st EVP_PKEY;
 typedef struct bio_st      BIO;
-
-struct sockaddr;
 
 namespace cs {
 
@@ -55,7 +63,7 @@ public:
     /// Perform the DTLS handshake over the given UDP socket with the remote
     /// peer at \p peer.  Blocks until the handshake completes or a 5-second
     /// timeout elapses.  Returns true on success.
-    bool handshake(int udp_socket, const sockaddr* peer, int peer_len);
+    bool handshake(int udp_socket, const ::sockaddr* peer, int peer_len);
 
     /// Encrypt application data into a DTLS record.
     /// \p out must be at least \p len + 256 bytes.
@@ -101,7 +109,7 @@ private:
     BIO*        bio_network_  = nullptr;
 
     int         udp_socket_  = -1;
-    struct sockaddr_storage peer_addr_;
+    ::sockaddr_storage peer_addr_;
     int         peer_addr_len_ = 0;
 };
 

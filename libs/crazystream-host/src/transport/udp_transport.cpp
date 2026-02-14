@@ -68,7 +68,7 @@ bool DtlsContext::initialize(const std::string& cert_file, const std::string& ke
     return true;
 }
 
-bool DtlsContext::handshake(int socket_fd, const struct sockaddr* peer_addr, int peer_addr_len) {
+bool DtlsContext::handshake(int socket_fd, const ::sockaddr* peer_addr, int peer_addr_len) {
     SSL_CTX* sslCtx = static_cast<SSL_CTX*>(ctx_);
     if (!sslCtx) return false;
 
@@ -80,7 +80,7 @@ bool DtlsContext::handshake(int socket_fd, const struct sockaddr* peer_addr, int
     }
 
     // Connect the BIO to the peer.
-    BIO_ctrl(bio, BIO_CTRL_DGRAM_SET_CONNECTED, 0, const_cast<struct sockaddr*>(peer_addr));
+    BIO_ctrl(bio, BIO_CTRL_DGRAM_SET_CONNECTED, 0, const_cast<::sockaddr*>(peer_addr));
 
     // Set read timeout for handshake.
     struct timeval tv;
@@ -157,7 +157,7 @@ UdpTransport::~UdpTransport() {
 // initialize -- bind to an existing connected socket
 // ---------------------------------------------------------------------------
 
-bool UdpTransport::initialize(int socket_fd, const struct sockaddr_in& peer_addr) {
+bool UdpTransport::initialize(int socket_fd, const ::sockaddr_in& peer_addr) {
     socket_fd_ = socket_fd;
     peer_addr_ = peer_addr;
     seq_       = 0;
@@ -342,11 +342,11 @@ bool UdpTransport::receiveOne() {
     if (socket_fd_ < 0) return false;
 
     uint8_t buf[2048];
-    struct sockaddr_in from = {};
+    ::sockaddr_in from = {};
     socklen_t fromLen = sizeof(from);
 
     int n = ::recvfrom(socket_fd_, reinterpret_cast<char*>(buf), sizeof(buf), 0,
-                       reinterpret_cast<struct sockaddr*>(&from), &fromLen);
+                       reinterpret_cast<::sockaddr*>(&from), &fromLen);
     if (n <= 0) return false;
 
     // If DTLS is active, decrypt first.
@@ -384,7 +384,7 @@ bool UdpTransport::sendRaw(const uint8_t* data, size_t len) {
 
     // Plaintext send.
     sent = ::sendto(socket_fd_, reinterpret_cast<const char*>(data), static_cast<int>(len), 0,
-                    reinterpret_cast<const struct sockaddr*>(&peer_addr_), sizeof(peer_addr_));
+                    reinterpret_cast<const ::sockaddr*>(&peer_addr_), sizeof(peer_addr_));
     if (sent < 0) {
         CS_LOG(DEBUG, "UDP: sendto failed (error=%d)", cs_socket_error());
         return false;

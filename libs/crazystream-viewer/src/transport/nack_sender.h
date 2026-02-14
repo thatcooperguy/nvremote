@@ -21,6 +21,15 @@
 #include <atomic>
 #include <functional>
 
+// Platform socket headers -- needed so ::sockaddr resolves inside the namespace.
+#ifdef _WIN32
+#include <WinSock2.h>
+#include <ws2tcpip.h>
+#else
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif
+
 namespace cs {
 
 class NackSender {

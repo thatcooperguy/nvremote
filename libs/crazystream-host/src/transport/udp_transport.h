@@ -33,6 +33,17 @@
 #include <mutex>
 #include <functional>
 
+// Platform socket headers -- must be included before any namespace to avoid
+// unqualified sockaddr / sockaddr_in being captured by cs::host::.
+#ifdef _WIN32
+#include <WinSock2.h>
+#include <ws2tcpip.h>
+#else
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#endif
+
 // Forward declaration for OpenSSL DTLS context.
 struct ssl_st;
 typedef struct ssl_st SSL;
@@ -85,7 +96,7 @@ public:
     bool initialize(const std::string& cert_file, const std::string& key_file);
 
     /// Perform the DTLS handshake (blocking).
-    bool handshake(int socket_fd, const struct sockaddr* peer_addr, int peer_addr_len);
+    bool handshake(int socket_fd, const ::sockaddr* peer_addr, int peer_addr_len);
 
     /// Encrypt a plaintext buffer.  Returns encrypted bytes in |out|.
     bool encrypt(const uint8_t* in, size_t in_len, std::vector<uint8_t>& out);
@@ -110,7 +121,7 @@ public:
     ~UdpTransport();
 
     /// Initialize with an existing connected UDP socket and peer address.
-    bool initialize(int socket_fd, const struct sockaddr_in& peer_addr);
+    bool initialize(int socket_fd, const ::sockaddr_in& peer_addr);
 
     /// Fragment and send a video frame.
     bool sendVideoFrame(const EncodedPacket& packet, uint16_t frame_number);
@@ -152,7 +163,7 @@ private:
     void cachePacket(uint16_t seq, const uint8_t* data, size_t len);
 
     int                 socket_fd_  = -1;
-    struct sockaddr_in  peer_addr_  = {};
+    ::sockaddr_in       peer_addr_  = {};
     DtlsContext*        dtls_       = nullptr;
     uint16_t            seq_        = 0;
     uint64_t            bytes_sent_ = 0;

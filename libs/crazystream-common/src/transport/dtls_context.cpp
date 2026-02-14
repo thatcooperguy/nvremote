@@ -204,7 +204,7 @@ std::string DtlsContext::getFingerprint() const {
 // ---------------------------------------------------------------------------
 // handshake
 // ---------------------------------------------------------------------------
-bool DtlsContext::handshake(int udp_socket, const sockaddr* peer, int peer_len) {
+bool DtlsContext::handshake(int udp_socket, const ::sockaddr* peer, int peer_len) {
     if (!ssl_ || !bio_network_) {
         CS_LOG(ERR, "DtlsContext not properly initialized");
         return false;
@@ -407,7 +407,7 @@ bool DtlsContext::flushBioToSocket() {
         if (n <= 0) break;
 
         int sent = ::sendto(udp_socket_, reinterpret_cast<const char*>(buf), n, 0,
-                            reinterpret_cast<const sockaddr*>(&peer_addr_),
+                            reinterpret_cast<const ::sockaddr*>(&peer_addr_),
                             peer_addr_len_);
         if (sent < 0) {
             CS_LOG(WARN, "sendto failed in flushBioToSocket: %d", cs_socket_error());
@@ -422,11 +422,11 @@ bool DtlsContext::flushBioToSocket() {
 // ---------------------------------------------------------------------------
 bool DtlsContext::feedBioFromSocket() {
     uint8_t buf[2048];
-    struct sockaddr_storage from;
+    ::sockaddr_storage from;
     socklen_t fromLen = sizeof(from);
 
     int n = ::recvfrom(udp_socket_, reinterpret_cast<char*>(buf), sizeof(buf), 0,
-                       reinterpret_cast<sockaddr*>(&from), &fromLen);
+                       reinterpret_cast<::sockaddr*>(&from), &fromLen);
     if (n <= 0) return false;
 
     int wr = BIO_write(bio_network_, buf, n);

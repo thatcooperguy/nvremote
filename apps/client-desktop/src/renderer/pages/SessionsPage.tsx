@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { colors, radius, spacing, typography } from '../styles/theme';
 import { Card } from '../components/Card';
-import { StatusBadge } from '../components/StatusBadge';
 import { useSessionStore, type Session } from '../store/sessionStore';
 import { useHostStore } from '../store/hostStore';
 

@@ -117,11 +117,6 @@ export function StreamView(): React.ReactElement {
     }, CONTROLS_HIDE_DELAY_MS);
   }, []);
 
-  // Show controls on mouse movement
-  const handleMouseMove = useCallback(() => {
-    resetHideTimer();
-  }, [resetHideTimer]);
-
   // Show controls on mouse enter, start hide timer
   const handleMouseEnter = useCallback(() => {
     resetHideTimer();

@@ -64,7 +64,7 @@ export function StreamControls({
   const connectedHost = useConnectionStore((s) => s.connectedHost);
   const connectionType = useConnectionStore((s) => s.connectionType);
   const codec = useConnectionStore((s) => s.codec);
-  const [showGamingModes, setShowGamingModes] = useState(false);
+  const [_showGamingModes, setShowGamingModes] = useState(false);
 
   const handleGamingModeChange = useCallback(
     (mode: GamingMode) => {

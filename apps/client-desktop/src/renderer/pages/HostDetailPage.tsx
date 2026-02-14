@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { colors, radius, spacing, typography, shadows } from '../styles/theme';
+import { colors, radius, spacing, typography } from '../styles/theme';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { StatusBadge } from '../components/StatusBadge';
@@ -8,7 +8,6 @@ import { useHostStore } from '../store/hostStore';
 import { useConnectionStore } from '../store/connectionStore';
 import { useSessionStore } from '../store/sessionStore';
 import { toast } from '../components/Toast';
-import type { Host } from '../components/HostCard';
 
 export function HostDetailPage(): React.ReactElement {
   const { id } = useParams<{ id: string }>();

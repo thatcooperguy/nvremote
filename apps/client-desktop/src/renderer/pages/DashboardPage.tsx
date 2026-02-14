@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { colors, radius, spacing, typography } from '../styles/theme';
-import { HostCard, type Host } from '../components/HostCard';
+import { HostCard } from '../components/HostCard';
 import { useHostStore } from '../store/hostStore';
 import { useConnectionStore } from '../store/connectionStore';
 import { toast } from '../components/Toast';
@@ -10,7 +10,7 @@ export function DashboardPage(): React.ReactElement {
   const fetchHosts = useHostStore((s) => s.fetchHosts);
   const selectHost = useHostStore((s) => s.selectHost);
   const connect = useConnectionStore((s) => s.connect);
-  const connectionStatus = useConnectionStore((s) => s.status);
+  const _connectionStatus = useConnectionStore((s) => s.status);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>('all');

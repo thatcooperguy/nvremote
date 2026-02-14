@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { colors, spacing, typography, radius, shadows } from '../styles/theme';
+import { colors, spacing, typography, radius } from '../styles/theme';
 import { useAuthStore } from '../store/authStore';
 
 interface NavItem {

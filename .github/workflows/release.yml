@@ -481,8 +481,8 @@ jobs:
 
       - name: Install client dependencies
         shell: pwsh
-        working-directory: apps/client-desktop
         run: |
+          # Install from workspace root so all workspace deps (including electron) are hoisted
           npm install
           if ($LASTEXITCODE -ne 0) {
             Write-Error "npm install failed"

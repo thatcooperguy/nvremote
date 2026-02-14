@@ -29,9 +29,10 @@ import type { SessionOptions } from './p2p';
 // Encrypted token storage using electron-store
 // ---------------------------------------------------------------------------
 
-let store: import('electron-store') | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let store: any = null;
 
-async function getStore(): Promise<import('electron-store')> {
+async function getStore(): Promise<any> {
   if (store) return store;
   // electron-store v8+ is ESM-only. Dynamic import is required.
   const { default: ElectronStore } = await import('electron-store');
@@ -52,6 +53,7 @@ async function getStore(): Promise<import('electron-store')> {
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
+let trayContextMenu: Electron.Menu | null = null;
 let isQuitting = false;
 
 const PROTOCOL = 'crazystream';
@@ -180,6 +182,7 @@ function createTray(): void {
 
   tray.setToolTip('CrazyStream');
   tray.setContextMenu(contextMenu);
+  trayContextMenu = contextMenu;
 
   tray.on('double-click', () => {
     mainWindow?.show();
@@ -454,7 +457,7 @@ function setupIpcHandlers(): void {
   // ── Tray updates ─────────────────────────────────────────────────────
   ipcMain.on('tray:update-disconnect', (_event, enabled: boolean) => {
     if (!tray) return;
-    const menu = tray.getContextMenu();
+    const menu = trayContextMenu;
     const menuItem = menu?.getMenuItemById('disconnect') ?? null;
     if (menuItem) {
       menuItem.enabled = enabled;

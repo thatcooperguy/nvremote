@@ -442,12 +442,30 @@ jobs:
           $resourceDir = "apps\client-desktop\resources"
           mkdir $resourceDir -Force | Out-Null
 
-          # Copy viewer N-API addon
+          # Debug: list what's in the native-libs directory
+          Write-Host "=== Contents of native-libs directory ==="
+          Get-ChildItem "native-libs" -Recurse -File | ForEach-Object { Write-Host "  $($_.FullName)  ($([math]::Round($_.Length/1KB)) KB)" }
+
+          # Copy viewer N-API addon (try both paths in case of nesting)
+          $viewerSrc = $null
           if (Test-Path "native-libs\crazystream-viewer.node") {
-            Copy-Item "native-libs\crazystream-viewer.node" "$resourceDir\"
+            $viewerSrc = "native-libs\crazystream-viewer.node"
+          } elseif (Test-Path "native-libs\native-artifacts\crazystream-viewer.node") {
+            $viewerSrc = "native-libs\native-artifacts\crazystream-viewer.node"
+          } else {
+            # Search recursively
+            $found = Get-ChildItem "native-libs" -Recurse -Filter "crazystream-viewer.node" -File
+            if ($found) {
+              $viewerSrc = $found[0].FullName
+              Write-Host "Found viewer.node at: $viewerSrc"
+            }
+          }
+
+          if ($viewerSrc) {
+            Copy-Item $viewerSrc "$resourceDir\"
             Write-Host "Copied crazystream-viewer.node to resources"
           } else {
-            Write-Error "crazystream-viewer.node not found in native-libs artifact"
+            Write-Error "crazystream-viewer.node not found anywhere in native-libs artifact"
             exit 1
           }
 
@@ -465,9 +483,9 @@ jobs:
         shell: pwsh
         working-directory: apps/client-desktop
         run: |
-          npm ci
+          npm install
           if ($LASTEXITCODE -ne 0) {
-            Write-Error "npm ci failed"
+            Write-Error "npm install failed"
             exit 1
           }
 

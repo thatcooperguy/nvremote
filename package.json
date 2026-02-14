@@ -1,8 +1,8 @@
 {
-  "name": "nvidia-remote-stream",
-  "version": "0.1.0",
+  "name": "gridstreamer",
+  "version": "0.3.0",
   "private": true,
-  "description": "NVIDIA Remote Stream - Secure, low-latency remote streaming platform",
+  "description": "GridStreamer - Secure, low-latency cloud gaming platform",
   "workspaces": [
     "apps/client-desktop",
     "apps/server-api",

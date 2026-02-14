@@ -15,5 +15,5 @@
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/no-explicit-any": "warn"
   },
-  "ignorePatterns": ["dist", "build", "node_modules", "*.js"]
+  "ignorePatterns": ["dist", "build", "node_modules", "*.js", "apps/website"]
 }

@@ -30,6 +30,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Lint website
+        run: cd apps/website && npx next lint
+
       - name: Type check API
         run: cd apps/server-api && npx tsc --noEmit
 

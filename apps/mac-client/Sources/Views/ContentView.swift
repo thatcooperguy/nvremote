@@ -1,5 +1,5 @@
 // ContentView.swift — Main view router
-// GridStreamer macOS Client
+// NVRemote macOS Client
 
 import SwiftUI
 

@@ -1,4 +1,4 @@
-module github.com/nvidia/gridstreamer/gateway
+module github.com/nvidia/nvremote/gateway
 
 go 1.22
 

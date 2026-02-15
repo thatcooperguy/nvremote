@@ -22,8 +22,8 @@ export function TitleBar(): React.ReactElement {
       <div style={styles.accentLine} />
       <div style={styles.content} className="drag-region">
         <div style={styles.logoSection} className="no-drag">
-          <GridStreamerLogo />
-          <span style={styles.title}>GridStreamer</span>
+          <NVRemoteLogo />
+          <span style={styles.title}>NVRemote</span>
         </div>
 
         <div style={styles.windowControls} className="no-drag">
@@ -69,7 +69,7 @@ export function TitleBar(): React.ReactElement {
   );
 }
 
-function GridStreamerLogo(): React.ReactElement {
+function NVRemoteLogo(): React.ReactElement {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
       <rect width="24" height="24" rx="4" fill={colors.accent.default} />
@@ -82,7 +82,7 @@ function GridStreamerLogo(): React.ReactElement {
         fontWeight="bold"
         fontFamily={typography.fontFamily}
       >
-        GS
+        NV
       </text>
     </svg>
   );

@@ -15,8 +15,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: configService.getOrThrow<string>('JWT_SECRET'),
-      issuer: 'gridstreamer-api',
-      audience: 'gridstreamer',
+      issuer: 'nvremote-api',
+      audience: 'nvremote',
     });
   }
 

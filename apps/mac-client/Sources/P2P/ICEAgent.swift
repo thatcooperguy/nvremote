@@ -1,7 +1,7 @@
 // ICEAgent.swift — ICE-lite candidate gathering and connectivity checks
-// GridStreamer macOS Client
+// NVRemote macOS Client
 //
-// Mirrors the C++ IceAgent from gridstreamer-common. Gathers local host and
+// Mirrors the C++ IceAgent from nvremote-common. Gathers local host and
 // server-reflexive (srflx) candidates, exchanges them with the peer via signaling,
 // and performs simultaneous UDP hole-punching connectivity checks.
 

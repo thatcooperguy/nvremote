@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Bridge to the gridstreamer-viewer native N-API addon
+// Bridge to the nvremote-viewer native N-API addon
 // ---------------------------------------------------------------------------
 
 import path from 'path';
@@ -71,31 +71,31 @@ function getAddonSearchPaths(): string[] {
   const paths: string[] = [];
 
   // Environment variable override
-  if (process.env.GRIDSTREAMER_VIEWER_PATH) {
-    paths.push(process.env.GRIDSTREAMER_VIEWER_PATH);
+  if (process.env.NVREMOTE_VIEWER_PATH) {
+    paths.push(process.env.NVREMOTE_VIEWER_PATH);
   }
 
   if (isDev) {
     // Development: check build output directories relative to the monorepo
     const repoRoot = path.resolve(__dirname, '../../../../..');
     paths.push(
-      path.join(repoRoot, 'libs', 'gridstreamer-viewer', 'build', 'Release', 'gridstreamer-viewer.node'),
-      path.join(repoRoot, 'libs', 'gridstreamer-viewer', 'build', 'Debug', 'gridstreamer-viewer.node'),
-      path.join(repoRoot, 'build', 'Release', 'gridstreamer-viewer.node'),
+      path.join(repoRoot, 'libs', 'nvremote-viewer', 'build', 'Release', 'nvremote-viewer.node'),
+      path.join(repoRoot, 'libs', 'nvremote-viewer', 'build', 'Debug', 'nvremote-viewer.node'),
+      path.join(repoRoot, 'build', 'Release', 'nvremote-viewer.node'),
     );
   }
 
   // Production: bundled alongside the app binary
   const appDir = path.dirname(app.getPath('exe'));
   paths.push(
-    path.join(appDir, 'resources', 'gridstreamer-viewer.node'),
-    path.join(appDir, 'gridstreamer-viewer.node'),
+    path.join(appDir, 'resources', 'nvremote-viewer.node'),
+    path.join(appDir, 'nvremote-viewer.node'),
   );
 
   // Also check next to the main JS entry
   paths.push(
-    path.join(__dirname, 'gridstreamer-viewer.node'),
-    path.join(__dirname, '..', 'gridstreamer-viewer.node'),
+    path.join(__dirname, 'nvremote-viewer.node'),
+    path.join(__dirname, '..', 'nvremote-viewer.node'),
   );
 
   return paths;
@@ -110,7 +110,7 @@ function createMockViewer(): ViewerModule {
   console.warn(
     isWindows
       ? '[Viewer] Native addon not found. Using mock viewer for development.\n' +
-        'Build the gridstreamer-viewer addon or set GRIDSTREAMER_VIEWER_PATH to use the real viewer.'
+        'Build the nvremote-viewer addon or set NVREMOTE_VIEWER_PATH to use the real viewer.'
       : `[Viewer] Native streaming addon is not available on ${process.platform}.\n` +
         'GPU capture and hardware decoding require Windows with an NVIDIA GPU.\n' +
         'The app will run in limited mode (signaling, authentication, and host management only).'
@@ -248,7 +248,7 @@ function createMockViewer(): ViewerModule {
 // ---------------------------------------------------------------------------
 
 /**
- * Attempt to load the native gridstreamer-viewer addon.
+ * Attempt to load the native nvremote-viewer addon.
  * Falls back to a mock implementation when the .node binary is not found
  * (typical during development before the native addon has been compiled).
  */

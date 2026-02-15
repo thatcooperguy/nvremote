@@ -72,7 +72,7 @@ export default function DashboardLayout({
             <Zap className="w-4 h-4 text-cs-green" />
           </div>
           <span className="text-sm font-bold tracking-widest text-white">
-            GRIDSTREAMER
+            NVREMOTE
           </span>
           <button
             onClick={() => setSidebarOpen(false)}

@@ -1,10 +1,10 @@
 // AppState.swift — Observable app state
-// GridStreamer macOS Client
+// NVRemote macOS Client
 
 import Foundation
 import SwiftUI
 
-/// The central observable state object for the GridStreamer application.
+/// The central observable state object for the NVRemote application.
 /// Manages authentication, host discovery, session negotiation, and streaming lifecycle.
 @MainActor
 final class AppState: ObservableObject {

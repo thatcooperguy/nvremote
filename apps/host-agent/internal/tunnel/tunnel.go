@@ -1,4 +1,4 @@
-// Package tunnel manages the WireGuard tunnel between the host and the GridStreamer gateway.
+// Package tunnel manages the WireGuard tunnel between the host and the NVRemote gateway.
 package tunnel
 
 import (
@@ -12,7 +12,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/nvidia/gridstreamer/host-agent/internal/registration"
+	"github.com/nvidia/nvremote/host-agent/internal/registration"
 	"golang.org/x/crypto/curve25519"
 )
 
@@ -247,5 +247,5 @@ func findWireGuardExe() (string, error) {
 // findDataDir returns the data directory, preferring the one stored in the registration response.
 func findDataDir(reg *registration.RegistrationResponse) string {
 	// Fall back to the default data directory.
-	return `C:\ProgramData\GridStreamer`
+	return `C:\ProgramData\NVRemote`
 }

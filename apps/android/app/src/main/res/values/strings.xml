@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">GridStreamer</string>
+    <string name="app_name">NVRemote</string>
     <!-- Replace with your Google Cloud OAuth 2.0 Web Client ID -->
     <string name="google_web_client_id">YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com</string>
-    <string name="login_title">GridStreamer</string>
+    <string name="login_title">NVRemote</string>
     <string name="login_subtitle">Game streaming, untethered.</string>
     <string name="sign_in_google">Sign in with Google</string>
     <string name="sign_out">Sign Out</string>
     <string name="hosts_title">Your Hosts</string>
-    <string name="hosts_empty">No hosts found.\nMake sure a GridStreamer host is running on your network.</string>
+    <string name="hosts_empty">No hosts found.\nMake sure an NVRemote host is running on your network.</string>
     <string name="host_online">Online</string>
     <string name="host_offline">Offline</string>
     <string name="host_connect">Connect</string>

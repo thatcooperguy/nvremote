@@ -1,5 +1,5 @@
 // UDPTransport.swift — NWConnection-based UDP transport with DTLS
-// GridStreamer macOS Client
+// NVRemote macOS Client
 
 import Foundation
 import Network
@@ -41,7 +41,7 @@ final class UDPTransport: @unchecked Sendable {
     // MARK: - Properties
 
     private var connection: NWConnection?
-    private let queue = DispatchQueue(label: "com.gridstreamer.udp-transport", qos: .userInteractive)
+    private let queue = DispatchQueue(label: "com.nvremote.udp-transport", qos: .userInteractive)
     private var receiveHandler: PacketReceiveHandler?
     private var stateHandler: TransportStateHandler?
     private var _state: State = .idle

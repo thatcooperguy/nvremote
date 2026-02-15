@@ -289,7 +289,7 @@ export default function AppsPage() {
               App <span className="text-gradient">Directory</span>
             </h1>
             <p className="text-lg text-cs-gray-200 max-w-xl mx-auto leading-relaxed">
-              Explore GridStreamer&apos;s suite of tools and applications.
+              Explore NVRemote&apos;s suite of tools and applications.
             </p>
           </motion.div>
         </div>

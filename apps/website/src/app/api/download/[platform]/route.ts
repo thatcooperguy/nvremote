@@ -17,34 +17,34 @@ interface PlatformInfo {
  */
 const platforms: Record<string, PlatformInfo> = {
   'windows-host': {
-    assetFilename: `GridStreamerHost-${VERSION}-win64.zip`,
+    assetFilename: `NVRemoteHost-${VERSION}-win64.zip`,
     contentType: 'application/zip',
-    description: 'GridStreamer Host for Windows (x64)',
+    description: 'NVRemote Host for Windows (x64)',
   },
   'windows-client': {
-    assetFilename: `GridStreamer-${VERSION.replace('v', '')}-Setup.exe`,
+    assetFilename: `NVRemote-${VERSION.replace('v', '')}-Setup.exe`,
     contentType: 'application/vnd.microsoft.portable-executable',
-    description: 'GridStreamer Client for Windows (x64)',
+    description: 'NVRemote Client for Windows (x64)',
   },
   'android-client': {
-    assetFilename: `GridStreamer-${VERSION}.apk`,
+    assetFilename: `NVRemote-${VERSION}.apk`,
     contentType: 'application/vnd.android.package-archive',
-    description: 'GridStreamer Client for Android',
+    description: 'NVRemote Client for Android',
   },
   'linux-host': {
-    assetFilename: `GridStreamerHost-${VERSION}-linux-amd64.tar.gz`,
+    assetFilename: `NVRemoteHost-${VERSION}-linux-amd64.tar.gz`,
     contentType: 'application/gzip',
-    description: 'GridStreamer Host Agent for Linux (amd64)',
+    description: 'NVRemote Host Agent for Linux (amd64)',
   },
   'macos-client': {
-    assetFilename: `GridStreamer-${VERSION.replace('v', '')}-universal.dmg`,
+    assetFilename: `NVRemote-${VERSION.replace('v', '')}-universal.dmg`,
     contentType: 'application/x-apple-diskimage',
-    description: 'GridStreamer Client for macOS (Universal)',
+    description: 'NVRemote Client for macOS (Universal)',
   },
   'linux-client': {
-    assetFilename: `GridStreamer-${VERSION.replace('v', '')}-x86_64.AppImage`,
+    assetFilename: `NVRemote-${VERSION.replace('v', '')}-x86_64.AppImage`,
     contentType: 'application/x-executable',
-    description: 'GridStreamer Client for Linux (x86_64)',
+    description: 'NVRemote Client for Linux (x86_64)',
   },
 };
 
@@ -59,7 +59,7 @@ async function getGitHubAssetUrl(
   const token = process.env.GITHUB_TOKEN;
   const headers: Record<string, string> = {
     Accept: 'application/vnd.github.v3+json',
-    'User-Agent': 'GridStreamer-Website',
+    'User-Agent': 'NVRemote-Website',
   };
 
   if (token) {
@@ -137,7 +137,7 @@ export async function GET(
         headers: {
           Accept: 'application/octet-stream',
           Authorization: `Bearer ${token}`,
-          'User-Agent': 'GridStreamer-Website',
+          'User-Agent': 'NVRemote-Website',
         },
         redirect: 'follow',
       });
@@ -150,7 +150,7 @@ export async function GET(
             'Content-Disposition': `attachment; filename="${info.assetFilename}"`,
             'Content-Length': asset.size.toString(),
             'Cache-Control': 'public, max-age=3600',
-            'X-GridStreamer-Version': VERSION,
+            'X-NVRemote-Version': VERSION,
           },
         });
       }
@@ -170,19 +170,19 @@ export async function GET(
       'Content-Disposition': `attachment; filename="${info.assetFilename}"`,
       'Content-Length': placeholder.byteLength.toString(),
       'Cache-Control': 'no-cache',
-      'X-GridStreamer-Version': VERSION,
-      'X-GridStreamer-Placeholder': 'true',
+      'X-NVRemote-Version': VERSION,
+      'X-NVRemote-Placeholder': 'true',
     },
   });
 }
 
 function buildPlaceholder(info: PlatformInfo): Uint8Array {
   const header = [
-    `GRIDSTREAMER ${VERSION}`,
+    `NVREMOTE ${VERSION}`,
     `File: ${info.assetFilename}`,
     `Description: ${info.description}`,
     ``,
-    `This is a placeholder installer for the GridStreamer alpha.`,
+    `This is a placeholder installer for the NVRemote alpha.`,
     `The CI build for this platform has not completed yet.`,
     ``,
     `Once the GitHub Actions release workflow finishes, real binaries`,

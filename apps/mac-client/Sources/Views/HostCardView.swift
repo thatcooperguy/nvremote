@@ -1,5 +1,5 @@
 // HostCardView.swift — Individual host card
-// GridStreamer macOS Client
+// NVRemote macOS Client
 
 import SwiftUI
 

@@ -1,5 +1,5 @@
 // SettingsView.swift — App settings
-// GridStreamer macOS Client
+// NVRemote macOS Client
 
 import SwiftUI
 
@@ -15,7 +15,7 @@ struct SettingsView: View {
     @State private var audioVolume: Double = 1.0
     @State private var showStatsOverlay: Bool = false
     @State private var selectedStunServer: String = "stun.l.google.com"
-    @State private var signalingServerURL: String = "wss://signal.gridstreamer.com/ws"
+    @State private var signalingServerURL: String = "wss://signal.nvremote.com/ws"
 
     var body: some View {
         VStack(spacing: 0) {
@@ -239,7 +239,7 @@ struct SettingsView: View {
         audioVolume = defaults.double(forKey: "audio_volume").nonZero ?? 1.0
         showStatsOverlay = defaults.bool(forKey: "show_stats_overlay")
         selectedStunServer = defaults.string(forKey: "stun_server") ?? "stun.l.google.com"
-        signalingServerURL = defaults.string(forKey: "signaling_url") ?? "wss://signal.gridstreamer.com/ws"
+        signalingServerURL = defaults.string(forKey: "signaling_url") ?? "wss://signal.nvremote.com/ws"
     }
 
     private func saveSettings() {

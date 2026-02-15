@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>GridStreamer</string>
+    <string>NVRemote</string>
     <key>CFBundleDisplayName</key>
-    <string>GridStreamer</string>
+    <string>NVRemote</string>
     <key>CFBundleIdentifier</key>
-    <string>com.gridstreamer.mac-client</string>
+    <string>com.nvremote.mac-client</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>CFBundleShortVersionString</key>
@@ -15,7 +15,7 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleExecutable</key>
-    <string>GridStreamer</string>
+    <string>NVRemote</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>NSHighResolutionCapable</key>
@@ -34,8 +34,8 @@
     <key>com.apple.security.device.audio-input</key>
     <true/>
     <key>NSLocalNetworkUsageDescription</key>
-    <string>GridStreamer needs local network access to discover and connect to streaming hosts.</string>
+    <string>NVRemote needs local network access to discover and connect to streaming hosts.</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>GridStreamer uses the microphone for voice chat during game streaming.</string>
+    <string>NVRemote uses the microphone for voice chat during game streaming.</string>
 </dict>
 </plist>

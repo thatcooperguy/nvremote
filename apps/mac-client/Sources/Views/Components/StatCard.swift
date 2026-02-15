@@ -1,5 +1,5 @@
 // StatCard.swift — Latency/FPS/bitrate stat display card
-// GridStreamer macOS Client
+// NVRemote macOS Client
 
 import SwiftUI
 

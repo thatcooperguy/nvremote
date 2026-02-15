@@ -1,5 +1,5 @@
 // GamingModeSelector.swift — Competitive/Balanced/Cinematic selector
-// GridStreamer macOS Client
+// NVRemote macOS Client
 
 import SwiftUI
 

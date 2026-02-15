@@ -1,5 +1,5 @@
 // HostListView.swift — Available hosts list
-// GridStreamer macOS Client
+// NVRemote macOS Client
 
 import SwiftUI
 
@@ -165,7 +165,7 @@ struct HostListView: View {
                 .font(CSTypography.title2)
                 .foregroundColor(CSColors.textPrimary)
 
-            Text("Make sure your GridStreamer host is running\nand connected to the same account.")
+            Text("Make sure your NVRemote host is running\nand connected to the same account.")
                 .font(CSTypography.body)
                 .foregroundColor(CSColors.textSecondary)
                 .multilineTextAlignment(.center)

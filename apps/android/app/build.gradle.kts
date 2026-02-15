@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.gridstreamer.app"
+    namespace = "com.nvremote.app"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.gridstreamer.app"
+        applicationId = "com.nvremote.app"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

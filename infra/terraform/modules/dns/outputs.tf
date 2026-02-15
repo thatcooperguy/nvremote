@@ -1,11 +1,11 @@
 output "nameservers" {
   description = "Cloud DNS nameservers — point your registrar to these"
-  value       = google_dns_managed_zone.gridstreamer.name_servers
+  value       = google_dns_managed_zone.nvremote.name_servers
 }
 
 output "zone_name" {
   description = "Cloud DNS zone name"
-  value       = google_dns_managed_zone.gridstreamer.name
+  value       = google_dns_managed_zone.nvremote.name
 }
 
 output "website_domain" {

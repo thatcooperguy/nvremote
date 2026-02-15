@@ -11,7 +11,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/nvidia/gridstreamer/host-agent/internal/p2p"
+	"github.com/nvidia/nvremote/host-agent/internal/p2p"
 )
 
 const (

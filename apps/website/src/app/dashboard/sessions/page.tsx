@@ -63,7 +63,7 @@ export default function SessionsPage() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedToken, setCopiedToken] = useState(false);
 
-  const sessionLink = 'https://gridstreamer.com/s/abc123xYz789QwErTy';
+  const sessionLink = 'https://nvremote.com/s/abc123xYz789QwErTy';
   const sessionToken = 'cs_Kx9mP2vL8nQwRtFgHjDk4aBcEfUiOp7sXyZ';
 
   const handleGenerate = () => {

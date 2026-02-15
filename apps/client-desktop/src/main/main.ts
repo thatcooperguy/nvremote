@@ -37,8 +37,8 @@ async function getStore(): Promise<any> {
   // electron-store v8+ is ESM-only. Dynamic import is required.
   const { default: ElectronStore } = await import('electron-store');
   store = new ElectronStore({
-    name: 'gridstreamer-secure',
-    encryptionKey: 'gridstreamer-client-v1', // obfuscation; not a security boundary
+    name: 'nvremote-secure',
+    encryptionKey: 'nvremote-client-v1', // obfuscation; not a security boundary
     schema: {
       'auth.access': { type: 'string', default: '' },
       'auth.refresh': { type: 'string', default: '' },
@@ -56,7 +56,7 @@ let tray: Tray | null = null;
 let trayContextMenu: Electron.Menu | null = null;
 let isQuitting = false;
 
-const PROTOCOL = 'gridstreamer';
+const PROTOCOL = 'nvremote';
 const isDev = !app.isPackaged;
 
 // ---------------------------------------------------------------------------
@@ -77,7 +77,7 @@ function getRendererUrl(): string {
 function getApiBaseUrl(): string {
   return isDev
     ? 'http://localhost:3000/api'
-    : 'https://api.gridstreamer.com';
+    : 'https://api.nvremote.com';
 }
 
 // ---------------------------------------------------------------------------
@@ -159,7 +159,7 @@ function createTray(): void {
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: 'Show GridStreamer',
+      label: 'Show NVRemote',
       click: () => {
         mainWindow?.show();
         mainWindow?.focus();
@@ -184,7 +184,7 @@ function createTray(): void {
     },
   ]);
 
-  tray.setToolTip('GridStreamer');
+  tray.setToolTip('NVRemote');
   tray.setContextMenu(contextMenu);
   trayContextMenu = contextMenu;
 

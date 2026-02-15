@@ -10,12 +10,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nvidia/gridstreamer/host-agent/internal/config"
+	"github.com/nvidia/nvremote/host-agent/internal/config"
 )
 
-// StreamerInfo holds information about the gridstreamer-host installation.
+// StreamerInfo holds information about the nvremote-host installation.
 type StreamerInfo struct {
-	// Path is the absolute path to the gridstreamer-host.exe binary.
+	// Path is the absolute path to the nvremote-host.exe binary.
 	Path string
 
 	// Version is the detected version string.
@@ -77,17 +77,17 @@ type SessionStats struct {
 }
 
 const (
-	// processStartTimeout is how long to wait for gridstreamer-host to start and create its pipe.
+	// processStartTimeout is how long to wait for nvremote-host to start and create its pipe.
 	processStartTimeout = 15 * time.Second
 
 	// processStopTimeout is how long to wait for a graceful shutdown before killing.
 	processStopTimeout = 10 * time.Second
 
 	// defaultProcessName is the expected process image name.
-	defaultProcessName = "gridstreamer-host.exe"
+	defaultProcessName = "nvremote-host.exe"
 )
 
-// Manager manages the lifecycle of the gridstreamer-host.exe process and communicates
+// Manager manages the lifecycle of the nvremote-host.exe process and communicates
 // with it via a named pipe IPC channel.
 type Manager struct {
 	config    *config.Config
@@ -108,7 +108,7 @@ func NewManager(cfg *config.Config) *Manager {
 	}
 }
 
-// Detect checks if the gridstreamer-host binary exists at the configured path and
+// Detect checks if the nvremote-host binary exists at the configured path and
 // gathers information about it (version, GPU, codec support).
 func (m *Manager) Detect() (*StreamerInfo, error) {
 	m.mu.Lock()
@@ -120,11 +120,11 @@ func (m *Manager) Detect() (*StreamerInfo, error) {
 	}
 
 	if path == "" {
-		return nil, fmt.Errorf("gridstreamer-host.exe not found")
+		return nil, fmt.Errorf("nvremote-host.exe not found")
 	}
 
 	if _, err := os.Stat(path); err != nil {
-		return nil, fmt.Errorf("gridstreamer-host binary not accessible at %s: %w", path, err)
+		return nil, fmt.Errorf("nvremote-host binary not accessible at %s: %w", path, err)
 	}
 
 	info := &StreamerInfo{Path: path}
@@ -132,7 +132,7 @@ func (m *Manager) Detect() (*StreamerInfo, error) {
 	// Get the version by running --version.
 	version, err := getStreamerVersion(path)
 	if err != nil {
-		slog.Debug("could not determine gridstreamer-host version", "error", err)
+		slog.Debug("could not determine nvremote-host version", "error", err)
 		info.Version = "unknown"
 	} else {
 		info.Version = version
@@ -158,14 +158,14 @@ func (m *Manager) Detect() (*StreamerInfo, error) {
 	return info, nil
 }
 
-// Start launches gridstreamer-host.exe with the --ipc-pipe flag and waits for the
+// Start launches nvremote-host.exe with the --ipc-pipe flag and waits for the
 // IPC connection to become available.
 func (m *Manager) Start() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	if m.process != nil && m.isProcessAlive() {
-		slog.Debug("gridstreamer-host is already running")
+		slog.Debug("nvremote-host is already running")
 		return nil
 	}
 
@@ -174,23 +174,23 @@ func (m *Manager) Start() error {
 		path = findStreamerPath()
 	}
 	if path == "" {
-		return fmt.Errorf("gridstreamer-host.exe not found")
+		return fmt.Errorf("nvremote-host.exe not found")
 	}
 
-	slog.Info("starting gridstreamer-host", "path", path, "pipe", m.pipeName)
+	slog.Info("starting nvremote-host", "path", path, "pipe", m.pipeName)
 
 	cmd := exec.Command(path, "--ipc-pipe", m.pipeName, "--standby")
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("starting gridstreamer-host: %w", err)
+		return fmt.Errorf("starting nvremote-host: %w", err)
 	}
 
 	m.cmd = cmd
 	m.process = cmd.Process
 
-	slog.Info("gridstreamer-host process started", "pid", m.process.Pid)
+	slog.Info("nvremote-host process started", "pid", m.process.Pid)
 
 	// Wait in a goroutine to collect the exit status and avoid zombie processes.
 	go func() {
@@ -198,9 +198,9 @@ func (m *Manager) Start() error {
 		m.mu.Lock()
 		defer m.mu.Unlock()
 		if err != nil {
-			slog.Warn("gridstreamer-host process exited", "error", err)
+			slog.Warn("nvremote-host process exited", "error", err)
 		} else {
-			slog.Info("gridstreamer-host process exited cleanly")
+			slog.Info("nvremote-host process exited cleanly")
 		}
 		m.process = nil
 		m.cmd = nil
@@ -208,18 +208,18 @@ func (m *Manager) Start() error {
 
 	// Wait for the IPC pipe to become available, then connect.
 	if err := m.waitForPipe(); err != nil {
-		return fmt.Errorf("waiting for gridstreamer-host IPC pipe: %w", err)
+		return fmt.Errorf("waiting for nvremote-host IPC pipe: %w", err)
 	}
 
 	if err := m.ipcClient.Connect(); err != nil {
-		return fmt.Errorf("connecting to gridstreamer-host IPC: %w", err)
+		return fmt.Errorf("connecting to nvremote-host IPC: %w", err)
 	}
 
-	slog.Info("connected to gridstreamer-host IPC pipe")
+	slog.Info("connected to nvremote-host IPC pipe")
 	return nil
 }
 
-// Stop gracefully stops the gridstreamer-host process. It sends a shutdown command
+// Stop gracefully stops the nvremote-host process. It sends a shutdown command
 // via IPC first, then waits for the process to exit. If it does not exit within
 // the timeout, the process is forcibly killed.
 func (m *Manager) Stop() error {
@@ -230,7 +230,7 @@ func (m *Manager) Stop() error {
 		return nil
 	}
 
-	slog.Info("stopping gridstreamer-host", "pid", m.process.Pid)
+	slog.Info("stopping nvremote-host", "pid", m.process.Pid)
 
 	// Try graceful shutdown via IPC.
 	if m.ipcClient.IsConnected() {
@@ -249,31 +249,31 @@ func (m *Manager) Stop() error {
 
 			select {
 			case <-done:
-				slog.Info("gridstreamer-host stopped gracefully")
+				slog.Info("nvremote-host stopped gracefully")
 				m.process = nil
 				m.cmd = nil
 				_ = m.ipcClient.Close()
 				return nil
 			case <-time.After(processStopTimeout):
-				slog.Warn("gridstreamer-host did not stop within timeout, killing")
+				slog.Warn("nvremote-host did not stop within timeout, killing")
 			}
 		}
 	}
 
 	// Force kill.
 	if err := m.process.Kill(); err != nil {
-		slog.Warn("failed to kill gridstreamer-host process", "error", err)
+		slog.Warn("failed to kill nvremote-host process", "error", err)
 	}
 
 	m.process = nil
 	m.cmd = nil
 	_ = m.ipcClient.Close()
 
-	slog.Info("gridstreamer-host process killed")
+	slog.Info("nvremote-host process killed")
 	return nil
 }
 
-// IsRunning checks if the gridstreamer-host process is alive.
+// IsRunning checks if the nvremote-host process is alive.
 func (m *Manager) IsRunning() bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -452,7 +452,7 @@ func (m *Manager) SetGamingMode(mode string) error {
 	return nil
 }
 
-// waitForPipe polls for the named pipe to exist, indicating gridstreamer-host is ready.
+// waitForPipe polls for the named pipe to exist, indicating nvremote-host is ready.
 func (m *Manager) waitForPipe() error {
 	deadline := time.Now().Add(processStartTimeout)
 	pipePath := m.pipeName
@@ -467,7 +467,7 @@ func (m *Manager) waitForPipe() error {
 		time.Sleep(250 * time.Millisecond)
 	}
 
-	return fmt.Errorf("gridstreamer-host did not create IPC pipe %s within %v", pipePath, processStartTimeout)
+	return fmt.Errorf("nvremote-host did not create IPC pipe %s within %v", pipePath, processStartTimeout)
 }
 
 // isProcessAlive checks whether the stored process handle is still running.
@@ -480,7 +480,7 @@ func (m *Manager) isProcessAlive() bool {
 	return isStreamerProcessRunning()
 }
 
-// isStreamerProcessRunning checks if gridstreamer-host.exe is in the process list.
+// isStreamerProcessRunning checks if nvremote-host.exe is in the process list.
 func isStreamerProcessRunning() bool {
 	cmd := exec.Command("tasklist", "/FI", fmt.Sprintf("IMAGENAME eq %s", defaultProcessName), "/NH")
 	out, err := cmd.Output()
@@ -490,7 +490,7 @@ func isStreamerProcessRunning() bool {
 	return strings.Contains(strings.ToLower(string(out)), strings.ToLower(defaultProcessName))
 }
 
-// getStreamerVersion runs gridstreamer-host.exe --version and returns the trimmed output.
+// getStreamerVersion runs nvremote-host.exe --version and returns the trimmed output.
 func getStreamerVersion(path string) (string, error) {
 	cmd := exec.Command(path, "--version")
 	out, err := cmd.Output()
@@ -500,7 +500,7 @@ func getStreamerVersion(path string) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-// queryCodecs runs gridstreamer-host.exe --list-codecs and parses the output.
+// queryCodecs runs nvremote-host.exe --list-codecs and parses the output.
 // Expected output is one codec per line (e.g., "h264\nh265\nav1").
 func queryCodecs(path string) ([]string, error) {
 	cmd := exec.Command(path, "--list-codecs")
@@ -519,7 +519,7 @@ func queryCodecs(path string) ([]string, error) {
 	}
 
 	if len(codecs) == 0 {
-		return nil, fmt.Errorf("no codecs reported by gridstreamer-host")
+		return nil, fmt.Errorf("no codecs reported by nvremote-host")
 	}
 
 	return codecs, nil
@@ -543,11 +543,11 @@ func detectGPU() (string, error) {
 	return strings.TrimSpace(lines[0]), nil
 }
 
-// findStreamerPath searches common installation directories for gridstreamer-host.exe.
+// findStreamerPath searches common installation directories for nvremote-host.exe.
 func findStreamerPath() string {
 	candidates := []string{
-		`C:\Program Files\GridStreamer\gridstreamer-host.exe`,
-		`C:\Program Files (x86)\GridStreamer\gridstreamer-host.exe`,
+		`C:\Program Files\NVRemote\nvremote-host.exe`,
+		`C:\Program Files (x86)\NVRemote\nvremote-host.exe`,
 	}
 
 	for _, path := range candidates {
@@ -557,7 +557,7 @@ func findStreamerPath() string {
 	}
 
 	// Try PATH.
-	path, err := exec.LookPath("gridstreamer-host.exe")
+	path, err := exec.LookPath("nvremote-host.exe")
 	if err == nil {
 		return path
 	}

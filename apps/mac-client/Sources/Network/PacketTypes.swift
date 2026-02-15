@@ -1,7 +1,7 @@
 // PacketTypes.swift — Swift packet struct definitions matching C++ wire format
-// GridStreamer macOS Client
+// NVRemote macOS Client
 //
-// These definitions MUST match the C++ structs in gridstreamer-common/include/cs/transport/packet.h
+// These definitions MUST match the C++ structs in nvremote-common/include/cs/transport/packet.h
 // exactly. All multi-byte fields are serialized in network byte order (big-endian).
 
 import Foundation

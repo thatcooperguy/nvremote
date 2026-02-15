@@ -1,5 +1,5 @@
 ##############################################################################
-# GridStreamer — Website Hosting Module (GCS + Cloud CDN)
+# NVRemote — Website Hosting Module (GCS + Cloud CDN)
 #
 # Hosts the static Next.js export on Google Cloud Storage with
 # optional Cloud CDN via a global HTTPS load balancer.

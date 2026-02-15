@@ -1,22 +1,22 @@
 // swift-tools-version: 5.9
-// GridStreamer macOS Client — Swift Package Manager manifest
+// NVRemote macOS Client — Swift Package Manager manifest
 
 import PackageDescription
 
 let package = Package(
-    name: "GridStreamer",
+    name: "NVRemote",
     platforms: [
         .macOS(.v13)
     ],
     products: [
         .executable(
-            name: "GridStreamer",
-            targets: ["GridStreamer"]
+            name: "NVRemote",
+            targets: ["NVRemote"]
         ),
     ],
     targets: [
         .executableTarget(
-            name: "GridStreamer",
+            name: "NVRemote",
             path: "Sources",
             resources: [
                 .process("../Resources")

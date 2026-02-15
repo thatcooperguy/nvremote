@@ -1,5 +1,5 @@
 ##############################################################################
-# GridStreamer — DNS & Domain Mapping Module
+# NVRemote — DNS & Domain Mapping Module
 #
 # Creates a Cloud DNS managed zone and maps custom domains to Cloud Run
 # services. SSL certificates are automatically provisioned by Cloud Run.
@@ -8,11 +8,11 @@
 # ---------------------------------------------------------------------------
 # Cloud DNS Managed Zone
 # ---------------------------------------------------------------------------
-resource "google_dns_managed_zone" "gridstreamer" {
+resource "google_dns_managed_zone" "nvremote" {
   name        = "${var.project_name}-dns-zone"
   dns_name    = "${var.domain_name}."
   project     = var.project_id
-  description = "GridStreamer public DNS zone for ${var.domain_name}"
+  description = "NVRemote public DNS zone for ${var.domain_name}"
   visibility  = "public"
 
   labels = {
@@ -59,10 +59,10 @@ resource "google_cloud_run_domain_mapping" "api" {
 
 # CNAME for apex → Cloud Run (via ghs.googlehosted.com)
 resource "google_dns_record_set" "apex_cname" {
-  name         = google_dns_managed_zone.gridstreamer.dns_name
+  name         = google_dns_managed_zone.nvremote.dns_name
   type         = "A"
   ttl          = 300
-  managed_zone = google_dns_managed_zone.gridstreamer.name
+  managed_zone = google_dns_managed_zone.nvremote.name
   project      = var.project_id
 
   # Cloud Run domain mapping provides these IPs after verification.
@@ -73,20 +73,20 @@ resource "google_dns_record_set" "apex_cname" {
 
 # CNAME for api subdomain → Cloud Run
 resource "google_dns_record_set" "api_cname" {
-  name         = "api.${google_dns_managed_zone.gridstreamer.dns_name}"
+  name         = "api.${google_dns_managed_zone.nvremote.dns_name}"
   type         = "CNAME"
   ttl          = 300
-  managed_zone = google_dns_managed_zone.gridstreamer.name
+  managed_zone = google_dns_managed_zone.nvremote.name
   project      = var.project_id
   rrdatas      = ["ghs.googlehosted.com."]
 }
 
 # CNAME for www → apex
 resource "google_dns_record_set" "www_cname" {
-  name         = "www.${google_dns_managed_zone.gridstreamer.dns_name}"
+  name         = "www.${google_dns_managed_zone.nvremote.dns_name}"
   type         = "CNAME"
   ttl          = 300
-  managed_zone = google_dns_managed_zone.gridstreamer.name
+  managed_zone = google_dns_managed_zone.nvremote.name
   project      = var.project_id
   rrdatas      = ["${var.domain_name}."]
 }

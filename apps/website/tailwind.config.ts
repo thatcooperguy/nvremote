@@ -22,9 +22,9 @@ const config: Config = {
           800: '#2A4600',
           900: '#172900',
         },
-        'cs-dark': '#050505',
-        'cs-surface': '#0A0A0A',
-        'cs-card': '#0F0F0F',
+        'cs-dark': '#FFFFFF',
+        'cs-surface': '#FAFAFA',
+        'cs-card': '#F5F5F5',
         'cs-gray': {
           DEFAULT: '#1A1A1A',
           50: '#F5F5F5',
@@ -69,17 +69,16 @@ const config: Config = {
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'hero-glow':
-          'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(118, 185, 0, 0.15), transparent)',
+          'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(118, 185, 0, 0.06), transparent)',
         'hero-glow-intense':
-          'radial-gradient(ellipse 60% 40% at 50% -10%, rgba(118, 185, 0, 0.25), transparent)',
+          'radial-gradient(ellipse 60% 40% at 50% -10%, rgba(118, 185, 0, 0.08), transparent)',
         'grid-pattern':
-          'linear-gradient(rgba(118, 185, 0, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(118, 185, 0, 0.03) 1px, transparent 1px)',
+          'linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px)',
         'dot-pattern':
-          'radial-gradient(circle, rgba(118, 185, 0, 0.08) 1px, transparent 1px)',
-        'noise':
-          "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.02'/%3E%3C/svg%3E\")",
+          'radial-gradient(circle, rgba(0, 0, 0, 0.04) 1px, transparent 1px)',
+        'noise': 'none',
         'gradient-border':
-          'linear-gradient(135deg, rgba(118, 185, 0, 0.4), rgba(118, 185, 0, 0), rgba(118, 185, 0, 0.2))',
+          'linear-gradient(135deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.06))',
       },
       backgroundSize: {
         'grid-sm': '24px 24px',
@@ -89,14 +88,14 @@ const config: Config = {
         'dot-md': '30px 30px',
       },
       boxShadow: {
-        'glow-sm': '0 0 15px rgba(118, 185, 0, 0.1)',
-        'glow': '0 0 30px rgba(118, 185, 0, 0.15), 0 0 60px rgba(118, 185, 0, 0.05)',
-        'glow-lg': '0 0 50px rgba(118, 185, 0, 0.2), 0 0 100px rgba(118, 185, 0, 0.08)',
-        'glow-intense': '0 0 60px rgba(118, 185, 0, 0.3), 0 0 120px rgba(118, 185, 0, 0.15), 0 0 180px rgba(118, 185, 0, 0.05)',
-        'card': '0 4px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.03)',
-        'card-hover': '0 8px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(118, 185, 0, 0.1), 0 0 30px rgba(118, 185, 0, 0.05)',
-        'red-glow': '0 0 30px rgba(239, 68, 68, 0.15), 0 0 60px rgba(239, 68, 68, 0.05)',
-        'purple-glow': '0 0 30px rgba(168, 85, 247, 0.15), 0 0 60px rgba(168, 85, 247, 0.05)',
+        'glow-sm': '0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06)',
+        'glow': '0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04)',
+        'glow-lg': '0 8px 24px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.06)',
+        'glow-intense': '0 12px 36px rgba(0, 0, 0, 0.12), 0 6px 12px rgba(0, 0, 0, 0.08)',
+        'card': '0 1px 3px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04)',
+        'card-hover': '0 8px 24px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(118, 185, 0, 0.15)',
+        'red-glow': '0 4px 12px rgba(239, 68, 68, 0.1)',
+        'purple-glow': '0 4px 12px rgba(168, 85, 247, 0.1)',
       },
       animation: {
         'fade-in-up': 'fadeInUp 0.6s ease-out forwards',

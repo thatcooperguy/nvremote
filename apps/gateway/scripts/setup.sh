@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# GridStreamer - Gateway VM Setup Script
+# NVRemote - Gateway VM Setup Script
 #
-# This script prepares a cloud VM to run as an GridStreamer gateway node.
+# This script prepares a cloud VM to run as an NVRemote gateway node.
 # It installs WireGuard, generates keys, configures the overlay network,
 # sets up iptables rules, and installs the gateway service.
 #
@@ -24,9 +24,9 @@ API_PORT="8080"
 TUNNEL_SUBNET="10.100.0.0/16"
 GATEWAY_TUNNEL_IP="10.100.0.1/16"
 PUBLIC_IP=""
-SERVICE_USER="gridstreamer"
+SERVICE_USER="nvremote"
 INSTALL_DIR="/usr/local/bin"
-CONFIG_DIR="/etc/gridstreamer-gateway"
+CONFIG_DIR="/etc/nvremote-gateway"
 WG_CONFIG_DIR="/etc/wireguard"
 
 # -------------------------------------------------------------------
@@ -81,7 +81,7 @@ if [[ -z "$PUBLIC_IP" ]]; then
 fi
 
 echo "============================================="
-echo " GridStreamer - Gateway Setup"
+echo " NVRemote - Gateway Setup"
 echo "============================================="
 echo " Public IP:       $PUBLIC_IP"
 echo " WireGuard Port:  $WG_PORT"
@@ -233,7 +233,7 @@ wireguard_port: ${WG_PORT}
 tunnel_subnet: "${TUNNEL_SUBNET}"
 public_ip: "${PUBLIC_IP}"
 # Set these values after registering the gateway with the control plane:
-# control_plane_url: "https://api.gridstreamer.example.com"
+# control_plane_url: "https://api.nvremote.example.com"
 # gateway_token: "your-gateway-token"
 # gateway_id: "your-gateway-id"
 CFGEOF
@@ -245,14 +245,14 @@ chown -R "$SERVICE_USER":"$SERVICE_USER" "$CONFIG_DIR"
 # Install systemd service file if systemd is available.
 if command -v systemctl &>/dev/null; then
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    if [[ -f "$SCRIPT_DIR/gridstreamer-gateway.service" ]]; then
-        cp "$SCRIPT_DIR/gridstreamer-gateway.service" /etc/systemd/system/gridstreamer-gateway.service
+    if [[ -f "$SCRIPT_DIR/nvremote-gateway.service" ]]; then
+        cp "$SCRIPT_DIR/nvremote-gateway.service" /etc/systemd/system/nvremote-gateway.service
         systemctl daemon-reload
-        systemctl enable gridstreamer-gateway
-        systemctl start gridstreamer-gateway
+        systemctl enable nvremote-gateway
+        systemctl start nvremote-gateway
         echo "  Gateway service installed and started."
     else
-        echo "  Warning: gridstreamer-gateway.service not found. Copy it to /etc/systemd/system/ manually."
+        echo "  Warning: nvremote-gateway.service not found. Copy it to /etc/systemd/system/ manually."
     fi
 fi
 
@@ -269,5 +269,5 @@ echo ""
 echo " Next steps:"
 echo "   1. Register this gateway with the control plane"
 echo "   2. Set gateway_token and gateway_id in $CONFIG_DIR/config.yaml"
-echo "   3. Restart the service: systemctl restart gridstreamer-gateway"
+echo "   3. Restart the service: systemctl restart nvremote-gateway"
 echo "============================================="

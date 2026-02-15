@@ -1,8 +1,8 @@
-# GridStreamer ProGuard Rules
+# NVRemote ProGuard Rules
 
 # Keep data models for Gson serialization
--keep class com.gridstreamer.app.data.model.** { *; }
--keep class com.gridstreamer.app.data.signaling.** { *; }
+-keep class com.nvremote.app.data.model.** { *; }
+-keep class com.nvremote.app.data.signaling.** { *; }
 
 # Keep Gson TypeToken
 -keepattributes Signature

@@ -1,5 +1,5 @@
 ################################################################################
-# GridStreamer — Top-Level Native Libraries Build
+# NVRemote — Top-Level Native Libraries Build
 #
 # Usage (from libs/):
 #   cmake -B build -G "Visual Studio 17 2022" -A x64
@@ -11,7 +11,7 @@
 ################################################################################
 
 cmake_minimum_required(VERSION 3.22)
-project(GridStreamer VERSION 0.1.0 LANGUAGES CXX C)
+project(NVRemote VERSION 0.1.0 LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,8 +20,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # ---------------------------------------------------------------------------
 # Global options
 # ---------------------------------------------------------------------------
-option(CS_BUILD_HOST    "Build gridstreamer-host (streamer)"  ON)
-option(CS_BUILD_VIEWER  "Build gridstreamer-viewer (client)"  ON)
+option(CS_BUILD_HOST    "Build nvremote-host (streamer)"  ON)
+option(CS_BUILD_VIEWER  "Build nvremote-viewer (client)"  ON)
 option(CS_BUILD_TESTS   "Build unit tests"                   OFF)
 
 # ---------------------------------------------------------------------------
@@ -104,12 +104,12 @@ endif()
 # ---------------------------------------------------------------------------
 # Sub-projects
 # ---------------------------------------------------------------------------
-add_subdirectory(gridstreamer-common)
+add_subdirectory(nvremote-common)
 
 if(CS_BUILD_HOST)
-  add_subdirectory(gridstreamer-host)
+  add_subdirectory(nvremote-host)
 endif()
 
 if(CS_BUILD_VIEWER)
-  add_subdirectory(gridstreamer-viewer)
+  add_subdirectory(nvremote-viewer)
 endif()

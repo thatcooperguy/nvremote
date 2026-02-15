@@ -14,7 +14,7 @@ variable "region" {
 }
 
 variable "domain_name" {
-  description = "Root domain name (e.g., gridstreamer.com)"
+  description = "Root domain name (e.g., nvremote.com)"
   type        = string
 }
 

@@ -379,7 +379,7 @@ export default function DownloadsPage() {
             </p>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-5">
               Download{' '}
-              <span className="text-gradient">GRIDSTREAMER</span>
+              <span className="text-gradient">NVREMOTE</span>
             </h1>
             <p className="text-lg text-cs-gray-200 max-w-xl mx-auto leading-relaxed">
               Install the Host on your gaming PC and the Client on the
@@ -517,7 +517,7 @@ export default function DownloadsPage() {
                 </h4>
                 <div className="bg-white rounded-xl p-3 mb-4">
                   <QRCodeSVG
-                    value="https://gridstreamer.com/api/download/android-client"
+                    value="https://nvremote.com/api/download/android-client"
                     size={140}
                     level="M"
                     bgColor="#FFFFFF"
@@ -525,7 +525,7 @@ export default function DownloadsPage() {
                   />
                 </div>
                 <p className="text-[11px] text-cs-gray-500 font-mono break-all">
-                  GridStreamer-{VERSION}.apk
+                  NVRemote-{VERSION}.apk
                 </p>
               </div>
 
@@ -538,7 +538,7 @@ export default function DownloadsPage() {
                   Automatic updates and verified installs.
                 </p>
                 <a
-                  href="https://play.google.com/store/apps/details?id=dev.gridstreamer.client"
+                  href="https://play.google.com/store/apps/details?id=com.nvremote.client"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl bg-white/[0.06] border border-white/[0.1] hover:border-cs-green/30 hover:bg-cs-green/5 transition-all duration-300"
@@ -578,7 +578,7 @@ export default function DownloadsPage() {
               </h3>
               <p className="text-sm text-cs-gray-300 leading-relaxed">
                 Never expose private hosts directly to the internet. Use
-                the GridStreamer relay service or secure tunnel
+                the NVRemote relay service or secure tunnel
                 configurations for remote connections. All traffic is
                 encrypted with DTLS 1.2 by default.
               </p>
@@ -615,7 +615,7 @@ export default function DownloadsPage() {
                 <div className="code-block-header">PowerShell (Windows)</div>
                 <pre>
                   <code className="text-sm font-mono text-cs-gray-200">
-{`Get-FileHash .\\GridStreamerHost-${VERSION}-win64.exe -Algorithm SHA256`}
+{`Get-FileHash .\\NVRemoteHost-${VERSION}-win64.exe -Algorithm SHA256`}
                   </code>
                 </pre>
               </div>
@@ -625,7 +625,7 @@ export default function DownloadsPage() {
                 <div className="code-block-header">bash (macOS / Linux)</div>
                 <pre>
                   <code className="text-sm font-mono text-cs-gray-200">
-{`sha256sum GridStreamerHost-${VERSION}-amd64.deb`}
+{`sha256sum NVRemoteHost-${VERSION}-amd64.deb`}
                   </code>
                 </pre>
               </div>

@@ -94,7 +94,7 @@ export class AuthService {
   ): Promise<TokenResponseDto> {
     const accessToken = this.jwtService.sign(
       { sub: userId, email },
-      { issuer: 'gridstreamer-api', audience: 'gridstreamer' },
+      { issuer: 'nvremote-api', audience: 'nvremote' },
     );
 
     const refreshTokenValue = uuidv4();

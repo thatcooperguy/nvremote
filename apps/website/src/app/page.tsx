@@ -32,10 +32,10 @@ const fadeInUp = {
 function HeroStat({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex flex-col items-center gap-1 px-4 sm:px-6">
-      <span className="text-xl sm:text-2xl font-bold text-white font-mono tracking-tight">
+      <span className="text-xl sm:text-2xl font-bold text-gray-900 font-mono tracking-tight">
         {value}
       </span>
-      <span className="text-[10px] sm:text-xs text-cs-gray-400 uppercase tracking-wider font-medium">
+      <span className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wider font-medium">
         {label}
       </span>
     </div>
@@ -64,7 +64,7 @@ function FeatureItem({ icon, title, description, delay = 0 }: FeatureItemProps) 
       className="gradient-border gradient-border-hover group relative overflow-hidden p-6 sm:p-8 transition-all duration-500 hover:-translate-y-1 hover:shadow-card-hover"
     >
       {/* Top accent line */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cs-green/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cs-green/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
       {/* Subtle gradient hover overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-cs-green/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -72,14 +72,13 @@ function FeatureItem({ icon, title, description, delay = 0 }: FeatureItemProps) 
       <div className="relative z-10">
         {/* Icon container */}
         <div className="relative w-14 h-14 rounded-xl bg-cs-green/10 border border-cs-green/20 flex items-center justify-center mb-6 group-hover:border-cs-green/40 group-hover:bg-cs-green/15 transition-all duration-300">
-          <div className="text-cs-green">{icon}</div>
-          <div className="absolute inset-0 rounded-xl bg-cs-green/0 group-hover:bg-cs-green/10 blur-xl transition-all duration-500" />
+          <div className="text-cs-green-600">{icon}</div>
         </div>
 
-        <h3 className="text-lg font-bold text-white mb-3 tracking-tight">
+        <h3 className="text-lg font-bold text-gray-900 mb-3 tracking-tight">
           {title}
         </h3>
-        <p className="text-sm text-cs-gray-300 leading-relaxed">{description}</p>
+        <p className="text-sm text-gray-500 leading-relaxed">{description}</p>
       </div>
     </motion.div>
   );
@@ -101,12 +100,12 @@ function ArchNode({
   return (
     <div className="flex flex-col items-center gap-3">
       <div className="glass gradient-border w-24 h-24 sm:w-28 sm:h-28 flex flex-col items-center justify-center gap-2 rounded-2xl">
-        <div className="text-cs-green">{icon}</div>
-        <span className="text-xs font-bold text-white tracking-tight">
+        <div className="text-cs-green-600">{icon}</div>
+        <span className="text-xs font-bold text-gray-900 tracking-tight">
           {label}
         </span>
       </div>
-      <span className="text-[10px] text-cs-gray-400 uppercase tracking-widest font-medium">
+      <span className="text-[10px] text-gray-500 uppercase tracking-widest font-medium">
         {sublabel}
       </span>
     </div>
@@ -137,18 +136,18 @@ function StepCard({
       transition={{ duration: 0.5, delay }}
       className="relative flex flex-col items-center text-center"
     >
-      <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-cs-green text-cs-dark text-xs font-bold flex items-center justify-center z-20 shadow-glow-sm">
+      <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-cs-green text-white text-xs font-bold flex items-center justify-center z-20 shadow-glow-sm">
         {number}
       </div>
-      <div className="w-16 h-16 rounded-2xl bg-cs-green/10 border border-cs-green/20 flex items-center justify-center mb-6 text-cs-green">
+      <div className="w-16 h-16 rounded-2xl bg-cs-green/10 border border-cs-green/20 flex items-center justify-center mb-6 text-cs-green-600">
         {number === 1 && <Server size={24} />}
         {number === 2 && <Zap size={24} />}
         {number === 3 && <Monitor size={24} />}
       </div>
-      <h3 className="text-lg font-bold text-white mb-3 tracking-tight">
+      <h3 className="text-lg font-bold text-gray-900 mb-3 tracking-tight">
         {title}
       </h3>
-      <p className="text-sm text-cs-gray-300 leading-relaxed max-w-xs">
+      <p className="text-sm text-gray-500 leading-relaxed max-w-xs">
         {description}
       </p>
     </motion.div>
@@ -183,15 +182,10 @@ export default function HomePage() {
       {/* ================================================================== */}
       {/*  HERO SECTION                                                      */}
       {/* ================================================================== */}
-      <section className="relative overflow-hidden min-h-[90vh] flex items-center">
+      <section className="relative overflow-hidden min-h-[90vh] flex items-center bg-white">
         {/* Background layers */}
         <div className="absolute inset-0 bg-hero-glow-intense" />
-        <div className="absolute inset-0 grid-overlay opacity-40 mask-fade-b" />
-
-        {/* Floating orbs */}
-        <div className="orb orb-green w-[600px] h-[600px] top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse-glow" />
-        <div className="orb orb-green-dim w-[400px] h-[400px] top-3/4 left-[15%] animate-float-slow animation-delay-200" />
-        <div className="orb orb-green-dim w-[300px] h-[300px] top-1/3 right-[10%] animate-float-slower animation-delay-600" />
+        <div className="absolute inset-0 grid-overlay opacity-30 mask-fade-b" />
 
         <div className="relative section-padding w-full pt-20 sm:pt-28 lg:pt-32 pb-16 sm:pb-24">
           <div className="max-w-5xl mx-auto text-center">
@@ -202,7 +196,7 @@ export default function HomePage() {
               transition={{ duration: 0.7, ease: 'easeOut' }}
               className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold tracking-tighter leading-[0.95] mb-6"
             >
-              <span className="text-gradient">GRIDSTREAMER</span>
+              <span className="text-gradient">NVREMOTE</span>
             </motion.h1>
 
             {/* Tagline */}
@@ -210,7 +204,7 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.15 }}
-              className="text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-tight mb-4"
+              className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 tracking-tight mb-4"
             >
               Cloud Gaming, Unlocked.
             </motion.p>
@@ -220,7 +214,7 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="text-base sm:text-lg text-cs-gray-200 max-w-2xl mx-auto mb-12 leading-relaxed"
+              className="text-base sm:text-lg text-gray-500 max-w-2xl mx-auto mb-12 leading-relaxed"
             >
               One hub. Multiple apps. Secure, low-latency, anywhere.
             </motion.p>
@@ -234,7 +228,7 @@ export default function HomePage() {
             >
               <Link
                 href="/dashboard"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold rounded-xl bg-cs-green text-cs-dark hover:bg-cs-green-300 active:bg-cs-green-500 shadow-glow hover:shadow-glow-lg transition-all duration-300 group/btn relative overflow-hidden"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold rounded-xl bg-cs-green text-white hover:bg-cs-green-500 active:bg-cs-green-600 shadow-glow hover:shadow-glow-lg transition-all duration-300 group/btn relative overflow-hidden"
               >
                 <span className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
                   <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
@@ -247,14 +241,14 @@ export default function HomePage() {
               </Link>
               <Link
                 href="/downloads"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl bg-transparent text-white border border-white/[0.12] hover:border-cs-green/40 hover:text-cs-green hover:bg-cs-green/5 hover:shadow-glow-sm transition-all duration-300"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl bg-transparent text-gray-700 border border-gray-300 hover:border-cs-green/50 hover:text-cs-green-600 hover:bg-cs-green/5 transition-all duration-300"
               >
                 <Download size={18} />
                 Download Host
               </Link>
               <Link
                 href="/downloads"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl bg-transparent text-white border border-white/[0.12] hover:border-cs-green/40 hover:text-cs-green hover:bg-cs-green/5 hover:shadow-glow-sm transition-all duration-300"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl bg-transparent text-gray-700 border border-gray-300 hover:border-cs-green/50 hover:text-cs-green-600 hover:bg-cs-green/5 transition-all duration-300"
               >
                 <Monitor size={18} />
                 Download Client
@@ -267,8 +261,8 @@ export default function HomePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.6 }}
             >
-              <div className="inline-flex items-center glass rounded-2xl px-2 sm:px-4 py-4 sm:py-5">
-                <div className="flex items-center divide-x divide-white/[0.06]">
+              <div className="inline-flex items-center glass rounded-2xl px-2 sm:px-4 py-4 sm:py-5 shadow-glow-sm">
+                <div className="flex items-center divide-x divide-gray-200">
                   <HeroStat value="< 15ms" label="Latency" />
                   <HeroStat value="4K@60" label="HDR" />
                   <HeroStat value="240" label="FPS" />
@@ -280,13 +274,13 @@ export default function HomePage() {
         </div>
 
         {/* Bottom fade */}
-        <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-cs-dark to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-white to-transparent" />
       </section>
 
       {/* ================================================================== */}
       {/*  FEATURE HIGHLIGHTS                                                */}
       {/* ================================================================== */}
-      <section className="section-padding py-24 sm:py-32 relative">
+      <section className="section-padding py-24 sm:py-32 relative bg-cs-surface">
         {/* Background accent */}
         <div className="absolute inset-0 dot-overlay opacity-20 mask-fade-y pointer-events-none" />
 
@@ -298,14 +292,14 @@ export default function HomePage() {
             transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
-            <p className="text-xs text-cs-green uppercase tracking-[0.2em] font-semibold mb-4">
+            <p className="text-xs text-cs-green-600 uppercase tracking-[0.2em] font-semibold mb-4">
               Core Features
             </p>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-5">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900 mb-5">
               Built for <span className="text-gradient">Performance</span>
             </h2>
-            <p className="text-cs-gray-300 max-w-lg mx-auto leading-relaxed">
-              Every millisecond matters. GridStreamer is engineered from the ground
+            <p className="text-gray-500 max-w-lg mx-auto leading-relaxed">
+              Every millisecond matters. NVRemote is engineered from the ground
               up for the lowest possible latency without compromising quality.
             </p>
           </motion.div>
@@ -354,9 +348,7 @@ export default function HomePage() {
       {/* ================================================================== */}
       {/*  ARCHITECTURE DIAGRAM                                              */}
       {/* ================================================================== */}
-      <section className="section-padding py-24 sm:py-32 relative overflow-hidden">
-        <div className="orb orb-green-dim w-[500px] h-[500px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-
+      <section className="section-padding py-24 sm:py-32 relative overflow-hidden bg-white">
         <div className="relative">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -365,13 +357,13 @@ export default function HomePage() {
             transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
-            <p className="text-xs text-cs-green uppercase tracking-[0.2em] font-semibold mb-4">
+            <p className="text-xs text-cs-green-600 uppercase tracking-[0.2em] font-semibold mb-4">
               Architecture
             </p>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-5">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900 mb-5">
               How It <span className="text-gradient">Works</span>
             </h2>
-            <p className="text-cs-gray-300 max-w-lg mx-auto leading-relaxed">
+            <p className="text-gray-500 max-w-lg mx-auto leading-relaxed">
               Peer-to-peer streaming with intelligent signaling and encrypted
               direct connections.
             </p>
@@ -383,7 +375,7 @@ export default function HomePage() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="gradient-border p-8 sm:p-12 mb-16"
+            className="gradient-border p-8 sm:p-12 mb-16 bg-cs-surface shadow-card"
           >
             {/* Top row: Client -> Signaling -> Host */}
             <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-0 mb-12">
@@ -397,9 +389,9 @@ export default function HomePage() {
               {/* Connection line: Client -> Signaling */}
               <div className="hidden md:flex items-center flex-1 max-w-[160px] px-4">
                 <div className="w-full relative">
-                  <div className="h-px bg-gradient-to-r from-cs-green/40 via-cs-green/60 to-cs-green/40" />
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-l-[6px] border-l-cs-green/60 border-y-[3px] border-y-transparent" />
-                  <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] text-cs-gray-400 whitespace-nowrap font-mono">
+                  <div className="h-px bg-gradient-to-r from-cs-green/30 via-cs-green/50 to-cs-green/30" />
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-l-[6px] border-l-cs-green/50 border-y-[3px] border-y-transparent" />
+                  <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] text-gray-400 whitespace-nowrap font-mono">
                     WebSocket
                   </span>
                 </div>
@@ -420,9 +412,9 @@ export default function HomePage() {
               {/* Connection line: Signaling -> Host */}
               <div className="hidden md:flex items-center flex-1 max-w-[160px] px-4">
                 <div className="w-full relative">
-                  <div className="h-px bg-gradient-to-r from-cs-green/40 via-cs-green/60 to-cs-green/40" />
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-l-[6px] border-l-cs-green/60 border-y-[3px] border-y-transparent" />
-                  <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] text-cs-gray-400 whitespace-nowrap font-mono">
+                  <div className="h-px bg-gradient-to-r from-cs-green/30 via-cs-green/50 to-cs-green/30" />
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-l-[6px] border-l-cs-green/50 border-y-[3px] border-y-transparent" />
+                  <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] text-gray-400 whitespace-nowrap font-mono">
                     WebSocket
                   </span>
                 </div>
@@ -446,8 +438,8 @@ export default function HomePage() {
               <div className="relative">
                 {/* Curved line representation using a bordered div */}
                 <div className="h-12 border-b-2 border-l-2 border-r-2 border-dashed border-cs-green/30 rounded-b-3xl" />
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 px-4 py-1.5 rounded-full bg-cs-card border border-cs-green/30">
-                  <span className="text-xs font-mono font-bold text-cs-green">
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 px-4 py-1.5 rounded-full bg-white border border-cs-green/30 shadow-glow-sm">
+                  <span className="text-xs font-mono font-bold text-cs-green-600">
                     P2P Direct (DTLS)
                   </span>
                 </div>
@@ -456,8 +448,8 @@ export default function HomePage() {
 
             {/* Mobile P2P label */}
             <div className="md:hidden flex items-center justify-center mb-8">
-              <div className="px-4 py-2 rounded-full bg-cs-card border border-cs-green/30">
-                <span className="text-xs font-mono font-bold text-cs-green">
+              <div className="px-4 py-2 rounded-full bg-white border border-cs-green/30 shadow-glow-sm">
+                <span className="text-xs font-mono font-bold text-cs-green-600">
                   P2P Direct (DTLS)
                 </span>
               </div>
@@ -488,9 +480,9 @@ export default function HomePage() {
 
           {/* Connecting lines (desktop only) */}
           <div className="hidden md:flex items-center justify-center max-w-4xl mx-auto -mt-[180px] mb-[180px] px-28">
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-cs-green/30 to-cs-green/30" />
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-gray-300" />
             <div className="w-2 h-2 rounded-full bg-cs-green/40 mx-2" />
-            <div className="flex-1 h-px bg-gradient-to-r from-cs-green/30 via-cs-green/30 to-transparent" />
+            <div className="flex-1 h-px bg-gradient-to-r from-gray-300 via-gray-300 to-transparent" />
           </div>
         </div>
       </section>
@@ -498,7 +490,7 @@ export default function HomePage() {
       {/* ================================================================== */}
       {/*  DOWNLOAD PREVIEW                                                  */}
       {/* ================================================================== */}
-      <section className="section-padding py-24 sm:py-32 relative">
+      <section className="section-padding py-24 sm:py-32 relative bg-cs-surface">
         <div className="absolute inset-0 grid-overlay opacity-20 mask-fade-y pointer-events-none" />
 
         <div className="relative">
@@ -509,13 +501,13 @@ export default function HomePage() {
             transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
-            <p className="text-xs text-cs-green uppercase tracking-[0.2em] font-semibold mb-4">
+            <p className="text-xs text-cs-green-600 uppercase tracking-[0.2em] font-semibold mb-4">
               Downloads
             </p>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-5">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900 mb-5">
               Get Started in <span className="text-gradient">Seconds</span>
             </h2>
-            <p className="text-cs-gray-300 max-w-lg mx-auto leading-relaxed">
+            <p className="text-gray-500 max-w-lg mx-auto leading-relaxed">
               Download the Host for your gaming PC and the Client for any device
               you want to stream to.
             </p>
@@ -529,40 +521,39 @@ export default function HomePage() {
               whileInView="animate"
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0 }}
-              className="gradient-border gradient-border-hover group relative overflow-hidden p-8 transition-all duration-500 hover:shadow-card-hover"
+              className="gradient-border gradient-border-hover group relative overflow-hidden p-8 transition-all duration-500 hover:shadow-card-hover bg-white"
             >
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cs-green/50 to-transparent" />
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cs-green/40 to-transparent" />
 
               <div className="relative z-10">
                 <div className="relative w-14 h-14 rounded-2xl bg-cs-green/10 border border-cs-green/20 flex items-center justify-center mb-6 group-hover:border-cs-green/40 transition-all duration-300">
-                  <Server size={24} className="text-cs-green" />
-                  <div className="absolute inset-0 rounded-2xl bg-cs-green/0 group-hover:bg-cs-green/10 blur-xl transition-all duration-500" />
+                  <Server size={24} className="text-cs-green-600" />
                 </div>
 
-                <h3 className="text-xl font-bold text-white mb-2 tracking-tight">
-                  GridStreamer Host
+                <h3 className="text-xl font-bold text-gray-900 mb-2 tracking-tight">
+                  NVRemote Host
                 </h3>
-                <p className="text-sm text-cs-gray-300 leading-relaxed mb-6">
+                <p className="text-sm text-gray-500 leading-relaxed mb-6">
                   Install on the PC with your NVIDIA GPU. Captures your screen and
                   streams to connected clients.
                 </p>
 
                 {/* Platform icons */}
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                    <WindowsIcon className="text-blue-400" />
-                    <span className="text-xs font-medium text-blue-300">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200">
+                    <WindowsIcon className="text-blue-500" />
+                    <span className="text-xs font-medium text-blue-600">
                       Windows
                     </span>
                   </div>
-                  <span className="text-[10px] text-cs-gray-500 uppercase tracking-wider">
+                  <span className="text-[10px] text-gray-400 uppercase tracking-wider">
                     macOS / Linux coming soon
                   </span>
                 </div>
 
                 <Link
                   href="/downloads"
-                  className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 text-sm font-semibold rounded-xl bg-cs-green text-cs-dark hover:bg-cs-green-300 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+                  className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 text-sm font-semibold rounded-xl bg-cs-green text-white hover:bg-cs-green-500 shadow-glow hover:shadow-glow-lg transition-all duration-300"
                 >
                   <Download size={16} />
                   Download Host
@@ -577,44 +568,43 @@ export default function HomePage() {
               whileInView="animate"
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.15 }}
-              className="gradient-border gradient-border-hover group relative overflow-hidden p-8 transition-all duration-500 hover:shadow-card-hover"
+              className="gradient-border gradient-border-hover group relative overflow-hidden p-8 transition-all duration-500 hover:shadow-card-hover bg-white"
             >
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cs-green/50 to-transparent" />
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cs-green/40 to-transparent" />
 
               <div className="relative z-10">
                 <div className="relative w-14 h-14 rounded-2xl bg-cs-green/10 border border-cs-green/20 flex items-center justify-center mb-6 group-hover:border-cs-green/40 transition-all duration-300">
-                  <Monitor size={24} className="text-cs-green" />
-                  <div className="absolute inset-0 rounded-2xl bg-cs-green/0 group-hover:bg-cs-green/10 blur-xl transition-all duration-500" />
+                  <Monitor size={24} className="text-cs-green-600" />
                 </div>
 
-                <h3 className="text-xl font-bold text-white mb-2 tracking-tight">
-                  GridStreamer Client
+                <h3 className="text-xl font-bold text-gray-900 mb-2 tracking-tight">
+                  NVRemote Client
                 </h3>
-                <p className="text-sm text-cs-gray-300 leading-relaxed mb-6">
+                <p className="text-sm text-gray-500 leading-relaxed mb-6">
                   Install on any device you want to stream to. Connects to your
                   host for a seamless gaming experience.
                 </p>
 
                 {/* Platform icons */}
                 <div className="flex items-center gap-3 mb-6 flex-wrap">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                    <WindowsIcon className="text-blue-400" />
-                    <span className="text-xs font-medium text-blue-300">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200">
+                    <WindowsIcon className="text-blue-500" />
+                    <span className="text-xs font-medium text-blue-600">
                       Windows
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-                    <Smartphone size={14} className="text-cs-gray-400" />
-                    <span className="text-xs text-cs-gray-400">Android</span>
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200">
+                    <Smartphone size={14} className="text-gray-500" />
+                    <span className="text-xs text-gray-500">Android</span>
                   </div>
-                  <span className="text-[10px] text-cs-gray-500 uppercase tracking-wider">
+                  <span className="text-[10px] text-gray-400 uppercase tracking-wider">
                     macOS soon
                   </span>
                 </div>
 
                 <Link
                   href="/downloads"
-                  className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 text-sm font-semibold rounded-xl bg-cs-green text-cs-dark hover:bg-cs-green-300 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+                  className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 text-sm font-semibold rounded-xl bg-cs-green text-white hover:bg-cs-green-500 shadow-glow hover:shadow-glow-lg transition-all duration-300"
                 >
                   <Download size={16} />
                   Download Client
@@ -633,7 +623,7 @@ export default function HomePage() {
           >
             <Link
               href="/downloads"
-              className="inline-flex items-center gap-2 text-sm font-medium text-cs-green hover:text-cs-green-200 transition-colors duration-200 group"
+              className="inline-flex items-center gap-2 text-sm font-medium text-cs-green-600 hover:text-cs-green-500 transition-colors duration-200 group"
             >
               View all downloads
               <ArrowRight
@@ -648,12 +638,11 @@ export default function HomePage() {
       {/* ================================================================== */}
       {/*  BOTTOM CTA                                                        */}
       {/* ================================================================== */}
-      <section className="section-padding py-24 sm:py-32 relative">
+      <section className="section-padding py-24 sm:py-32 relative bg-white">
         <div className="relative rounded-3xl overflow-hidden">
           {/* Background layers */}
-          <div className="absolute inset-0 bg-gradient-to-br from-cs-green/[0.08] via-cs-dark to-cs-dark" />
-          <div className="absolute inset-0 grid-overlay opacity-30" />
-          <div className="orb orb-green w-[500px] h-[500px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse-glow" />
+          <div className="absolute inset-0 bg-gradient-to-br from-cs-green/[0.06] via-gray-50 to-white" />
+          <div className="absolute inset-0 grid-overlay opacity-20" />
 
           <div className="relative px-8 sm:px-16 lg:px-24 py-20 sm:py-28 text-center">
             <motion.div
@@ -662,17 +651,17 @@ export default function HomePage() {
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
             >
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-5">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900 mb-5">
                 Ready to{' '}
                 <span className="text-gradient">Stream?</span>
               </h2>
-              <p className="text-cs-gray-200 max-w-md mx-auto mb-10 leading-relaxed">
+              <p className="text-gray-500 max-w-md mx-auto mb-10 leading-relaxed">
                 Start streaming your games with zero compromise.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold rounded-xl bg-cs-green text-cs-dark hover:bg-cs-green-300 active:bg-cs-green-500 shadow-glow hover:shadow-glow-lg transition-all duration-300 group/btn relative overflow-hidden"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold rounded-xl bg-cs-green text-white hover:bg-cs-green-500 active:bg-cs-green-600 shadow-glow hover:shadow-glow-lg transition-all duration-300 group/btn relative overflow-hidden"
                 >
                   <span className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
                     <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
@@ -687,7 +676,7 @@ export default function HomePage() {
                   href="https://github.com/thatcooperguy/nvstreamer"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl bg-transparent text-white border border-white/[0.12] hover:border-cs-green/40 hover:text-cs-green hover:bg-cs-green/5 hover:shadow-glow-sm transition-all duration-300"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl bg-transparent text-gray-700 border border-gray-300 hover:border-cs-green/50 hover:text-cs-green-600 hover:bg-cs-green/5 transition-all duration-300"
                 >
                   <Github size={18} />
                   Star on GitHub

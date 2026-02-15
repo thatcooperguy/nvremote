@@ -1,5 +1,5 @@
 // StreamEngine.swift — Main streaming coordinator
-// GridStreamer macOS Client
+// NVRemote macOS Client
 //
 // Orchestrates the entire receive -> decode -> render pipeline for a single
 // streaming session. Owns the decoder, renderer, audio, transport, and input

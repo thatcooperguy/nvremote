@@ -55,7 +55,7 @@ export function useConnection(): UseConnectionReturn {
     return cleanup;
   }, []);
 
-  // Listen for deep-link connect events (gridstreamer://connect?host=<id>).
+  // Listen for deep-link connect events (nvremote://connect?host=<id>).
   useEffect(() => {
     const cleanup = window.nvrs.deepLink.onConnect(async (data) => {
       const hosts = useHostStore.getState().hosts;

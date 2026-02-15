@@ -1,5 +1,5 @@
-// Typography.swift — Font system for GridStreamer
-// GridStreamer macOS Client
+// Typography.swift — Font system for NVRemote
+// NVRemote macOS Client
 
 import SwiftUI
 

@@ -1,7 +1,7 @@
 // StatsReporter.swift — QoS statistics collector and feedback sender
-// GridStreamer macOS Client
+// NVRemote macOS Client
 //
-// Mirrors the C++ StatsReporter from gridstreamer-viewer. Collects real-time
+// Mirrors the C++ StatsReporter from nvremote-viewer. Collects real-time
 // streaming statistics (packet loss, jitter, bandwidth, delay gradient) and
 // periodically sends QoS feedback packets to the host every 200ms.
 
@@ -99,7 +99,7 @@ final class StatsReporter: @unchecked Sendable {
     // MARK: - Background Timer
 
     private var timer: DispatchSourceTimer?
-    private let timerQueue = DispatchQueue(label: "com.gridstreamer.stats-reporter", qos: .userInitiated)
+    private let timerQueue = DispatchQueue(label: "com.nvremote.stats-reporter", qos: .userInitiated)
 
     // MARK: - Callbacks
 

@@ -57,7 +57,7 @@ const authApi = {
 };
 
 // ---------------------------------------------------------------------------
-// Viewer (native gridstreamer-viewer addon)
+// Viewer (native nvremote-viewer addon)
 // ---------------------------------------------------------------------------
 
 interface ViewerStartConfig {

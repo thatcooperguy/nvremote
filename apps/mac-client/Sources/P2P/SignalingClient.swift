@@ -1,8 +1,8 @@
 // SignalingClient.swift — WebSocket signaling via server-api
-// GridStreamer macOS Client
+// NVRemote macOS Client
 //
 // Handles the signaling channel between client and host via a WebSocket
-// connection to the GridStreamer signaling server. Exchanges ICE candidates,
+// connection to the NVRemote signaling server. Exchanges ICE candidates,
 // DTLS fingerprints, and session control messages.
 
 import Foundation
@@ -36,7 +36,7 @@ struct HostInfo: Identifiable, Codable, Sendable {
 }
 
 /// WebSocket-based signaling client for exchanging session setup messages
-/// between the GridStreamer viewer and host.
+/// between the NVRemote viewer and host.
 final class SignalingClient: @unchecked Sendable {
 
     // MARK: - Types
@@ -73,7 +73,7 @@ final class SignalingClient: @unchecked Sendable {
 
     /// Create a signaling client targeting the given server URL.
     /// - Parameter serverURL: The WebSocket URL of the signaling server
-    ///   (e.g., "wss://signal.gridstreamer.com/ws").
+    ///   (e.g., "wss://signal.nvremote.com/ws").
     init(serverURL: URL) {
         self.serverURL = serverURL
         let config = URLSessionConfiguration.default
@@ -95,7 +95,7 @@ final class SignalingClient: @unchecked Sendable {
 
         var request = URLRequest(url: serverURL)
         request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
-        request.setValue("gridstreamer-mac-client/1.0", forHTTPHeaderField: "User-Agent")
+        request.setValue("nvremote-mac-client/1.0", forHTTPHeaderField: "User-Agent")
 
         let ws = session.webSocketTask(with: request)
         self.webSocket = ws

@@ -3,9 +3,9 @@ import GamingModes from '@/components/GamingModes';
 import Button from '@/components/Button';
 
 export const metadata: Metadata = {
-  title: 'Documentation — GridStreamer',
+  title: 'Documentation — NVRemote',
   description:
-    'Get started with GridStreamer. Learn how to install, configure, and optimize your game streaming setup.',
+    'Get started with NVRemote. Learn how to install, configure, and optimize your game streaming setup.',
 };
 
 /* -------------------------------------------------------------------------- */
@@ -172,7 +172,7 @@ export default function DocsPage() {
               <span className="text-gradient">Documentation</span>
             </h1>
             <p className="text-lg text-cs-gray-200 max-w-xl mx-auto leading-relaxed">
-              Everything you need to get GridStreamer up and running. From
+              Everything you need to get NVRemote up and running. From
               installation to advanced configuration.
             </p>
           </div>
@@ -277,7 +277,7 @@ export default function DocsPage() {
               <SectionAnchor id="install-host">Install Host</SectionAnchor>
 
               <p className="text-cs-gray-200 mb-6 leading-relaxed">
-                The GridStreamer Host runs on the PC with your NVIDIA GPU and
+                The NVRemote Host runs on the PC with your NVIDIA GPU and
                 games installed. It captures your screen using NvFBC, encodes
                 with NVENC, and streams directly to connected clients.
               </p>
@@ -286,7 +286,7 @@ export default function DocsPage() {
                 <StepItem number={1} title="Download the installer">
                   Get the latest{' '}
                   <code className="text-cs-green bg-cs-green/10 px-1.5 py-0.5 rounded text-xs">
-                    GridStreamerHost-v0.1.0-win64.exe
+                    NVRemoteHost-v0.1.0-win64.exe
                   </code>{' '}
                   from the{' '}
                   <a
@@ -300,12 +300,12 @@ export default function DocsPage() {
 
                 <StepItem number={2} title="Run the installer">
                   Double-click the .exe and follow the prompts. The installer
-                  will set up the GridStreamer Host service which runs
+                  will set up the NVRemote Host service which runs
                   automatically on startup.
                 </StepItem>
 
                 <StepItem number={3} title="Sign in">
-                  Open the GridStreamer Host app from the system tray and sign
+                  Open the NVRemote Host app from the system tray and sign
                   in with your account. Your machine will register
                   automatically.
                 </StepItem>
@@ -325,7 +325,7 @@ export default function DocsPage() {
               </SectionAnchor>
 
               <p className="text-cs-gray-200 mb-6 leading-relaxed">
-                The GridStreamer Client connects to your host and renders the
+                The NVRemote Client connects to your host and renders the
                 stream. It handles input capture, hardware video decode, and
                 display.
               </p>
@@ -334,7 +334,7 @@ export default function DocsPage() {
                 <StepItem number={1} title="Download the client">
                   Get{' '}
                   <code className="text-cs-green bg-cs-green/10 px-1.5 py-0.5 rounded text-xs">
-                    GridStreamerClient-v0.1.0-win64.exe
+                    NVRemoteClient-v0.1.0-win64.exe
                   </code>{' '}
                   from the{' '}
                   <a
@@ -347,7 +347,7 @@ export default function DocsPage() {
                 </StepItem>
 
                 <StepItem number={2} title="Install and launch">
-                  Run the installer and launch GridStreamer Client. Sign in
+                  Run the installer and launch NVRemote Client. Sign in
                   with the same account you used on the host.
                 </StepItem>
               </div>
@@ -364,7 +364,7 @@ export default function DocsPage() {
 
               <div className="space-y-4 mb-6">
                 <StepItem number={1} title="Your host appears automatically">
-                  Open the GridStreamer Client. Your host machine will show up
+                  Open the NVRemote Client. Your host machine will show up
                   in the dashboard with its online status, GPU info, and
                   current load.
                 </StepItem>
@@ -375,7 +375,7 @@ export default function DocsPage() {
                 </StepItem>
 
                 <StepItem number={3} title="Click Connect">
-                  GridStreamer establishes a P2P connection, negotiates the
+                  NVRemote establishes a P2P connection, negotiates the
                   optimal codec and settings, and starts streaming. The
                   overlay shows real-time latency and quality metrics.
                 </StepItem>
@@ -396,7 +396,7 @@ export default function DocsPage() {
               <SectionAnchor id="gaming-modes">Gaming Modes</SectionAnchor>
 
               <p className="text-cs-gray-200 mb-8 leading-relaxed">
-                GridStreamer offers three streaming modes, each optimized for
+                NVRemote offers three streaming modes, each optimized for
                 different types of games and network conditions. You can switch
                 between modes at any time during a session.
               </p>
@@ -418,7 +418,7 @@ export default function DocsPage() {
               <SectionAnchor id="configuration">Configuration</SectionAnchor>
 
               <p className="text-cs-gray-200 mb-6 leading-relaxed">
-                GridStreamer works out of the box with sensible defaults, but you
+                NVRemote works out of the box with sensible defaults, but you
                 can fine-tune settings for your specific setup.
               </p>
 
@@ -429,11 +429,11 @@ export default function DocsPage() {
               </p>
 
               <CodeBlock title="Config location">
-{`%APPDATA%\\GridStreamer\\host-config.yaml`}
+{`%APPDATA%\\NVRemote\\host-config.yaml`}
               </CodeBlock>
 
               <CodeBlock title="host-config.yaml (example)">
-{`# GridStreamer Host Configuration
+{`# NVRemote Host Configuration
 capture:
   method: nvfbc          # nvfbc (recommended) or dxgi
   monitor: 0             # Monitor index (0 = primary)
@@ -456,7 +456,7 @@ qos:
               <SubSection id="config-client">Client Configuration</SubSection>
 
               <CodeBlock title="client-config.yaml (example)">
-{`# GridStreamer Client Configuration
+{`# NVRemote Client Configuration
 display:
   vsync: false           # Disable for lowest latency
   fullscreen: true
@@ -554,7 +554,7 @@ overlay:
                   </h4>
                   <ul className="space-y-1.5 text-sm text-cs-gray-300">
                     <li>
-                      - GridStreamer captures system audio by default; check
+                      - NVRemote captures system audio by default; check
                       volume levels
                     </li>
                     <li>

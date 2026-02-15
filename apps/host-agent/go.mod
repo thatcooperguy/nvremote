@@ -1,4 +1,4 @@
-module github.com/nvidia/gridstreamer/host-agent
+module github.com/nvidia/nvremote/host-agent
 
 go 1.22
 

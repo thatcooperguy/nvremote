@@ -1,8 +1,8 @@
 {
-  "name": "gridstreamer",
+  "name": "nvremote",
   "version": "0.3.0",
   "private": true,
-  "description": "GridStreamer - Secure, low-latency cloud gaming platform",
+  "description": "NVRemote - Secure, low-latency cloud gaming platform",
   "workspaces": [
     "apps/client-desktop",
     "apps/server-api",

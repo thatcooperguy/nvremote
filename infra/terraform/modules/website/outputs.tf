@@ -1,9 +1,9 @@
 ##############################################################################
-# GridStreamer — Website Module Outputs
+# NVRemote — Website Module Outputs
 ##############################################################################
 
 output "website_url" {
-  description = "Public URL of the GridStreamer website"
+  description = "Public URL of the NVRemote website"
   value       = "https://storage.googleapis.com/${google_storage_bucket.website.name}/index.html"
 }
 

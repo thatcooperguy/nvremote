@@ -1,5 +1,5 @@
 // InputCapture.swift — Mouse/keyboard/gamepad capture
-// GridStreamer macOS Client
+// NVRemote macOS Client
 //
 // Captures input events from the macOS system and forwards them to InputSender.
 // Uses NSEvent global/local monitors for keyboard and mouse, CGEvent for

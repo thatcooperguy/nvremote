@@ -1,18 +1,18 @@
 // KeychainHelper.swift — Secure token storage via macOS Keychain
-// GridStreamer macOS Client
+// NVRemote macOS Client
 
 import Foundation
 import Security
 
 /// Thread-safe wrapper around the macOS Keychain for storing and retrieving
-/// authentication tokens. All items are stored under the GridStreamer service name
+/// authentication tokens. All items are stored under the NVRemote service name
 /// with kSecClassGenericPassword.
 final class KeychainHelper: Sendable {
     /// Shared singleton instance.
     static let shared = KeychainHelper()
 
-    /// The Keychain service name under which all GridStreamer tokens are stored.
-    private let service = "com.gridstreamer.mac-client"
+    /// The Keychain service name under which all NVRemote tokens are stored.
+    private let service = "com.nvremote.mac-client"
 
     private init() {}
 
@@ -99,7 +99,7 @@ final class KeychainHelper: Sendable {
         return true
     }
 
-    /// Delete all GridStreamer items from the Keychain.
+    /// Delete all NVRemote items from the Keychain.
     @discardableResult
     func deleteAll() -> Bool {
         let query: [String: Any] = [

@@ -1,5 +1,5 @@
 ###############################################################################
-# GridStreamer -- Release Workflow
+# NVRemote -- Release Workflow
 #
 # Triggered on tag pushes matching v*.  Builds all platform artifacts and
 # creates a GitHub Release with the resulting binaries.
@@ -8,8 +8,8 @@
 #   1. build-native-libs       -- C++17 streaming core (Windows, MSVC + NVENC/FFmpeg)
 #   2. build-host-agent        -- Go host agent (Windows)
 #   3. build-host-agent-linux  -- Go host agent (Linux)
-#   4. build-host-bundle       -- Zip gridstreamer-host.exe + GridStreamerAgent.exe (Windows)
-#   5. build-host-bundle-linux -- Tar.gz GridStreamerAgent (Linux)
+#   4. build-host-bundle       -- Zip nvremote-host.exe + NVRemoteAgent.exe (Windows)
+#   5. build-host-bundle-linux -- Tar.gz NVRemoteAgent (Linux)
 #   6. build-client            -- Electron desktop client (Windows NSIS installer)
 #   7. build-client-linux      -- Electron desktop client (Linux AppImage)
 #   8. build-client-macos      -- Electron desktop client (macOS DMG)
@@ -34,8 +34,8 @@ env:
 jobs:
   ###########################################################################
   # Job 1: Build C++ native libraries
-  #   Produces: gridstreamer-host.exe  (GPU streaming host)
-  #             gridstreamer-viewer.node (N-API addon for Electron)
+  #   Produces: nvremote-host.exe  (GPU streaming host)
+  #             nvremote-viewer.node (N-API addon for Electron)
   ###########################################################################
   build-native-libs:
     name: Build Native Libs (C++17)
@@ -134,7 +134,7 @@ jobs:
           Get-ChildItem "$ffmpegDir\lib" -Filter *.lib | ForEach-Object { Write-Host "  $($_.Name)" }
 
       # -------------------------------------------------------------------
-      # Node.js headers -- needed for gridstreamer-viewer N-API compilation
+      # Node.js headers -- needed for nvremote-viewer N-API compilation
       # -------------------------------------------------------------------
       - name: Download Node.js headers and node.lib
         shell: pwsh
@@ -232,25 +232,25 @@ jobs:
       - name: Verify build outputs
         shell: pwsh
         run: |
-          $hostExe = "libs\build\gridstreamer-host\Release\gridstreamer-host.exe"
-          $viewerNode = "libs\build\gridstreamer-viewer\Release\gridstreamer-viewer.node"
+          $hostExe = "libs\build\nvremote-host\Release\nvremote-host.exe"
+          $viewerNode = "libs\build\nvremote-viewer\Release\nvremote-viewer.node"
 
           if (-not (Test-Path $hostExe)) {
-            Write-Error "gridstreamer-host.exe not found at $hostExe"
+            Write-Error "nvremote-host.exe not found at $hostExe"
             # List what was actually produced for debugging
-            Write-Host "Contents of libs\build\gridstreamer-host\"
-            Get-ChildItem "libs\build\gridstreamer-host" -Recurse -File | ForEach-Object { Write-Host "  $($_.FullName)" }
+            Write-Host "Contents of libs\build\nvremote-host\"
+            Get-ChildItem "libs\build\nvremote-host" -Recurse -File | ForEach-Object { Write-Host "  $($_.FullName)" }
             exit 1
           }
           if (-not (Test-Path $viewerNode)) {
-            Write-Error "gridstreamer-viewer.node not found at $viewerNode"
-            Write-Host "Contents of libs\build\gridstreamer-viewer\"
-            Get-ChildItem "libs\build\gridstreamer-viewer" -Recurse -File | ForEach-Object { Write-Host "  $($_.FullName)" }
+            Write-Error "nvremote-viewer.node not found at $viewerNode"
+            Write-Host "Contents of libs\build\nvremote-viewer\"
+            Get-ChildItem "libs\build\nvremote-viewer" -Recurse -File | ForEach-Object { Write-Host "  $($_.FullName)" }
             exit 1
           }
 
-          Write-Host "gridstreamer-host.exe: $('{0:N0}' -f (Get-Item $hostExe).Length) bytes"
-          Write-Host "gridstreamer-viewer.node: $('{0:N0}' -f (Get-Item $viewerNode).Length) bytes"
+          Write-Host "nvremote-host.exe: $('{0:N0}' -f (Get-Item $hostExe).Length) bytes"
+          Write-Host "nvremote-viewer.node: $('{0:N0}' -f (Get-Item $viewerNode).Length) bytes"
 
       # -------------------------------------------------------------------
       # Collect artifacts -- host exe, viewer addon, runtime DLLs
@@ -262,10 +262,10 @@ jobs:
           mkdir $out -Force | Out-Null
 
           # Host executable
-          Copy-Item "libs\build\gridstreamer-host\Release\gridstreamer-host.exe" "$out\"
+          Copy-Item "libs\build\nvremote-host\Release\nvremote-host.exe" "$out\"
 
           # Viewer N-API addon
-          Copy-Item "libs\build\gridstreamer-viewer\Release\gridstreamer-viewer.node" "$out\"
+          Copy-Item "libs\build\nvremote-viewer\Release\nvremote-viewer.node" "$out\"
 
           # FFmpeg DLLs needed at runtime
           $ffBin = "$env:RUNNER_TEMP\ffmpeg\bin"
@@ -327,15 +327,15 @@ jobs:
         working-directory: apps/host-agent
         run: |
           $tag = "${{ github.ref_name }}"
-          Write-Host "Building GridStreamerAgent.exe for tag: $tag"
+          Write-Host "Building NVRemoteAgent.exe for tag: $tag"
 
-          go build -ldflags="-s -w -X main.version=$tag" -o GridStreamerAgent.exe ./cmd/agent
+          go build -ldflags="-s -w -X main.version=$tag" -o NVRemoteAgent.exe ./cmd/agent
           if ($LASTEXITCODE -ne 0) {
             Write-Error "Go build failed"
             exit 1
           }
-          $size = (Get-Item GridStreamerAgent.exe).Length
-          Write-Host "Built GridStreamerAgent.exe ($('{0:N0}' -f $size) bytes)"
+          $size = (Get-Item NVRemoteAgent.exe).Length
+          Write-Host "Built NVRemoteAgent.exe ($('{0:N0}' -f $size) bytes)"
         env:
           GOOS: windows
           GOARCH: amd64
@@ -345,7 +345,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: host-agent
-          path: apps/host-agent/GridStreamerAgent.exe
+          path: apps/host-agent/NVRemoteAgent.exe
           if-no-files-found: error
           retention-days: 5
 
@@ -374,9 +374,9 @@ jobs:
         working-directory: apps/host-agent
         run: |
           TAG="${{ github.ref_name }}"
-          echo "Building GridStreamerAgent for tag: $TAG"
-          go build -ldflags="-s -w -X main.version=$TAG" -o GridStreamerAgent ./cmd/agent
-          echo "Built GridStreamerAgent ($(stat -c%s GridStreamerAgent) bytes)"
+          echo "Building NVRemoteAgent for tag: $TAG"
+          go build -ldflags="-s -w -X main.version=$TAG" -o NVRemoteAgent ./cmd/agent
+          echo "Built NVRemoteAgent ($(stat -c%s NVRemoteAgent) bytes)"
         env:
           GOOS: linux
           GOARCH: amd64
@@ -386,7 +386,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: host-agent-linux
-          path: apps/host-agent/GridStreamerAgent
+          path: apps/host-agent/NVRemoteAgent
           if-no-files-found: error
           retention-days: 5
 
@@ -422,22 +422,22 @@ jobs:
       - name: Create host bundle zip
         run: |
           TAG="${{ github.ref_name }}"
-          BUNDLE_NAME="GridStreamerHost-${TAG}-win64"
+          BUNDLE_NAME="NVRemoteHost-${TAG}-win64"
           mkdir -p "$BUNDLE_NAME"
 
           # Copy host executable
-          if [ -f "native-libs/gridstreamer-host.exe" ]; then
-            cp native-libs/gridstreamer-host.exe "$BUNDLE_NAME/"
+          if [ -f "native-libs/nvremote-host.exe" ]; then
+            cp native-libs/nvremote-host.exe "$BUNDLE_NAME/"
           else
-            echo "::error::gridstreamer-host.exe not found in native-libs artifact"
+            echo "::error::nvremote-host.exe not found in native-libs artifact"
             exit 1
           fi
 
           # Copy agent executable
-          if [ -f "host-agent/GridStreamerAgent.exe" ]; then
-            cp host-agent/GridStreamerAgent.exe "$BUNDLE_NAME/"
+          if [ -f "host-agent/NVRemoteAgent.exe" ]; then
+            cp host-agent/NVRemoteAgent.exe "$BUNDLE_NAME/"
           else
-            echo "::error::GridStreamerAgent.exe not found in host-agent artifact"
+            echo "::error::NVRemoteAgent.exe not found in host-agent artifact"
             exit 1
           fi
 
@@ -454,7 +454,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: host-bundle
-          path: "GridStreamerHost-${{ github.ref_name }}-win64.zip"
+          path: "NVRemoteHost-${{ github.ref_name }}-win64.zip"
           if-no-files-found: error
           retention-days: 5
 
@@ -476,11 +476,11 @@ jobs:
       - name: Create host bundle tarball
         run: |
           TAG="${{ github.ref_name }}"
-          BUNDLE_NAME="GridStreamerHost-${TAG}-linux-amd64"
+          BUNDLE_NAME="NVRemoteHost-${TAG}-linux-amd64"
           mkdir -p "$BUNDLE_NAME"
 
-          cp host-agent-linux/GridStreamerAgent "$BUNDLE_NAME/"
-          chmod +x "$BUNDLE_NAME/GridStreamerAgent"
+          cp host-agent-linux/NVRemoteAgent "$BUNDLE_NAME/"
+          chmod +x "$BUNDLE_NAME/NVRemoteAgent"
 
           echo "=== Bundle contents ==="
           ls -lh "$BUNDLE_NAME/"
@@ -492,7 +492,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: host-bundle-linux
-          path: "GridStreamerHost-${{ github.ref_name }}-linux-amd64.tar.gz"
+          path: "NVRemoteHost-${{ github.ref_name }}-linux-amd64.tar.gz"
           if-no-files-found: error
           retention-days: 5
 
@@ -531,13 +531,13 @@ jobs:
 
           # Copy viewer N-API addon (try both paths in case of nesting)
           $viewerSrc = $null
-          if (Test-Path "native-libs\gridstreamer-viewer.node") {
-            $viewerSrc = "native-libs\gridstreamer-viewer.node"
-          } elseif (Test-Path "native-libs\native-artifacts\gridstreamer-viewer.node") {
-            $viewerSrc = "native-libs\native-artifacts\gridstreamer-viewer.node"
+          if (Test-Path "native-libs\nvremote-viewer.node") {
+            $viewerSrc = "native-libs\nvremote-viewer.node"
+          } elseif (Test-Path "native-libs\native-artifacts\nvremote-viewer.node") {
+            $viewerSrc = "native-libs\native-artifacts\nvremote-viewer.node"
           } else {
             # Search recursively
-            $found = Get-ChildItem "native-libs" -Recurse -Filter "gridstreamer-viewer.node" -File
+            $found = Get-ChildItem "native-libs" -Recurse -Filter "nvremote-viewer.node" -File
             if ($found) {
               $viewerSrc = $found[0].FullName
               Write-Host "Found viewer.node at: $viewerSrc"
@@ -546,9 +546,9 @@ jobs:
 
           if ($viewerSrc) {
             Copy-Item $viewerSrc "$resourceDir\"
-            Write-Host "Copied gridstreamer-viewer.node to resources"
+            Write-Host "Copied nvremote-viewer.node to resources"
           } else {
-            Write-Error "gridstreamer-viewer.node not found anywhere in native-libs artifact"
+            Write-Error "nvremote-viewer.node not found anywhere in native-libs artifact"
             exit 1
           }
 
@@ -593,7 +593,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: client-installer
-          path: apps/client-desktop/release/GridStreamer-*-Setup.exe
+          path: apps/client-desktop/release/NVRemote-*-Setup.exe
           if-no-files-found: warn
           retention-days: 5
 
@@ -634,7 +634,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: client-linux
-          path: apps/client-desktop/release/GridStreamer-*.AppImage
+          path: apps/client-desktop/release/NVRemote-*.AppImage
           if-no-files-found: warn
           retention-days: 5
 
@@ -704,18 +704,18 @@ jobs:
 
       - name: Verify build output
         run: |
-          ADDON="libs/build/gridstreamer-viewer/gridstreamer-viewer.node"
+          ADDON="libs/build/nvremote-viewer/nvremote-viewer.node"
           if [ ! -f "$ADDON" ]; then
-            echo "::error::gridstreamer-viewer.node not found"
+            echo "::error::nvremote-viewer.node not found"
             find libs/build -name "*.node" -o -name "*.dylib" | head -20
             exit 1
           fi
-          echo "gridstreamer-viewer.node: $(ls -lh "$ADDON" | awk '{print $5}')"
+          echo "nvremote-viewer.node: $(ls -lh "$ADDON" | awk '{print $5}')"
 
       - name: Collect macOS native artifacts
         run: |
           mkdir -p native-artifacts-macos
-          cp libs/build/gridstreamer-viewer/gridstreamer-viewer.node native-artifacts-macos/
+          cp libs/build/nvremote-viewer/nvremote-viewer.node native-artifacts-macos/
 
           # Copy dylib dependencies
           FFMPEG_LIB=$(brew --prefix ffmpeg)/lib
@@ -771,7 +771,7 @@ jobs:
           ls -lh native-libs-macos/
 
           # Copy viewer addon
-          cp native-libs-macos/gridstreamer-viewer.node "$RESOURCE_DIR/"
+          cp native-libs-macos/nvremote-viewer.node "$RESOURCE_DIR/"
 
           # Copy runtime dylibs
           cp native-libs-macos/*.dylib "$RESOURCE_DIR/" 2>/dev/null || echo "No dylibs to copy"
@@ -797,7 +797,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: client-macos
-          path: apps/client-desktop/release/GridStreamer-*.dmg
+          path: apps/client-desktop/release/NVRemote-*.dmg
           if-no-files-found: warn
           retention-days: 5
 
@@ -871,24 +871,24 @@ jobs:
 
           # Handle both signed and unsigned APK names
           if [ -f "$APK_DIR/app-release-unsigned.apk" ]; then
-            mv "$APK_DIR/app-release-unsigned.apk" "$APK_DIR/GridStreamer-${TAG}.apk"
-            echo "Renamed app-release-unsigned.apk -> GridStreamer-${TAG}.apk"
+            mv "$APK_DIR/app-release-unsigned.apk" "$APK_DIR/NVRemote-${TAG}.apk"
+            echo "Renamed app-release-unsigned.apk -> NVRemote-${TAG}.apk"
           elif [ -f "$APK_DIR/app-release.apk" ]; then
-            mv "$APK_DIR/app-release.apk" "$APK_DIR/GridStreamer-${TAG}.apk"
-            echo "Renamed app-release.apk -> GridStreamer-${TAG}.apk"
+            mv "$APK_DIR/app-release.apk" "$APK_DIR/NVRemote-${TAG}.apk"
+            echo "Renamed app-release.apk -> NVRemote-${TAG}.apk"
           else
             echo "::error::No release APK found in $APK_DIR"
             ls -lhR "$APK_DIR/" 2>/dev/null || true
             exit 1
           fi
 
-          ls -lh "$APK_DIR/GridStreamer-${TAG}.apk"
+          ls -lh "$APK_DIR/NVRemote-${TAG}.apk"
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: apps/android/app/build/outputs/apk/release/GridStreamer-*.apk
+          path: apps/android/app/build/outputs/apk/release/NVRemote-*.apk
           if-no-files-found: warn
           retention-days: 5
 
@@ -964,18 +964,18 @@ jobs:
           files: |
             release-files/*
           body: |
-            ## GridStreamer ${{ github.ref_name }}
+            ## NVRemote ${{ github.ref_name }}
 
             ### Downloads
 
             | Platform | Artifact | Description |
             |----------|----------|-------------|
-            | Windows (Host) | `GridStreamerHost-${{ github.ref_name }}-win64.zip` | Streaming host + agent bundle |
-            | Linux (Host) | `GridStreamerHost-${{ github.ref_name }}-linux-amd64.tar.gz` | Host agent (Go, no GPU streamer yet) |
-            | Windows (Client) | `GridStreamer-*-Setup.exe` | Desktop viewer (Electron) installer |
-            | Linux (Client) | `GridStreamer-*-x86_64.AppImage` | Desktop client (Electron AppImage) |
-            | macOS (Client) | `GridStreamer-*-universal.dmg` | Desktop client (Electron DMG) |
-            | Android | `GridStreamer-${{ github.ref_name }}.apk` | Android mobile client |
+            | Windows (Host) | `NVRemoteHost-${{ github.ref_name }}-win64.zip` | Streaming host + agent bundle |
+            | Linux (Host) | `NVRemoteHost-${{ github.ref_name }}-linux-amd64.tar.gz` | Host agent (Go, no GPU streamer yet) |
+            | Windows (Client) | `NVRemote-*-Setup.exe` | Desktop viewer (Electron) installer |
+            | Linux (Client) | `NVRemote-*-x86_64.AppImage` | Desktop client (Electron AppImage) |
+            | macOS (Client) | `NVRemote-*-universal.dmg` | Desktop client (Electron DMG) |
+            | Android | `NVRemote-${{ github.ref_name }}.apk` | Android mobile client |
 
             ### Requirements
             - **Host (Windows)**: NVIDIA GPU with NVENC support, Windows 10/11 x64

@@ -1,5 +1,5 @@
 // StreamOverlayView.swift — Stats HUD overlay
-// GridStreamer macOS Client
+// NVRemote macOS Client
 
 import SwiftUI
 
@@ -27,7 +27,7 @@ struct StreamOverlayView: View {
                 Circle()
                     .fill(CSColors.nvidiaGreen)
                     .frame(width: 6, height: 6)
-                Text("GridStreamer")
+                Text("NVRemote")
                     .font(CSTypography.caption)
                     .foregroundColor(CSColors.nvidiaGreen)
             }

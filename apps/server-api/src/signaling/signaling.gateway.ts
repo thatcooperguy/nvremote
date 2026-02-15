@@ -95,7 +95,7 @@ export interface SessionOfferData {
 // ---------------------------------------------------------------------------
 
 @WebSocketGateway({
-  cors: { origin: process.env.CORS_ORIGIN?.split(',').map(s => s.trim()) || ['https://gridstreamer.com'] },
+  cors: { origin: process.env.CORS_ORIGIN?.split(',').map(s => s.trim()) || ['https://nvremote.com'] },
   namespace: '/signaling',
   transports: ['websocket', 'polling'],
   maxHttpBufferSize: 65536, // 64KB cap — prevents DoS via oversized payloads

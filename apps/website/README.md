@@ -1,4 +1,4 @@
-# GRIDSTREAMER — Cloud Gaming, Unlocked.
+# NVREMOTE — Cloud Gaming, Unlocked.
 
 One hub. Multiple apps. Secure, low-latency cloud gaming anywhere.
 
@@ -70,7 +70,7 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 
 # API Configuration
 NEXT_PUBLIC_API_URL=http://localhost:3000/api
-NEXT_PUBLIC_RELEASE_BASE_URL=https://releases.gridstreamer.dev
+NEXT_PUBLIC_RELEASE_BASE_URL=https://releases.nvremote.dev
 
 # Feature Flags
 NEXT_PUBLIC_ENABLE_WEB_CLIENT=false
@@ -141,7 +141,7 @@ apps/website/
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    GRIDSTREAMER WEBSITE                       │
+│                    NVREMOTE WEBSITE                              │
 │                                                             │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
 │  │   Landing    │  │   Download   │  │     App      │      │
@@ -167,7 +167,7 @@ apps/website/
                             │
                             ▼
               ┌──────────────────────┐
-              │  GridStreamer Backend │
+              │  NVRemote Backend    │
               │  (server-api)        │
               │  NestJS + Prisma     │
               └──────────────────────┘
@@ -209,8 +209,8 @@ npx vercel
 ### GCP Cloud Run
 
 ```bash
-docker build -t gridstreamer-website .
-gcloud run deploy gridstreamer-website --image=gridstreamer-website
+docker build -t nvremote-website .
+gcloud run deploy nvremote-website --image=nvremote-website
 ```
 
 ### Static Export (for GCS)

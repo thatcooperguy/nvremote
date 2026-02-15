@@ -1,5 +1,5 @@
-// Package gridstreamer provides monitoring and lifecycle management for the gridstreamer.exe process.
-package gridstreamer
+// Package nvremote provides monitoring and lifecycle management for the nvremote.exe process.
+package nvremote
 
 import (
 	"fmt"
@@ -9,22 +9,22 @@ import (
 	"strings"
 )
 
-// NvstreamerInfo holds information about the gridstreamer installation and process state.
+// NvstreamerInfo holds information about the nvremote installation and process state.
 type NvstreamerInfo struct {
-	// Path is the absolute path to the gridstreamer.exe binary.
+	// Path is the absolute path to the nvremote.exe binary.
 	Path string
 
-	// Version is the detected version string of gridstreamer.
+	// Version is the detected version string of nvremote.
 	Version string
 
-	// Ports holds the port numbers gridstreamer is listening on.
+	// Ports holds the port numbers nvremote is listening on.
 	Ports []int
 
-	// Running indicates whether the gridstreamer process is currently active.
+	// Running indicates whether the nvremote process is currently active.
 	Running bool
 }
 
-// Detect locates the gridstreamer.exe process or binary at the configured path and returns
+// Detect locates the nvremote.exe process or binary at the configured path and returns
 // information about it. If configuredPath is empty, it searches default locations.
 func Detect(configuredPath string) (*NvstreamerInfo, error) {
 	info := &NvstreamerInfo{}
@@ -36,21 +36,21 @@ func Detect(configuredPath string) (*NvstreamerInfo, error) {
 	}
 
 	if path == "" {
-		return nil, fmt.Errorf("gridstreamer.exe not found")
+		return nil, fmt.Errorf("nvremote.exe not found")
 	}
 
 	if _, err := os.Stat(path); err != nil {
-		return nil, fmt.Errorf("gridstreamer binary not accessible at %s: %w", path, err)
+		return nil, fmt.Errorf("nvremote binary not accessible at %s: %w", path, err)
 	}
 	info.Path = path
 
-	// Check if gridstreamer is currently running.
-	info.Running = isProcessRunning("gridstreamer.exe")
+	// Check if nvremote is currently running.
+	info.Running = isProcessRunning("nvremote.exe")
 
 	// Attempt to get the version.
 	version, err := getVersion(path)
 	if err != nil {
-		slog.Debug("could not determine gridstreamer version", "error", err)
+		slog.Debug("could not determine nvremote version", "error", err)
 		info.Version = "unknown"
 	} else {
 		info.Version = version
@@ -59,19 +59,19 @@ func Detect(configuredPath string) (*NvstreamerInfo, error) {
 	return info, nil
 }
 
-// GetStatus returns the current status of gridstreamer: whether it is running,
+// GetStatus returns the current status of nvremote: whether it is running,
 // which ports it is using, and its version.
-func GetStatus(gridstreamerPath string) (running bool, ports []int, version string) {
-	running = isProcessRunning("gridstreamer.exe")
+func GetStatus(nvremotePath string) (running bool, ports []int, version string) {
+	running = isProcessRunning("nvremote.exe")
 
-	ver, err := getVersion(gridstreamerPath)
+	ver, err := getVersion(nvremotePath)
 	if err != nil {
 		version = "unknown"
 	} else {
 		version = ver
 	}
 
-	// Default ports; in a full implementation these would be read from gridstreamer config.
+	// Default ports; in a full implementation these would be read from nvremote config.
 	if running {
 		ports = []int{8443, 8444, 8445}
 	}
@@ -79,37 +79,37 @@ func GetStatus(gridstreamerPath string) (running bool, ports []int, version stri
 	return running, ports, version
 }
 
-// EnsureRunning verifies that gridstreamer.exe is running. If it is not, it attempts
+// EnsureRunning verifies that nvremote.exe is running. If it is not, it attempts
 // to start the process at the given path.
 func EnsureRunning(path string) error {
 	if path == "" {
-		return fmt.Errorf("gridstreamer path not configured")
+		return fmt.Errorf("nvremote path not configured")
 	}
 
-	if isProcessRunning("gridstreamer.exe") {
-		slog.Debug("gridstreamer is already running")
+	if isProcessRunning("nvremote.exe") {
+		slog.Debug("nvremote is already running")
 		return nil
 	}
 
-	slog.Info("starting gridstreamer", "path", path)
+	slog.Info("starting nvremote", "path", path)
 
-	// Start gridstreamer as a detached process so it survives agent restarts.
+	// Start nvremote as a detached process so it survives agent restarts.
 	cmd := exec.Command(path)
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("starting gridstreamer: %w", err)
+		return fmt.Errorf("starting nvremote: %w", err)
 	}
 
 	// Detach - do not wait for the process.
 	if cmd.Process != nil {
 		if err := cmd.Process.Release(); err != nil {
-			slog.Warn("could not release gridstreamer process handle", "error", err)
+			slog.Warn("could not release nvremote process handle", "error", err)
 		}
 	}
 
-	slog.Info("gridstreamer started", "pid", cmd.Process.Pid)
+	slog.Info("nvremote started", "pid", cmd.Process.Pid)
 	return nil
 }
 
@@ -145,7 +145,7 @@ func isProcessRunning(processName string) bool {
 	return strings.Contains(output, strings.ToLower(processName))
 }
 
-// getVersion runs gridstreamer.exe --version and returns the output.
+// getVersion runs nvremote.exe --version and returns the output.
 func getVersion(path string) (string, error) {
 	cmd := exec.Command(path, "--version")
 	out, err := cmd.Output()
@@ -155,12 +155,12 @@ func getVersion(path string) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-// findNvstreamerPath searches common installation directories for gridstreamer.exe.
+// findNvstreamerPath searches common installation directories for nvremote.exe.
 func findNvstreamerPath() string {
 	candidates := []string{
-		`C:\Program Files\NVIDIA\gridstreamer\gridstreamer.exe`,
-		`C:\Program Files (x86)\NVIDIA\gridstreamer\gridstreamer.exe`,
-		`C:\NVIDIA\gridstreamer\gridstreamer.exe`,
+		`C:\Program Files\NVIDIA\nvremote\nvremote.exe`,
+		`C:\Program Files (x86)\NVIDIA\nvremote\nvremote.exe`,
+		`C:\NVIDIA\nvremote\nvremote.exe`,
 	}
 
 	for _, path := range candidates {
@@ -170,7 +170,7 @@ func findNvstreamerPath() string {
 	}
 
 	// Try PATH as a last resort.
-	path, err := exec.LookPath("gridstreamer.exe")
+	path, err := exec.LookPath("nvremote.exe")
 	if err == nil {
 		return path
 	}

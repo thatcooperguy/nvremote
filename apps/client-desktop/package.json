@@ -1,9 +1,9 @@
 {
-  "name": "gridstreamer-client",
+  "name": "nvremote-client",
   "version": "0.1.0",
-  "description": "GridStreamer — Cloud Gaming Desktop Client",
+  "description": "NVRemote — Cloud Gaming Desktop Client",
   "main": "dist-electron/main/main.js",
-  "author": "GridStreamer",
+  "author": "NVRemote",
   "license": "UNLICENSED",
   "private": true,
   "scripts": {

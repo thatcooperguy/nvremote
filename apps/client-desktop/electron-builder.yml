@@ -1,6 +1,6 @@
-appId: com.gridstreamer.client
-productName: GridStreamer
-copyright: Copyright (c) GridStreamer
+appId: com.nvremote.client
+productName: NVRemote
+copyright: Copyright (c) NVRemote
 
 # Prevent electron-builder from running its own npm install during packaging.
 # In npm workspace setups, this step restructures node_modules and deletes
@@ -20,8 +20,8 @@ win:
     - target: nsis
       arch:
         - x64
-  artifactName: "GridStreamer-${version}-Setup.${ext}"
-  publisherName: GridStreamer
+  artifactName: "NVRemote-${version}-Setup.${ext}"
+  publisherName: NVRemote
 
 nsis:
   oneClick: false
@@ -30,33 +30,33 @@ nsis:
   deleteAppDataOnUninstall: false
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: GridStreamer
+  shortcutName: NVRemote
 
 linux:
   target:
     - target: AppImage
       arch:
         - x64
-  artifactName: "GridStreamer-${version}-x86_64.${ext}"
+  artifactName: "NVRemote-${version}-x86_64.${ext}"
   category: Game
   desktop:
-    StartupWMClass: GridStreamer
+    StartupWMClass: NVRemote
 
 mac:
   target:
     - target: dmg
       arch:
         - universal
-  artifactName: "GridStreamer-${version}-universal.${ext}"
+  artifactName: "NVRemote-${version}-universal.${ext}"
   category: public.app-category.games
 
 dmg:
-  title: "GridStreamer ${version}"
+  title: "NVRemote ${version}"
 
 protocols:
-  name: GridStreamer Protocol
+  name: NVRemote Protocol
   schemes:
-    - gridstreamer
+    - nvremote
 
 extraResources:
   - from: resources/

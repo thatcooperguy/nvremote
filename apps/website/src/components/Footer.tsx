@@ -56,8 +56,8 @@ function FooterLogo() {
         />
         <path
           d="M18.5 6L11 17.5H15.5L13.5 26L21 14.5H16.5L18.5 6Z"
-          fill="#0A0A0A"
-          stroke="#0A0A0A"
+          fill="#1A1A1A"
+          stroke="#1A1A1A"
           strokeWidth="0.5"
           strokeLinejoin="round"
         />
@@ -75,8 +75,8 @@ function FooterLogo() {
           </linearGradient>
         </defs>
       </svg>
-      <span className="text-lg font-bold tracking-tight">
-        GRID<span className="text-cs-green">STREAMER</span>
+      <span className="text-lg font-bold tracking-tight text-white">
+        NV<span className="text-cs-green">REMOTE</span>
       </span>
     </div>
   );
@@ -84,10 +84,7 @@ function FooterLogo() {
 
 export default function Footer() {
   return (
-    <footer className="relative border-t border-white/[0.04] bg-cs-dark overflow-hidden">
-      {/* Grid pattern background */}
-      <div className="absolute inset-0 grid-overlay opacity-30 pointer-events-none" />
-
+    <footer className="relative border-t border-gray-800 bg-[#1A1A1A] overflow-hidden">
       {/* Gradient divider line at top */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cs-green/30 to-transparent" />
 
@@ -96,7 +93,7 @@ export default function Footer() {
           {/* Brand column */}
           <div className="sm:col-span-2 lg:col-span-1">
             <FooterLogo />
-            <p className="text-sm text-cs-gray-300 max-w-xs leading-relaxed mb-6">
+            <p className="text-sm text-gray-400 max-w-xs leading-relaxed mb-6">
               Cloud gaming, unlocked. Stream your games with sub-15ms latency,
               4K HDR support, and P2P encrypted connections powered by NVIDIA
               hardware acceleration.
@@ -107,7 +104,7 @@ export default function Footer() {
               href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-sm text-cs-gray-200 hover:text-white hover:border-cs-green/30 hover:bg-cs-green/5 transition-all duration-200"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-700 bg-white/[0.03] text-sm text-gray-300 hover:text-white hover:border-cs-green/30 hover:bg-cs-green/5 transition-all duration-200"
             >
               <Github size={18} />
               <span>Star on GitHub</span>
@@ -124,7 +121,7 @@ export default function Footer() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-sm text-cs-gray-300 hover:text-cs-green transition-colors duration-200"
+                    className="text-sm text-gray-400 hover:text-cs-green transition-colors duration-200"
                   >
                     {link.label}
                   </Link>
@@ -145,7 +142,7 @@ export default function Footer() {
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-cs-gray-300 hover:text-cs-green transition-colors duration-200"
+                    className="text-sm text-gray-400 hover:text-cs-green transition-colors duration-200"
                   >
                     {link.label}
                   </a>
@@ -162,7 +159,7 @@ export default function Footer() {
             <ul className="space-y-3">
               {technologyItems.map((item) => (
                 <li key={item}>
-                  <span className="text-sm text-cs-gray-400">{item}</span>
+                  <span className="text-sm text-gray-500">{item}</span>
                 </li>
               ))}
             </ul>
@@ -170,20 +167,20 @@ export default function Footer() {
         </div>
 
         {/* Divider */}
-        <div className="section-divider mb-8" />
+        <div className="w-full h-px bg-gray-800 mb-8" />
 
         {/* Bottom bar */}
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-cs-gray-500">
-              &copy; 2025 GridStreamer. Open source under MIT License.
+            <p className="text-xs text-gray-500">
+              &copy; 2025 NVRemote. Open source under MIT License.
             </p>
             <div className="flex items-center gap-6">
               <a
                 href={`${GITHUB_URL}/blob/main/LICENSE`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-cs-gray-500 hover:text-cs-gray-300 transition-colors"
+                className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
               >
                 License
               </a>
@@ -191,7 +188,7 @@ export default function Footer() {
                 href={`${GITHUB_URL}/blob/main/SECURITY.md`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-cs-gray-500 hover:text-cs-gray-300 transition-colors"
+                className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
               >
                 Security
               </a>
@@ -199,7 +196,7 @@ export default function Footer() {
           </div>
 
           {/* Credits */}
-          <p className="text-xs text-cs-gray-500 text-center sm:text-left">
+          <p className="text-xs text-gray-500 text-center sm:text-left">
             Concept &amp; Product Design: CCooper &mdash; Built with AI-assisted engineering.
           </p>
         </div>

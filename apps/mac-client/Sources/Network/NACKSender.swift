@@ -1,7 +1,7 @@
 // NACKSender.swift — Selective retransmission (NACK) requester
-// GridStreamer macOS Client
+// NVRemote macOS Client
 //
-// Mirrors the C++ NackSender from gridstreamer-viewer. Tracks incoming packet
+// Mirrors the C++ NackSender from nvremote-viewer. Tracks incoming packet
 // sequence numbers, detects gaps, and sends NACK packets (type=0xFD) requesting
 // retransmission of missing packets.
 
@@ -39,7 +39,7 @@ final class NACKSender: @unchecked Sendable {
 
     /// Background timer for gap checking.
     private var timer: DispatchSourceTimer?
-    private let timerQueue = DispatchQueue(label: "com.gridstreamer.nack-sender", qos: .userInteractive)
+    private let timerQueue = DispatchQueue(label: "com.nvremote.nack-sender", qos: .userInteractive)
 
     /// Statistics.
     private(set) var nacksSent: UInt64 = 0

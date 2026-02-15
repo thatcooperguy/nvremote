@@ -1,11 +1,11 @@
-BINARY_NAME := gridstreamer-gateway
-MODULE := github.com/nvidia/gridstreamer/gateway
+BINARY_NAME := nvremote-gateway
+MODULE := github.com/nvidia/nvremote/gateway
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 BUILD_TIME := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-DOCKER_IMAGE := gridstreamer-gateway
+DOCKER_IMAGE := nvremote-gateway
 DOCKER_TAG ?= $(VERSION)
-DOCKER_REGISTRY ?= ghcr.io/nvidia/gridstreamer
+DOCKER_REGISTRY ?= ghcr.io/nvidia/nvremote
 
 GO := go
 GOFLAGS := -trimpath
@@ -46,8 +46,8 @@ deploy: build
 		exit 1; \
 	fi
 	scp bin/$(BINARY_NAME) $(GATEWAY_HOST):/usr/local/bin/$(BINARY_NAME)
-	scp scripts/gridstreamer-gateway.service $(GATEWAY_HOST):/etc/systemd/system/gridstreamer-gateway.service
-	ssh $(GATEWAY_HOST) "systemctl daemon-reload && systemctl restart gridstreamer-gateway"
+	scp scripts/nvremote-gateway.service $(GATEWAY_HOST):/etc/systemd/system/nvremote-gateway.service
+	ssh $(GATEWAY_HOST) "systemctl daemon-reload && systemctl restart nvremote-gateway"
 	@echo "Deployed $(BINARY_NAME) to $(GATEWAY_HOST)"
 
 ## test: Run all tests
@@ -80,7 +80,7 @@ clean:
 
 ## help: Show this help message
 help:
-	@echo "GridStreamer - Gateway Service"
+	@echo "NVRemote - Gateway Service"
 	@echo ""
 	@echo "Usage: make [target]"
 	@echo ""

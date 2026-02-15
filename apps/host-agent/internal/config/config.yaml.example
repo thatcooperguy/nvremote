@@ -1,28 +1,28 @@
-# GridStreamer Host Agent Configuration
-# Default location: C:\ProgramData\GridStreamer\agent.yaml
+# NVRemote Host Agent Configuration
+# Default location: C:\ProgramData\NVRemote\agent.yaml
 
 # Control plane URL (required)
-control_plane_url: "https://gridstreamer.example.com"
+control_plane_url: "https://nvremote.example.com"
 
 # Bootstrap token for initial host registration (required)
-# Obtain this from the GridStreamer admin console.
+# Obtain this from the NVRemote admin console.
 bootstrap_token: "your-bootstrap-token-here"
 
 # Human-readable name for this host (defaults to system hostname)
 # host_name: "my-gaming-pc"
 
-# Path to the gridstreamer-host executable
-streamer_path: "C:\\Program Files\\GridStreamer\\gridstreamer-host.exe"
+# Path to the nvremote-host executable
+streamer_path: "C:\\Program Files\\NVRemote\\nvremote-host.exe"
 
 # STUN servers for ICE candidate gathering
 stun_servers:
   - "stun.l.google.com:19302"
 
 # WireGuard gateway endpoint (typically assigned during registration)
-# gateway_endpoint: "gateway.gridstreamer.example.com:51820"
+# gateway_endpoint: "gateway.nvremote.example.com:51820"
 
 # Directory for agent state files (keys, registration data, logs)
-data_dir: "C:\\ProgramData\\GridStreamer"
+data_dir: "C:\\ProgramData\\NVRemote"
 
 # Log level: debug, info, warn, error
 log_level: "info"

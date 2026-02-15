@@ -37,8 +37,8 @@ function Logo() {
           />
           <path
             d="M18.5 6L11 17.5H15.5L13.5 26L21 14.5H16.5L18.5 6Z"
-            fill="#0A0A0A"
-            stroke="#0A0A0A"
+            fill="#FFFFFF"
+            stroke="#FFFFFF"
             strokeWidth="0.5"
             strokeLinejoin="round"
           />
@@ -56,11 +56,9 @@ function Logo() {
             </linearGradient>
           </defs>
         </svg>
-        {/* Glow effect on hover */}
-        <div className="absolute inset-0 rounded-lg bg-cs-green/0 group-hover:bg-cs-green/20 blur-xl transition-all duration-500 group-hover:scale-150" />
       </div>
-      <span className="text-xl font-bold tracking-tight">
-        GRID<span className="text-cs-green">STREAMER</span>
+      <span className="text-xl font-bold tracking-tight text-gray-900">
+        NV<span className="text-cs-green">REMOTE</span>
       </span>
     </Link>
   );
@@ -90,7 +88,7 @@ export default function Navbar() {
         className={cn(
           'transition-all duration-500 border-b',
           scrolled
-            ? 'glass-strong shadow-lg shadow-black/20 border-white/[0.06]'
+            ? 'glass-strong shadow-sm border-gray-200/60'
             : 'bg-transparent border-transparent'
         )}
       >
@@ -112,28 +110,28 @@ export default function Navbar() {
                     className={cn(
                       'relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
                       isActive
-                        ? 'text-cs-green'
-                        : 'text-cs-gray-200 hover:text-white hover:bg-white/5'
+                        ? 'text-cs-green-600'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/60'
                     )}
                   >
                     {link.label}
                     {/* Active indicator -- green dot */}
                     {isActive && (
-                      <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-cs-green shadow-[0_0_8px_rgba(118,185,0,0.6)]" />
+                      <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-cs-green" />
                     )}
                   </Link>
                 );
               })}
 
               {/* Divider */}
-              <div className="w-px h-5 bg-white/[0.08] mx-2" />
+              <div className="w-px h-5 bg-gray-200 mx-2" />
 
               {/* Star on GitHub button */}
               <a
                 href={GITHUB_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.02] text-sm font-medium text-cs-gray-200 hover:text-white hover:border-cs-green/30 hover:bg-cs-green/5 transition-all duration-200"
+                className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:text-gray-900 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
               >
                 <Github size={18} />
                 <span className="hidden lg:inline">Star on GitHub</span>
@@ -143,7 +141,7 @@ export default function Navbar() {
 
             {/* Mobile menu button */}
             <button
-              className="md:hidden p-2 rounded-lg text-cs-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+              className="md:hidden p-2 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle menu"
             >
@@ -162,7 +160,7 @@ export default function Navbar() {
               transition={{ duration: 0.3, ease: 'easeInOut' }}
               className="md:hidden overflow-hidden"
             >
-              <div className="border-t border-white/[0.06] bg-cs-dark/95 backdrop-blur-2xl">
+              <div className="border-t border-gray-200 bg-white/95 backdrop-blur-2xl">
                 <div className="section-padding py-4 flex flex-col gap-1">
                   {navLinks.map((link, i) => {
                     const isActive =
@@ -182,12 +180,12 @@ export default function Navbar() {
                           className={cn(
                             'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-200',
                             isActive
-                              ? 'text-cs-green bg-cs-green/10'
-                              : 'text-cs-gray-200 hover:text-white hover:bg-white/5'
+                              ? 'text-cs-green-600 bg-cs-green/5'
+                              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                           )}
                         >
                           {isActive && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-cs-green shadow-[0_0_6px_rgba(118,185,0,0.5)]" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-cs-green" />
                           )}
                           {link.label}
                         </Link>
@@ -202,12 +200,12 @@ export default function Navbar() {
                       duration: 0.2,
                     }}
                   >
-                    <div className="h-px bg-white/[0.06] my-2" />
+                    <div className="h-px bg-gray-200 my-2" />
                     <a
                       href={GITHUB_URL}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-4 py-3 rounded-lg text-sm font-medium text-cs-gray-200 hover:text-white hover:bg-white/5 transition-colors duration-200 flex items-center gap-2"
+                      className="px-4 py-3 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors duration-200 flex items-center gap-2"
                     >
                       <Github size={18} />
                       Star on GitHub

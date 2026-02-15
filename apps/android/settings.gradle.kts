@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "GridStreamer"
+rootProject.name = "NVRemote"
 include(":app")

@@ -1,5 +1,5 @@
 ##############################################################################
-# GridStreamer — Website Module Variables
+# NVRemote — Website Module Variables
 ##############################################################################
 
 variable "project_name" {

@@ -11,17 +11,17 @@ import (
 
 	"github.com/kardianos/service"
 
-	"github.com/nvidia/gridstreamer/host-agent/internal/config"
-	"github.com/nvidia/gridstreamer/host-agent/internal/heartbeat"
-	"github.com/nvidia/gridstreamer/host-agent/internal/p2p"
-	"github.com/nvidia/gridstreamer/host-agent/internal/registration"
-	"github.com/nvidia/gridstreamer/host-agent/internal/streamer"
+	"github.com/nvidia/nvremote/host-agent/internal/config"
+	"github.com/nvidia/nvremote/host-agent/internal/heartbeat"
+	"github.com/nvidia/nvremote/host-agent/internal/p2p"
+	"github.com/nvidia/nvremote/host-agent/internal/registration"
+	"github.com/nvidia/nvremote/host-agent/internal/streamer"
 )
 
 const (
-	serviceName        = "GridStreamerAgent"
-	serviceDisplayName = "GridStreamer Host Agent"
-	serviceDescription = "Host agent for GridStreamer - manages gridstreamer-host process and P2P session signaling"
+	serviceName        = "NVRemoteAgent"
+	serviceDisplayName = "NVRemote Host Agent"
+	serviceDescription = "Host agent for NVRemote - manages nvremote-host process and P2P session signaling"
 )
 
 // agent implements kardianos/service.Interface for Windows service lifecycle.
@@ -56,7 +56,7 @@ func (a *agent) run() {
 
 func main() {
 	var (
-		configPath  = flag.String("config", "", "path to config file (default: C:\\ProgramData\\GridStreamer\\agent.yaml)")
+		configPath  = flag.String("config", "", "path to config file (default: C:\\ProgramData\\NVRemote\\agent.yaml)")
 		doInstall   = flag.Bool("install", false, "install as Windows service")
 		doUninstall = flag.Bool("uninstall", false, "uninstall Windows service")
 		doRun       = flag.Bool("run", false, "run in foreground (non-service mode)")
@@ -134,26 +134,26 @@ func main() {
 }
 
 // runAgent performs the core agent lifecycle:
-//  1. Detect gridstreamer-host binary
+//  1. Detect nvremote-host binary
 //  2. Register with control plane (or load existing registration)
-//  3. Start gridstreamer-host process in standby mode
+//  3. Start nvremote-host process in standby mode
 //  4. Start heartbeat + WebSocket signaling with P2P session handling
 //  5. On shutdown: stop streamer, clean up
 func runAgent(ctx context.Context, cfg *config.Config) error {
-	slog.Info("starting GridStreamer host agent",
+	slog.Info("starting NVRemote host agent",
 		"controlPlane", cfg.ControlPlaneURL,
 		"hostname", cfg.HostName,
 	)
 
-	// Step 1: Create streamer manager and detect the gridstreamer-host binary.
+	// Step 1: Create streamer manager and detect the nvremote-host binary.
 	streamerMgr := streamer.NewManager(cfg)
 
 	info, err := streamerMgr.Detect()
 	if err != nil {
-		return fmt.Errorf("gridstreamer-host not found: %w (ensure gridstreamer-host.exe is installed at %s)", err, cfg.StreamerPath)
+		return fmt.Errorf("nvremote-host not found: %w (ensure nvremote-host.exe is installed at %s)", err, cfg.StreamerPath)
 	}
 
-	slog.Info("gridstreamer-host detected",
+	slog.Info("nvremote-host detected",
 		"path", info.Path,
 		"version", info.Version,
 		"codecs", info.Codecs,
@@ -173,22 +173,22 @@ func runAgent(ctx context.Context, cfg *config.Config) error {
 		slog.Info("loaded existing registration", "hostId", reg.HostID)
 	}
 
-	// Step 3: Start gridstreamer-host in standby mode.
+	// Step 3: Start nvremote-host in standby mode.
 	// Unlike the old flow, there is no WireGuard tunnel to set up.
 	// P2P connectivity is established per-session via ICE signaling.
 	if err := streamerMgr.Start(); err != nil {
-		slog.Error("failed to start gridstreamer-host", "error", err)
+		slog.Error("failed to start nvremote-host", "error", err)
 		// Non-fatal: continue and report status via heartbeat.
 		// The control plane will see "degraded-no-streamer" status.
 	} else {
-		slog.Info("gridstreamer-host started in standby mode")
+		slog.Info("nvremote-host started in standby mode")
 	}
 
 	// Ensure streamer is stopped on shutdown.
 	defer func() {
-		slog.Info("shutting down gridstreamer-host")
+		slog.Info("shutting down nvremote-host")
 		if err := streamerMgr.Stop(); err != nil {
-			slog.Error("failed to stop gridstreamer-host", "error", err)
+			slog.Error("failed to stop nvremote-host", "error", err)
 		}
 	}()
 

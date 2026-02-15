@@ -1,5 +1,5 @@
 // StatusBadge.swift — Online/offline/streaming status badge
-// GridStreamer macOS Client
+// NVRemote macOS Client
 
 import SwiftUI
 

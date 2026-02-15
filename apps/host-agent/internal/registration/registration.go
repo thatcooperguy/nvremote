@@ -1,4 +1,4 @@
-// Package registration handles host registration with the GridStreamer control plane.
+// Package registration handles host registration with the NVRemote control plane.
 package registration
 
 import (
@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nvidia/gridstreamer/host-agent/internal/config"
+	"github.com/nvidia/nvremote/host-agent/internal/config"
 )
 
 const registrationFile = "registration.json"
@@ -160,7 +160,7 @@ func detectGPU() (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-// detectStreamerVersion attempts to get the version from gridstreamer-host.
+// detectStreamerVersion attempts to get the version from nvremote-host.
 func detectStreamerVersion(path string) (string, error) {
 	if path == "" {
 		return "", fmt.Errorf("streamer path not configured")

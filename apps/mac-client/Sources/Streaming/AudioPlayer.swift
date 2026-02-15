@@ -1,5 +1,5 @@
 // AudioPlayer.swift — Low-latency audio playback via AVAudioEngine
-// GridStreamer macOS Client
+// NVRemote macOS Client
 //
 // Plays decoded PCM audio using AVAudioEngine with a small buffer (2-3 frames)
 // for continuity. Uses a schedule-ahead model: decoded frames are queued onto
@@ -14,7 +14,7 @@ final class AudioPlayer: @unchecked Sendable {
 
     // MARK: - Configuration
 
-    /// Audio sample rate (48kHz for GridStreamer).
+    /// Audio sample rate (48kHz for NVRemote).
     let sampleRate: Double = 48000.0
 
     /// Number of channels (stereo).

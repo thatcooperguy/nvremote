@@ -125,7 +125,7 @@ export async function POST(request: Request) {
     duration: '0m',
     relay: body.relay || false,
     token: `cs_${Array.from({ length: 32 }, () => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 62)]).join('')}`,
-    sessionUrl: `https://gridstreamer.com/s/${Math.random().toString(36).slice(2, 10)}`,
+    sessionUrl: `https://nvremote.com/s/${Math.random().toString(36).slice(2, 10)}`,
     createdAt: new Date().toISOString(),
   };
 

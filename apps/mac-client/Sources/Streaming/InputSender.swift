@@ -1,13 +1,13 @@
 // InputSender.swift — Serialize input events and send over UDP
-// GridStreamer macOS Client
+// NVRemote macOS Client
 //
-// Mirrors the C++ InputSender from gridstreamer-viewer. Takes CapturedInputEvents,
+// Mirrors the C++ InputSender from nvremote-viewer. Takes CapturedInputEvents,
 // serializes them into the wire format (InputPacketHeader + payload), and sends
 // them immediately over the UDP transport for lowest latency.
 
 import Foundation
 
-/// Serializes captured input events into the GridStreamer wire format
+/// Serializes captured input events into the NVRemote wire format
 /// and sends them to the host via the UDP transport.
 final class InputSender: @unchecked Sendable {
 

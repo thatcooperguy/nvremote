@@ -11,15 +11,15 @@ import (
 
 const (
 	// DefaultConfigPath is the default location for the agent configuration file.
-	DefaultConfigPath = `C:\ProgramData\GridStreamer\agent.yaml`
+	DefaultConfigPath = `C:\ProgramData\NVRemote\agent.yaml`
 
 	// DefaultDataDir is the default directory for agent state files.
-	DefaultDataDir = `C:\ProgramData\GridStreamer`
+	DefaultDataDir = `C:\ProgramData\NVRemote`
 )
 
 // Config holds all configuration for the host agent.
 type Config struct {
-	// ControlPlaneURL is the base URL of the GridStreamer control plane API.
+	// ControlPlaneURL is the base URL of the NVRemote control plane API.
 	ControlPlaneURL string `mapstructure:"control_plane_url" yaml:"control_plane_url"`
 
 	// BootstrapToken is a one-time token used to register this host with the control plane.
@@ -28,7 +28,7 @@ type Config struct {
 	// HostName is the human-readable name for this host machine.
 	HostName string `mapstructure:"host_name" yaml:"host_name"`
 
-	// StreamerPath is the file path to the gridstreamer-host.exe binary.
+	// StreamerPath is the file path to the nvremote-host.exe binary.
 	StreamerPath string `mapstructure:"streamer_path" yaml:"streamer_path"`
 
 	// StunServers is a list of STUN servers used for ICE candidate gathering.
@@ -81,11 +81,11 @@ func Load(configPath string) (*Config, error) {
 	// Set defaults.
 	v.SetDefault("data_dir", DefaultDataDir)
 	v.SetDefault("log_level", "info")
-	v.SetDefault("streamer_path", `C:\Program Files\GridStreamer\gridstreamer-host.exe`)
+	v.SetDefault("streamer_path", `C:\Program Files\NVRemote\nvremote-host.exe`)
 	v.SetDefault("stun_servers", []string{"stun.l.google.com:19302"})
 
 	// Deprecated defaults (kept for backward compatibility).
-	v.SetDefault("nvstreamer_path", `C:\Program Files\GridStreamer\gridstreamer-host.exe`)
+	v.SetDefault("nvstreamer_path", `C:\Program Files\NVRemote\nvremote-host.exe`)
 	v.SetDefault("nvstreamer_ports.video", 8443)
 	v.SetDefault("nvstreamer_ports.audio", 8444)
 	v.SetDefault("nvstreamer_ports.input", 8445)
@@ -98,29 +98,29 @@ func Load(configPath string) (*Config, error) {
 	}
 
 	// Configure environment variable overrides.
-	v.SetEnvPrefix("GRIDSTREAMER")
+	v.SetEnvPrefix("NVREMOTE")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
 	// Bind specific environment variables to config keys.
 	envBindings := map[string]string{
-		"control_plane_url": "GRIDSTREAMER_CONTROL_PLANE_URL",
-		"bootstrap_token":   "GRIDSTREAMER_BOOTSTRAP_TOKEN",
-		"host_name":         "GRIDSTREAMER_HOST_NAME",
-		"streamer_path":     "GRIDSTREAMER_STREAMER_PATH",
-		"stun_servers":      "GRIDSTREAMER_STUN_SERVERS",
-		"turn_server":       "GRIDSTREAMER_TURN_SERVER",
-		"turn_username":     "GRIDSTREAMER_TURN_USERNAME",
-		"turn_credential":   "GRIDSTREAMER_TURN_CREDENTIAL",
-		"data_dir":          "GRIDSTREAMER_DATA_DIR",
-		"log_level":         "GRIDSTREAMER_LOG_LEVEL",
+		"control_plane_url": "NVREMOTE_CONTROL_PLANE_URL",
+		"bootstrap_token":   "NVREMOTE_BOOTSTRAP_TOKEN",
+		"host_name":         "NVREMOTE_HOST_NAME",
+		"streamer_path":     "NVREMOTE_STREAMER_PATH",
+		"stun_servers":      "NVREMOTE_STUN_SERVERS",
+		"turn_server":       "NVREMOTE_TURN_SERVER",
+		"turn_username":     "NVREMOTE_TURN_USERNAME",
+		"turn_credential":   "NVREMOTE_TURN_CREDENTIAL",
+		"data_dir":          "NVREMOTE_DATA_DIR",
+		"log_level":         "NVREMOTE_LOG_LEVEL",
 
 		// Deprecated bindings (kept for backward compatibility).
-		"nvstreamer_path":        "GRIDSTREAMER_NVSTREAMER_PATH",
-		"nvstreamer_ports.video": "GRIDSTREAMER_NVSTREAMER_PORTS_VIDEO",
-		"nvstreamer_ports.audio": "GRIDSTREAMER_NVSTREAMER_PORTS_AUDIO",
-		"nvstreamer_ports.input": "GRIDSTREAMER_NVSTREAMER_PORTS_INPUT",
-		"gateway_endpoint":       "GRIDSTREAMER_GATEWAY_ENDPOINT",
+		"nvstreamer_path":        "NVREMOTE_NVSTREAMER_PATH",
+		"nvstreamer_ports.video": "NVREMOTE_NVSTREAMER_PORTS_VIDEO",
+		"nvstreamer_ports.audio": "NVREMOTE_NVSTREAMER_PORTS_AUDIO",
+		"nvstreamer_ports.input": "NVREMOTE_NVSTREAMER_PORTS_INPUT",
+		"gateway_endpoint":       "NVREMOTE_GATEWAY_ENDPOINT",
 	}
 	for key, env := range envBindings {
 		_ = v.BindEnv(key, env)

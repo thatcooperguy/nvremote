@@ -1,5 +1,5 @@
 // AuthManager.swift — Google Sign-In + token management via ASWebAuthenticationSession
-// GridStreamer macOS Client
+// NVRemote macOS Client
 
 import Foundation
 import AuthenticationServices
@@ -31,8 +31,8 @@ final class AuthManager: NSObject, ObservableObject {
     var clientID: String = ""
 
     /// The redirect URI scheme registered for this app.
-    private let redirectScheme = "com.gridstreamer.mac-client"
-    private let redirectURI = "com.gridstreamer.mac-client:/oauth2callback"
+    private let redirectScheme = "com.nvremote.mac-client"
+    private let redirectURI = "com.nvremote.mac-client:/oauth2callback"
 
     /// Google OAuth endpoints.
     private let authorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth"

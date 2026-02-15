@@ -18,7 +18,7 @@ func main() {
 	}))
 	slog.SetDefault(logger)
 
-	slog.Info("starting GridStreamer Gateway")
+	slog.Info("starting NVRemote Gateway")
 
 	// Load configuration from env vars and config file.
 	cfg, err := LoadConfig()

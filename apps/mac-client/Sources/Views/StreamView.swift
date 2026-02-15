@@ -1,5 +1,5 @@
 // StreamView.swift — Full-screen streaming view with Metal rendering
-// GridStreamer macOS Client
+// NVRemote macOS Client
 
 import SwiftUI
 import MetalKit

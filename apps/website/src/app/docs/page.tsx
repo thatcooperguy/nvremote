@@ -32,7 +32,7 @@ function SubSection({ id, children }: { id: string; children: string }) {
   return (
     <h3
       id={id}
-      className="text-xl font-semibold text-white mb-4 mt-10 scroll-mt-24"
+      className="text-xl font-semibold text-gray-900 mb-4 mt-10 scroll-mt-24"
     >
       <a href={`#${id}`} className="group">
         {children}
@@ -76,7 +76,7 @@ function InfoBox({
 
   const iconColorMap = {
     info: 'text-blue-400',
-    warning: 'text-amber-400',
+    warning: 'text-amber-600',
     tip: 'text-cs-green',
   };
 
@@ -87,7 +87,7 @@ function InfoBox({
       >
         {labelMap[type]}
       </div>
-      <div className="text-sm text-cs-gray-200 leading-relaxed">{children}</div>
+      <div className="text-sm text-gray-700 leading-relaxed">{children}</div>
     </div>
   );
 }
@@ -107,8 +107,8 @@ function StepItem({
         <span className="text-xs font-bold text-cs-green">{number}</span>
       </div>
       <div>
-        <p className="text-sm text-white font-medium mb-1">{title}</p>
-        <div className="text-sm text-cs-gray-300">{children}</div>
+        <p className="text-sm text-gray-900 font-medium mb-1">{title}</p>
+        <div className="text-sm text-gray-600">{children}</div>
       </div>
     </div>
   );
@@ -171,7 +171,7 @@ export default function DocsPage() {
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-5">
               <span className="text-gradient">Documentation</span>
             </h1>
-            <p className="text-lg text-cs-gray-200 max-w-xl mx-auto leading-relaxed">
+            <p className="text-lg text-gray-700 max-w-xl mx-auto leading-relaxed">
               Everything you need to get NVRemote up and running. From
               installation to advanced configuration.
             </p>
@@ -188,7 +188,7 @@ export default function DocsPage() {
           <aside className="hidden lg:block w-56 shrink-0">
             <nav className="sticky top-24">
               <div className="gradient-border p-5">
-                <h4 className="text-xs font-semibold text-cs-gray-400 uppercase tracking-wider mb-4">
+                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
                   On this page
                 </h4>
                 <ul className="space-y-1">
@@ -196,7 +196,7 @@ export default function DocsPage() {
                     <li key={item.href}>
                       <a
                         href={item.href}
-                        className="block px-3 py-1.5 text-sm text-cs-gray-300 hover:text-cs-green rounded-lg hover:bg-cs-green/5 transition-all duration-200"
+                        className="block px-3 py-1.5 text-sm text-gray-600 hover:text-cs-green rounded-lg hover:bg-cs-green/5 transition-all duration-200"
                       >
                         {item.label}
                       </a>
@@ -204,12 +204,12 @@ export default function DocsPage() {
                   ))}
                 </ul>
 
-                <div className="mt-6 pt-5 border-t border-white/[0.06]">
+                <div className="mt-6 pt-5 border-t border-gray-200">
                   <a
                     href="https://github.com/thatcooperguy/nvstreamer"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-cs-gray-300 hover:text-cs-green transition-colors"
+                    className="flex items-center gap-2 text-sm text-gray-600 hover:text-cs-green transition-colors"
                   >
                     <svg
                       width="16"
@@ -232,17 +232,17 @@ export default function DocsPage() {
               {/* ---- Prerequisites ---- */}
               <SectionAnchor id="prerequisites">Prerequisites</SectionAnchor>
 
-              <p className="text-cs-gray-200 mb-6 leading-relaxed">
+              <p className="text-gray-700 mb-6 leading-relaxed">
                 Before you begin, make sure both your host (streaming) PC and
                 client (receiving) device meet the following requirements.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
                 <div className="gradient-border p-6 sm:p-8">
-                  <h4 className="text-sm font-semibold text-white mb-3">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">
                     Host Machine (Stream FROM)
                   </h4>
-                  <ul className="space-y-2 text-sm text-cs-gray-300">
+                  <ul className="space-y-2 text-sm text-gray-600">
                     <CheckItem>Windows 10 or 11 (x64)</CheckItem>
                     <CheckItem>NVIDIA GPU (GTX 900 series or newer)</CheckItem>
                     <CheckItem>NVIDIA Driver 535 or newer</CheckItem>
@@ -252,10 +252,10 @@ export default function DocsPage() {
                 </div>
 
                 <div className="gradient-border p-6 sm:p-8">
-                  <h4 className="text-sm font-semibold text-white mb-3">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">
                     Client Machine (Stream TO)
                   </h4>
-                  <ul className="space-y-2 text-sm text-cs-gray-300">
+                  <ul className="space-y-2 text-sm text-gray-600">
                     <CheckItem>Windows 10 or 11 (x64)</CheckItem>
                     <CheckItem>Any GPU with hardware video decode</CheckItem>
                     <CheckItem>4 GB RAM minimum</CheckItem>
@@ -276,7 +276,7 @@ export default function DocsPage() {
               {/* ---- Install Host ---- */}
               <SectionAnchor id="install-host">Install Host</SectionAnchor>
 
-              <p className="text-cs-gray-200 mb-6 leading-relaxed">
+              <p className="text-gray-700 mb-6 leading-relaxed">
                 The NVRemote Host runs on the PC with your NVIDIA GPU and
                 games installed. It captures your screen using NvFBC, encodes
                 with NVENC, and streams directly to connected clients.
@@ -324,7 +324,7 @@ export default function DocsPage() {
                 Install Client
               </SectionAnchor>
 
-              <p className="text-cs-gray-200 mb-6 leading-relaxed">
+              <p className="text-gray-700 mb-6 leading-relaxed">
                 The NVRemote Client connects to your host and renders the
                 stream. It handles input capture, hardware video decode, and
                 display.
@@ -357,7 +357,7 @@ export default function DocsPage() {
               {/* ---- Connect ---- */}
               <SectionAnchor id="connect">Connect</SectionAnchor>
 
-              <p className="text-cs-gray-200 mb-6 leading-relaxed">
+              <p className="text-gray-700 mb-6 leading-relaxed">
                 Once both the host and client are installed and signed in with
                 the same account, connecting is straightforward.
               </p>
@@ -395,7 +395,7 @@ export default function DocsPage() {
               {/* ---- Gaming Modes ---- */}
               <SectionAnchor id="gaming-modes">Gaming Modes</SectionAnchor>
 
-              <p className="text-cs-gray-200 mb-8 leading-relaxed">
+              <p className="text-gray-700 mb-8 leading-relaxed">
                 NVRemote offers three streaming modes, each optimized for
                 different types of games and network conditions. You can switch
                 between modes at any time during a session.
@@ -417,14 +417,14 @@ export default function DocsPage() {
               {/* ---- Configuration ---- */}
               <SectionAnchor id="configuration">Configuration</SectionAnchor>
 
-              <p className="text-cs-gray-200 mb-6 leading-relaxed">
+              <p className="text-gray-700 mb-6 leading-relaxed">
                 NVRemote works out of the box with sensible defaults, but you
                 can fine-tune settings for your specific setup.
               </p>
 
               <SubSection id="config-host">Host Configuration</SubSection>
 
-              <p className="text-sm text-cs-gray-300 mb-4">
+              <p className="text-sm text-gray-600 mb-4">
                 The host configuration file is located at:
               </p>
 
@@ -484,10 +484,10 @@ overlay:
 
               <div className="space-y-6">
                 <div className="gradient-border p-6 sm:p-8">
-                  <h4 className="text-sm font-semibold text-white mb-2">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">
                     Host not appearing in client
                   </h4>
-                  <ul className="space-y-1.5 text-sm text-cs-gray-300">
+                  <ul className="space-y-1.5 text-sm text-gray-600">
                     <li>
                       - Ensure both devices are signed in with the same account
                     </li>
@@ -505,10 +505,10 @@ overlay:
                 </div>
 
                 <div className="gradient-border p-6 sm:p-8">
-                  <h4 className="text-sm font-semibold text-white mb-2">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">
                     High latency or stuttering
                   </h4>
-                  <ul className="space-y-1.5 text-sm text-cs-gray-300">
+                  <ul className="space-y-1.5 text-sm text-gray-600">
                     <li>
                       - Switch to a wired Ethernet connection if on Wi-Fi
                     </li>
@@ -528,10 +528,10 @@ overlay:
                 </div>
 
                 <div className="gradient-border p-6 sm:p-8">
-                  <h4 className="text-sm font-semibold text-white mb-2">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">
                     Black screen or no video
                   </h4>
-                  <ul className="space-y-1.5 text-sm text-cs-gray-300">
+                  <ul className="space-y-1.5 text-sm text-gray-600">
                     <li>
                       - Update your NVIDIA driver to version 535 or newer
                     </li>
@@ -549,10 +549,10 @@ overlay:
                 </div>
 
                 <div className="gradient-border p-6 sm:p-8">
-                  <h4 className="text-sm font-semibold text-white mb-2">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">
                     Audio not streaming
                   </h4>
-                  <ul className="space-y-1.5 text-sm text-cs-gray-300">
+                  <ul className="space-y-1.5 text-sm text-gray-600">
                     <li>
                       - NVRemote captures system audio by default; check
                       volume levels
@@ -599,7 +599,7 @@ overlay:
                   <div className="orb orb-green-dim w-[300px] h-[300px] -top-20 -right-20" />
 
                   <div className="relative text-center">
-                    <p className="text-cs-gray-300 mb-6">
+                    <p className="text-gray-600 mb-6">
                       Full source code and extended documentation available on
                       GitHub.
                     </p>

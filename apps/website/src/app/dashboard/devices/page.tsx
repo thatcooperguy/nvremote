@@ -93,9 +93,9 @@ const devices: Device[] = [
 
 const statusStyles: Record<string, { dot: string; text: string }> = {
   Online: { dot: 'bg-cs-green', text: 'text-cs-green' },
-  Idle: { dot: 'bg-amber-400', text: 'text-amber-400' },
-  Offline: { dot: 'bg-cs-gray-400', text: 'text-cs-gray-400' },
-  'Coming Soon': { dot: 'bg-cs-gray-500', text: 'text-cs-gray-500' },
+  Idle: { dot: 'bg-amber-400', text: 'text-amber-600' },
+  Offline: { dot: 'bg-gray-400', text: 'text-gray-400' },
+  'Coming Soon': { dot: 'bg-gray-400', text: 'text-gray-400' },
 };
 
 export default function DevicesPage() {
@@ -107,7 +107,7 @@ export default function DevicesPage() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="text-2xl sm:text-3xl font-bold text-white tracking-tight"
+          className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight"
         >
           Connected Devices
         </motion.h1>
@@ -115,7 +115,7 @@ export default function DevicesPage() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="text-sm text-cs-gray-400 mt-1"
+          className="text-sm text-gray-500 mt-1"
         >
           Manage authorized clients across platforms
         </motion.p>
@@ -140,7 +140,7 @@ export default function DevicesPage() {
                   className={cn(
                     'w-10 h-10 rounded-xl flex items-center justify-center border',
                     device.comingSoon
-                      ? 'bg-cs-gray-700/50 border-cs-gray-600/30'
+                      ? 'bg-gray-100 border-gray-200'
                       : 'bg-cs-green/10 border-cs-green/20'
                   )}
                 >
@@ -148,20 +148,20 @@ export default function DevicesPage() {
                     className={cn(
                       'w-5 h-5',
                       device.comingSoon
-                        ? 'text-cs-gray-500'
+                        ? 'text-gray-400'
                         : 'text-cs-green'
                     )}
                   />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-white">
+                  <h3 className="text-sm font-semibold text-gray-900">
                     {device.name}
                   </h3>
-                  <p className="text-xs text-cs-gray-400">{device.platform}</p>
+                  <p className="text-xs text-gray-500">{device.platform}</p>
                 </div>
               </div>
               {device.comingSoon ? (
-                <span className="px-2 py-0.5 rounded-md bg-cs-gray-600/30 border border-cs-gray-500/20 text-[10px] font-bold text-cs-gray-400 tracking-wider uppercase">
+                <span className="px-2 py-0.5 rounded-md bg-gray-100 border border-gray-300 text-[10px] font-bold text-gray-400 tracking-wider uppercase">
                   Soon
                 </span>
               ) : (
@@ -189,22 +189,22 @@ export default function DevicesPage() {
               <>
                 <div className="space-y-2.5 mb-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-cs-gray-500">Last seen</span>
-                    <span className="text-xs text-cs-gray-300">
+                    <span className="text-xs text-gray-400">Last seen</span>
+                    <span className="text-xs text-gray-600">
                       {device.lastSeen}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-cs-gray-500">IP Address</span>
-                    <span className="text-xs font-mono text-cs-gray-300">
+                    <span className="text-xs text-gray-400">IP Address</span>
+                    <span className="text-xs font-mono text-gray-600">
                       {device.ip}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-cs-gray-500">Auth Method</span>
-                    <span className="inline-flex items-center gap-1 text-xs text-cs-gray-300">
+                    <span className="text-xs text-gray-400">Auth Method</span>
+                    <span className="inline-flex items-center gap-1 text-xs text-gray-600">
                       {device.auth === 'API Key' ? (
-                        <Key className="w-3 h-3 text-amber-400" />
+                        <Key className="w-3 h-3 text-amber-600" />
                       ) : (
                         <ShieldCheck className="w-3 h-3 text-cs-green" />
                       )}
@@ -213,8 +213,8 @@ export default function DevicesPage() {
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-white/[0.04]">
-                  <button className="text-xs font-medium text-cs-gray-500 hover:text-red-400 transition-colors">
+                <div className="pt-3 border-t border-gray-200/60">
+                  <button className="text-xs font-medium text-gray-400 hover:text-red-400 transition-colors">
                     Revoke Access
                   </button>
                 </div>
@@ -222,7 +222,7 @@ export default function DevicesPage() {
             )}
 
             {device.comingSoon && (
-              <p className="text-xs text-cs-gray-500 mt-2">
+              <p className="text-xs text-gray-400 mt-2">
                 Support for this platform is under development.
               </p>
             )}

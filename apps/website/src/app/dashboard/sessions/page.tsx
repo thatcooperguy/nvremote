@@ -41,14 +41,14 @@ const activeSessions = [
 
 const statusColors: Record<string, string> = {
   Active: 'bg-cs-green/10 text-cs-green border-cs-green/20',
-  Connecting: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  Idle: 'bg-cs-gray-600/30 text-cs-gray-300 border-cs-gray-500/20',
+  Connecting: 'bg-amber-50 text-amber-600 border-amber-200',
+  Idle: 'bg-gray-100 text-gray-500 border-gray-300',
 };
 
 const statusDots: Record<string, string> = {
   Active: 'bg-cs-green',
   Connecting: 'bg-amber-400 animate-pulse',
-  Idle: 'bg-cs-gray-400',
+  Idle: 'bg-gray-400',
 };
 
 export default function SessionsPage() {
@@ -86,9 +86,9 @@ export default function SessionsPage() {
   };
 
   const inputClass =
-    'w-full bg-cs-surface border border-white/[0.08] rounded-lg px-4 py-3 text-sm text-white placeholder:text-cs-gray-400 focus:border-cs-green/50 focus:ring-1 focus:ring-cs-green/20 focus:outline-none transition-colors';
+    'w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 focus:border-cs-green/50 focus:ring-1 focus:ring-cs-green/20 focus:outline-none transition-colors';
   const selectClass =
-    'w-full bg-cs-surface border border-white/[0.08] rounded-lg px-4 py-3 text-sm text-white focus:border-cs-green/50 focus:ring-1 focus:ring-cs-green/20 focus:outline-none transition-colors appearance-none';
+    'w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 focus:border-cs-green/50 focus:ring-1 focus:ring-cs-green/20 focus:outline-none transition-colors appearance-none';
 
   const qualityLabels: Record<string, string> = {
     competitive: '1080p / 240 FPS',
@@ -104,7 +104,7 @@ export default function SessionsPage() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="text-2xl sm:text-3xl font-bold text-white tracking-tight"
+          className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight"
         >
           Session Management
         </motion.h1>
@@ -112,7 +112,7 @@ export default function SessionsPage() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="text-sm text-cs-gray-400 mt-1"
+          className="text-sm text-gray-500 mt-1"
         >
           Create and manage streaming sessions
         </motion.p>
@@ -125,7 +125,7 @@ export default function SessionsPage() {
         transition={{ duration: 0.5, delay: 0.15 }}
         className="gradient-border p-5 sm:p-6 relative overflow-hidden"
       >
-        <h2 className="text-lg font-semibold text-white mb-5">
+        <h2 className="text-lg font-semibold text-gray-900 mb-5">
           Generate Secure Session
         </h2>
 
@@ -140,7 +140,7 @@ export default function SessionsPage() {
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-cs-gray-300 mb-1.5">
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
                     Session Name
                   </label>
                   <input
@@ -152,7 +152,7 @@ export default function SessionsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-cs-gray-300 mb-1.5">
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
                     Target Host
                   </label>
                   <input
@@ -167,7 +167,7 @@ export default function SessionsPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-cs-gray-300 mb-1.5">
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
                     Transport
                   </label>
                   <select
@@ -180,7 +180,7 @@ export default function SessionsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-cs-gray-300 mb-1.5">
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
                     Quality Preset
                   </label>
                   <select
@@ -200,10 +200,10 @@ export default function SessionsPage() {
               {/* Relay toggle */}
               <div className="flex items-center justify-between py-2">
                 <div>
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-gray-900">
                     Enable Secure Relay
                   </p>
-                  <p className="text-xs text-cs-gray-400 mt-0.5">
+                  <p className="text-xs text-gray-500 mt-0.5">
                     Route traffic through an encrypted relay server
                   </p>
                 </div>
@@ -211,7 +211,7 @@ export default function SessionsPage() {
                   onClick={() => setRelayEnabled(!relayEnabled)}
                   className={cn(
                     'relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-cs-green/30',
-                    relayEnabled ? 'bg-cs-green' : 'bg-cs-gray-600'
+                    relayEnabled ? 'bg-cs-green' : 'bg-gray-300'
                   )}
                 >
                   <span
@@ -228,7 +228,7 @@ export default function SessionsPage() {
                 onClick={handleGenerate}
                 disabled={generating}
                 className={cn(
-                  'w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-cs-green text-cs-dark font-semibold text-sm rounded-lg hover:bg-cs-green-300 transition-all duration-300 shadow-glow hover:shadow-glow-lg',
+                  'w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-cs-green text-white font-semibold text-sm rounded-lg hover:bg-cs-green-300 transition-all duration-300 shadow-glow hover:shadow-glow-lg',
                   generating && 'opacity-80 cursor-wait'
                 )}
               >
@@ -273,10 +273,10 @@ export default function SessionsPage() {
                     <CheckCircle2 className="w-5 h-5 text-cs-green" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-white">
+                    <h3 className="text-lg font-semibold text-gray-900">
                       Session Created
                     </h3>
-                    <p className="text-xs text-cs-gray-400">
+                    <p className="text-xs text-gray-500">
                       Share the link below to start streaming
                     </p>
                   </div>
@@ -284,16 +284,16 @@ export default function SessionsPage() {
 
                 {/* Session link */}
                 <div>
-                  <label className="block text-xs font-medium text-cs-gray-400 mb-1.5">
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">
                     Session Link
                   </label>
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-cs-surface border border-white/[0.08] rounded-lg px-4 py-2.5 text-sm font-mono text-cs-green truncate">
+                    <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-mono text-cs-green truncate">
                       {sessionLink}
                     </div>
                     <button
                       onClick={() => handleCopy(sessionLink, 'link')}
-                      className="shrink-0 p-2.5 rounded-lg border border-white/[0.08] hover:border-cs-green/30 hover:bg-cs-green/5 text-cs-gray-300 hover:text-cs-green transition-all"
+                      className="shrink-0 p-2.5 rounded-lg border border-gray-200 hover:border-cs-green/30 hover:bg-cs-green/5 text-gray-600 hover:text-cs-green transition-all"
                     >
                       {copiedLink ? (
                         <CheckCircle2 className="w-4 h-4 text-cs-green" />
@@ -306,18 +306,18 @@ export default function SessionsPage() {
 
                 {/* Session token */}
                 <div>
-                  <label className="block text-xs font-medium text-cs-gray-400 mb-1.5">
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">
                     Session Token
                   </label>
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-cs-surface border border-white/[0.08] rounded-lg px-4 py-2.5 text-sm font-mono text-cs-gray-300 truncate">
+                    <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-mono text-gray-600 truncate">
                       {showToken
                         ? sessionToken
                         : 'cs_Kx9\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
                     </div>
                     <button
                       onClick={() => setShowToken(!showToken)}
-                      className="shrink-0 p-2.5 rounded-lg border border-white/[0.08] hover:border-cs-green/30 hover:bg-cs-green/5 text-cs-gray-300 hover:text-cs-green transition-all"
+                      className="shrink-0 p-2.5 rounded-lg border border-gray-200 hover:border-cs-green/30 hover:bg-cs-green/5 text-gray-600 hover:text-cs-green transition-all"
                     >
                       {showToken ? (
                         <EyeOff className="w-4 h-4" />
@@ -327,7 +327,7 @@ export default function SessionsPage() {
                     </button>
                     <button
                       onClick={() => handleCopy(sessionToken, 'token')}
-                      className="shrink-0 p-2.5 rounded-lg border border-white/[0.08] hover:border-cs-green/30 hover:bg-cs-green/5 text-cs-gray-300 hover:text-cs-green transition-all"
+                      className="shrink-0 p-2.5 rounded-lg border border-gray-200 hover:border-cs-green/30 hover:bg-cs-green/5 text-gray-600 hover:text-cs-green transition-all"
                     >
                       {copiedToken ? (
                         <CheckCircle2 className="w-4 h-4 text-cs-green" />
@@ -369,12 +369,12 @@ export default function SessionsPage() {
                   ].map((item) => (
                     <div
                       key={item.label}
-                      className="bg-cs-surface rounded-lg px-3 py-2.5 border border-white/[0.04]"
+                      className="bg-gray-50 rounded-lg px-3 py-2.5 border border-gray-200/60"
                     >
-                      <p className="text-[10px] text-cs-gray-500 uppercase tracking-wider font-medium">
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">
                         {item.label}
                       </p>
-                      <p className="text-sm font-medium text-white mt-0.5">
+                      <p className="text-sm font-medium text-gray-900 mt-0.5">
                         {item.value}
                       </p>
                     </div>
@@ -388,7 +388,7 @@ export default function SessionsPage() {
                     setSessionName('');
                     setTargetHost('');
                   }}
-                  className="text-sm text-cs-gray-400 hover:text-cs-green transition-colors font-medium"
+                  className="text-sm text-gray-500 hover:text-cs-green transition-colors font-medium"
                 >
                   Create another session
                 </button>
@@ -404,7 +404,7 @@ export default function SessionsPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.3 }}
       >
-        <h2 className="text-lg font-semibold text-white mb-4">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
           Active Sessions
         </h2>
         <div className="space-y-3">
@@ -415,7 +415,7 @@ export default function SessionsPage() {
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2.5">
-                  <span className="text-sm font-semibold text-white truncate">
+                  <span className="text-sm font-semibold text-gray-900 truncate">
                     {session.name}
                   </span>
                   <span
@@ -434,15 +434,15 @@ export default function SessionsPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-3 mt-1">
-                  <span className="text-xs font-mono text-cs-gray-400">
+                  <span className="text-xs font-mono text-gray-500">
                     {session.host}
                   </span>
-                  <span className="text-xs text-cs-gray-500">
+                  <span className="text-xs text-gray-400">
                     Latency: {session.latency}
                   </span>
                 </div>
               </div>
-              <button className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-cs-gray-400 hover:text-red-400 border border-white/[0.06] hover:border-red-500/30 rounded-lg transition-all">
+              <button className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-red-400 border border-gray-200 hover:border-red-500/30 rounded-lg transition-all">
                 <Unplug className="w-3.5 h-3.5" />
                 Disconnect
               </button>

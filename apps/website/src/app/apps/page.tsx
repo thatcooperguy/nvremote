@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 /*  Types                                                                      */
 /* -------------------------------------------------------------------------- */
 
-type AppStatus = 'Live' | 'Beta' | 'Experimental';
+type AppStatus = 'In Development' | 'Beta' | 'Experimental';
 
 interface AppEntry {
   name: string;
@@ -41,7 +41,7 @@ const statusConfig: Record<
     iconColor: string;
   }
 > = {
-  Live: {
+  'In Development': {
     badgeBg: 'bg-cs-green/[0.08]',
     badgeBorder: 'border-cs-green/20',
     badgeText: 'text-cs-green',
@@ -50,12 +50,12 @@ const statusConfig: Record<
     iconColor: 'text-cs-green',
   },
   Beta: {
-    badgeBg: 'bg-amber-500/[0.08]',
-    badgeBorder: 'border-amber-500/20',
-    badgeText: 'text-amber-400',
-    iconBg: 'bg-amber-500/10',
-    iconBorder: 'border-amber-500/20',
-    iconColor: 'text-amber-400',
+    badgeBg: 'bg-amber-50',
+    badgeBorder: 'border-amber-200',
+    badgeText: 'text-amber-600',
+    iconBg: 'bg-amber-50',
+    iconBorder: 'border-amber-200',
+    iconColor: 'text-amber-600',
   },
   Experimental: {
     badgeBg: 'bg-purple-500/[0.08]',
@@ -74,21 +74,21 @@ const statusConfig: Record<
 const apps: AppEntry[] = [
   {
     name: 'Remote Play',
-    status: 'Live',
+    status: 'In Development',
     description:
       'Stream games from your host to any device with sub-15ms latency.',
     icon: <Gamepad2 className="w-6 h-6" />,
   },
   {
     name: 'Secure Relay',
-    status: 'Live',
+    status: 'In Development',
     description:
       'DTLS-encrypted relay service for NAT traversal and secure connections.',
     icon: <Shield className="w-6 h-6" />,
   },
   {
     name: 'Session Manager',
-    status: 'Live',
+    status: 'In Development',
     description:
       'Create, manage, and share streaming sessions with token-based auth.',
     icon: <Settings2 className="w-6 h-6" />,
@@ -118,7 +118,7 @@ const apps: AppEntry[] = [
 
 const filterOptions: Array<'All' | AppStatus> = [
   'All',
-  'Live',
+  'In Development',
   'Beta',
   'Experimental',
 ];
@@ -158,7 +158,6 @@ const cardVariant = {
 
 function AppCard({ app }: { app: AppEntry }) {
   const config = statusConfig[app.status];
-  const isLive = app.status === 'Live';
 
   return (
     <motion.div
@@ -194,7 +193,7 @@ function AppCard({ app }: { app: AppEntry }) {
             <div
               className={cn(
                 'absolute inset-0 rounded-xl blur-xl transition-all duration-500 opacity-0 group-hover:opacity-100',
-                app.status === 'Live'
+                app.status === 'In Development'
                   ? 'bg-cs-green/10'
                   : app.status === 'Beta'
                   ? 'bg-amber-500/10'
@@ -217,28 +216,19 @@ function AppCard({ app }: { app: AppEntry }) {
         </div>
 
         {/* Title */}
-        <h3 className="text-lg font-bold text-white mb-3 tracking-tight">
+        <h3 className="text-lg font-bold text-gray-900 mb-3 tracking-tight">
           {app.name}
         </h3>
 
         {/* Description */}
-        <p className="text-sm text-cs-gray-300 leading-relaxed mb-6 flex-1">
+        <p className="text-sm text-gray-600 leading-relaxed mb-6 flex-1">
           {app.description}
         </p>
 
-        {/* Open Button */}
-        {isLive ? (
-          <button className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold rounded-xl bg-cs-green text-cs-dark hover:bg-cs-green-300 active:bg-cs-green-500 shadow-glow hover:shadow-glow-lg transition-all duration-300 overflow-hidden group/btn relative">
-            <div className="absolute inset-0 overflow-hidden rounded-inherit pointer-events-none">
-              <div className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-            </div>
-            <span className="relative z-10">Open</span>
-          </button>
-        ) : (
-          <button className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium rounded-xl border border-white/[0.12] text-white hover:border-cs-green/40 hover:text-cs-green hover:bg-cs-green/5 hover:shadow-glow-sm transition-all duration-300">
-            Open
-          </button>
-        )}
+        {/* Coming Soon indicator */}
+        <button disabled className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium rounded-xl border border-gray-300 text-gray-500 cursor-not-allowed">
+          Coming Soon
+        </button>
       </div>
     </motion.div>
   );
@@ -288,7 +278,7 @@ export default function AppsPage() {
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-5">
               App <span className="text-gradient">Directory</span>
             </h1>
-            <p className="text-lg text-cs-gray-200 max-w-xl mx-auto leading-relaxed">
+            <p className="text-lg text-gray-700 max-w-xl mx-auto leading-relaxed">
               Explore NVRemote&apos;s suite of tools and applications.
             </p>
           </motion.div>
@@ -308,18 +298,18 @@ export default function AppsPage() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
             {/* Search Input */}
             <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-cs-gray-500" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search apps..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 rounded-xl bg-cs-card border border-white/[0.08] text-sm text-white placeholder:text-cs-gray-500 focus:outline-none focus:border-cs-green/40 focus:ring-1 focus:ring-cs-green/20 transition-all duration-200"
+                className="w-full pl-11 pr-4 py-3 rounded-xl bg-white border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-cs-green/40 focus:ring-1 focus:ring-cs-green/20 transition-all duration-200"
               />
             </div>
 
             {/* Filter Buttons */}
-            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-cs-card border border-white/[0.06]">
+            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-white border border-gray-200">
               {filterOptions.map((option) => (
                 <button
                   key={option}
@@ -328,7 +318,7 @@ export default function AppsPage() {
                     'px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all duration-200',
                     activeFilter === option
                       ? 'bg-cs-green/15 text-cs-green border border-cs-green/25'
-                      : 'text-cs-gray-400 hover:text-white hover:bg-white/[0.04] border border-transparent'
+                      : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 border border-transparent'
                   )}
                 >
                   {option}
@@ -365,13 +355,13 @@ export default function AppsPage() {
                 exit={{ opacity: 0 }}
                 className="text-center py-20"
               >
-                <div className="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mx-auto mb-6">
-                  <Search className="w-6 h-6 text-cs-gray-500" />
+                <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-center mx-auto mb-6">
+                  <Search className="w-6 h-6 text-gray-400" />
                 </div>
-                <h3 className="text-lg font-bold text-white mb-2">
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
                   No apps found
                 </h3>
-                <p className="text-sm text-cs-gray-400">
+                <p className="text-sm text-gray-500">
                   Try adjusting your search or filter criteria.
                 </p>
               </motion.div>

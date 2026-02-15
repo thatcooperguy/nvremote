@@ -227,7 +227,7 @@ export default function HomePage() {
               className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20"
             >
               <Link
-                href="/dashboard"
+                href="/downloads"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold rounded-xl bg-cs-green text-white hover:bg-cs-green-500 active:bg-cs-green-600 shadow-glow hover:shadow-glow-lg transition-all duration-300 group/btn relative overflow-hidden"
               >
                 <span className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
@@ -235,7 +235,7 @@ export default function HomePage() {
                 </span>
                 <span className="relative z-10 flex items-center gap-2">
                   <Zap size={18} />
-                  Launch Dashboard
+                  Get Started
                   <ArrowRight size={16} className="transition-transform duration-300 group-hover/btn:translate-x-1" />
                 </span>
               </Link>
@@ -660,7 +660,7 @@ export default function HomePage() {
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
-                  href="/dashboard"
+                  href="/downloads"
                   className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold rounded-xl bg-cs-green text-white hover:bg-cs-green-500 active:bg-cs-green-600 shadow-glow hover:shadow-glow-lg transition-all duration-300 group/btn relative overflow-hidden"
                 >
                   <span className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
@@ -668,7 +668,7 @@ export default function HomePage() {
                   </span>
                   <span className="relative z-10 flex items-center gap-2">
                     <Zap size={18} />
-                    Launch Dashboard
+                    Get Started
                     <ArrowRight size={16} className="transition-transform duration-300 group-hover/btn:translate-x-1" />
                   </span>
                 </Link>

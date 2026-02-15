@@ -12,7 +12,6 @@ const navLinks = [
   { href: '/downloads', label: 'Downloads' },
   { href: '/apps', label: 'Apps' },
   { href: '/docs', label: 'Docs' },
-  { href: '/dashboard', label: 'Dashboard' },
 ];
 
 const GITHUB_URL = 'https://github.com/thatcooperguy/nvstreamer';

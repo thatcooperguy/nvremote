@@ -103,8 +103,8 @@ export default function NetworkPage() {
   }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-cs-card border border-white/[0.08] rounded-lg px-3 py-2 shadow-xl">
-          <p className="text-[11px] text-cs-gray-400">{label}</p>
+        <div className="bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-xl">
+          <p className="text-[11px] text-gray-500">{label}</p>
           <p className="text-sm font-semibold text-cs-green">
             {payload[0].value}ms
           </p>
@@ -125,8 +125,8 @@ export default function NetworkPage() {
   }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-cs-card border border-white/[0.08] rounded-lg px-3 py-2 shadow-xl">
-          <p className="text-[11px] text-cs-gray-400">Interval {label}</p>
+        <div className="bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-xl">
+          <p className="text-[11px] text-gray-500">Interval {label}</p>
           <p className="text-sm font-semibold text-cs-green">
             {payload[0].value}%
           </p>
@@ -144,7 +144,7 @@ export default function NetworkPage() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="text-2xl sm:text-3xl font-bold text-white tracking-tight"
+          className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight"
         >
           Network Diagnostics
         </motion.h1>
@@ -152,7 +152,7 @@ export default function NetworkPage() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="text-sm text-cs-gray-400 mt-1"
+          className="text-sm text-gray-500 mt-1"
         >
           Monitor connection quality and troubleshoot issues
         </motion.p>
@@ -172,11 +172,11 @@ export default function NetworkPage() {
               <div className="w-8 h-8 rounded-lg bg-cs-green/10 border border-cs-green/20 flex items-center justify-center">
                 <metric.icon className="w-4 h-4 text-cs-green" />
               </div>
-              <span className="text-xs font-medium text-cs-gray-400 uppercase tracking-wider">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
                 {metric.label}
               </span>
             </div>
-            <p className="text-2xl font-bold text-white tracking-tight">
+            <p className="text-2xl font-bold text-gray-900 tracking-tight">
               {metric.value}
             </p>
             <p className={cn('text-xs font-medium mt-0.5', metric.statusColor)}>
@@ -195,10 +195,10 @@ export default function NetworkPage() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="gradient-border p-5 sm:p-6"
         >
-          <h3 className="text-sm font-semibold text-white mb-1">
+          <h3 className="text-sm font-semibold text-gray-900 mb-1">
             Jitter Over Time
           </h3>
-          <p className="text-xs text-cs-gray-500 mb-4">Last 20 seconds</p>
+          <p className="text-xs text-gray-400 mb-4">Last 20 seconds</p>
           <div className="h-[220px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={jitterData}>
@@ -256,10 +256,10 @@ export default function NetworkPage() {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="gradient-border p-5 sm:p-6"
         >
-          <h3 className="text-sm font-semibold text-white mb-1">
+          <h3 className="text-sm font-semibold text-gray-900 mb-1">
             Packet Loss
           </h3>
-          <p className="text-xs text-cs-gray-500 mb-4">Last 12 intervals</p>
+          <p className="text-xs text-gray-400 mb-4">Last 12 intervals</p>
           <div className="h-[220px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={packetLossData}>
@@ -304,10 +304,10 @@ export default function NetworkPage() {
       >
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
           <div>
-            <h3 className="text-sm font-semibold text-white">
+            <h3 className="text-sm font-semibold text-gray-900">
               Run Diagnostics
             </h3>
-            <p className="text-xs text-cs-gray-400 mt-0.5">
+            <p className="text-xs text-gray-500 mt-0.5">
               Analyze route quality, MTU, and NAT configuration
             </p>
           </div>
@@ -315,7 +315,7 @@ export default function NetworkPage() {
             onClick={handleRunDiagnostics}
             disabled={running}
             className={cn(
-              'shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-cs-green text-cs-dark font-semibold text-sm rounded-lg hover:bg-cs-green-300 transition-all duration-300 shadow-glow hover:shadow-glow-lg',
+              'shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-cs-green text-white font-semibold text-sm rounded-lg hover:bg-cs-green-300 transition-all duration-300 shadow-glow hover:shadow-glow-lg',
               running && 'opacity-80 cursor-wait'
             )}
           >
@@ -341,7 +341,7 @@ export default function NetworkPage() {
               <div className="flex items-center justify-center py-8">
                 <div className="flex items-center gap-3">
                   <Loader2 className="w-5 h-5 animate-spin text-cs-green" />
-                  <span className="text-sm text-cs-gray-300">
+                  <span className="text-sm text-gray-600">
                     Analyzing network path...
                   </span>
                 </div>
@@ -380,12 +380,12 @@ export default function NetworkPage() {
                 ].map((item) => (
                   <div
                     key={item.label}
-                    className="bg-cs-surface rounded-lg px-4 py-3 border border-white/[0.04]"
+                    className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-200/60"
                   >
-                    <p className="text-[10px] text-cs-gray-500 uppercase tracking-wider font-medium">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">
                       {item.label}
                     </p>
-                    <p className="text-sm font-medium text-white mt-1">
+                    <p className="text-sm font-medium text-gray-900 mt-1">
                       {item.value}
                     </p>
                   </div>
@@ -404,7 +404,7 @@ export default function NetworkPage() {
         className="flex items-start gap-3 px-4 py-3 rounded-lg bg-cs-green/[0.03] border border-cs-green/10"
       >
         <Shield className="w-4 h-4 text-cs-green shrink-0 mt-0.5" />
-        <p className="text-xs text-cs-gray-400 leading-relaxed">
+        <p className="text-xs text-gray-500 leading-relaxed">
           All diagnostic data is processed locally. No network information is
           sent to external servers.
         </p>

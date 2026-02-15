@@ -104,7 +104,7 @@ export default function DashboardDownloadsPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="text-2xl sm:text-3xl font-bold text-white tracking-tight"
+            className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight"
           >
             Downloads &amp; Updates
           </motion.h1>
@@ -112,7 +112,7 @@ export default function DashboardDownloadsPage() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="text-sm text-cs-gray-400 mt-1"
+            className="text-sm text-gray-500 mt-1"
           >
             Manage your NVRemote installations
           </motion.p>
@@ -124,7 +124,7 @@ export default function DashboardDownloadsPage() {
           onClick={handleCheckUpdates}
           disabled={checkingUpdates}
           className={cn(
-            'shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-cs-green text-cs-dark font-semibold text-sm rounded-lg hover:bg-cs-green-300 transition-all duration-300 shadow-glow hover:shadow-glow-lg',
+            'shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-cs-green text-white font-semibold text-sm rounded-lg hover:bg-cs-green-300 transition-all duration-300 shadow-glow hover:shadow-glow-lg',
             checkingUpdates && 'opacity-80 cursor-wait'
           )}
         >
@@ -161,7 +161,7 @@ export default function DashboardDownloadsPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.15 }}
       >
-        <h2 className="text-lg font-semibold text-white mb-4">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
           Installed Applications
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -172,10 +172,10 @@ export default function DashboardDownloadsPage() {
             >
               <div className="flex items-start justify-between mb-2">
                 <div>
-                  <h3 className="text-sm font-semibold text-white">
+                  <h3 className="text-sm font-semibold text-gray-900">
                     {app.name}
                   </h3>
-                  <p className="text-xs text-cs-gray-400 mt-0.5">
+                  <p className="text-xs text-gray-500 mt-0.5">
                     {app.description}
                   </p>
                 </div>
@@ -185,16 +185,16 @@ export default function DashboardDownloadsPage() {
                 </span>
               </div>
               <div className="flex items-center gap-2 mt-2">
-                <span className="px-2 py-0.5 rounded-md bg-cs-surface border border-white/[0.06] text-xs font-mono text-cs-gray-300">
+                <span className="px-2 py-0.5 rounded-md bg-gray-50 border border-gray-200 text-xs font-mono text-gray-600">
                   {app.version}
                 </span>
               </div>
-              <div className="flex items-center gap-3 mt-4 pt-3 border-t border-white/[0.04]">
-                <button className="text-xs font-medium text-cs-gray-400 hover:text-cs-green transition-colors">
+              <div className="flex items-center gap-3 mt-4 pt-3 border-t border-gray-200/60">
+                <button className="text-xs font-medium text-gray-500 hover:text-cs-green transition-colors">
                   Check
                 </button>
-                <span className="w-px h-3 bg-white/[0.06]" />
-                <button className="text-xs font-medium text-cs-gray-500 hover:text-cs-gray-300 transition-colors">
+                <span className="w-px h-3 bg-gray-200" />
+                <button className="text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors">
                   Reinstall
                 </button>
               </div>
@@ -209,7 +209,7 @@ export default function DashboardDownloadsPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.25 }}
       >
-        <h2 className="text-lg font-semibold text-white mb-4">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
           Available Downloads
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -223,20 +223,20 @@ export default function DashboardDownloadsPage() {
                   <dl.icon className="w-4 h-4 text-cs-green" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-white">
+                  <h3 className="text-sm font-semibold text-gray-900">
                     {dl.platform}
                   </h3>
-                  <p className="text-[11px] text-cs-gray-500">{dl.label}</p>
+                  <p className="text-[11px] text-gray-400">{dl.label}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 mb-4">
-                <span className="text-xs font-mono text-cs-gray-400">
+                <span className="text-xs font-mono text-gray-500">
                   {dl.version}
                 </span>
-                <span className="text-xs text-cs-gray-600">&middot;</span>
-                <span className="text-xs text-cs-gray-400">{dl.size}</span>
+                <span className="text-xs text-gray-300">&middot;</span>
+                <span className="text-xs text-gray-500">{dl.size}</span>
               </div>
-              <button className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 border border-white/[0.08] text-cs-gray-200 text-sm font-medium rounded-lg hover:border-cs-green/30 hover:text-cs-green hover:bg-cs-green/5 transition-all duration-300">
+              <button className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:border-cs-green/30 hover:text-cs-green hover:bg-cs-green/5 transition-all duration-300">
                 <Download className="w-3.5 h-3.5" />
                 Download
               </button>
@@ -251,7 +251,7 @@ export default function DashboardDownloadsPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.35 }}
       >
-        <h2 className="text-lg font-semibold text-white mb-4">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
           Version History
         </h2>
         <div className="gradient-border p-5 sm:p-6">
@@ -262,7 +262,7 @@ export default function DashboardDownloadsPage() {
                 className={cn(
                   'relative pl-6 pb-5',
                   i < versionHistory.length - 1 &&
-                    'border-l border-white/[0.06] ml-[5px]'
+                    'border-l border-gray-200 ml-[5px]'
                 )}
               >
                 {/* Timeline dot */}
@@ -271,13 +271,13 @@ export default function DashboardDownloadsPage() {
                     'absolute -left-[5px] top-0.5 w-[10px] h-[10px] rounded-full border-2',
                     entry.current
                       ? 'bg-cs-green border-cs-green/40'
-                      : 'bg-cs-gray-600 border-cs-gray-500'
+                      : 'bg-gray-300 border-gray-400'
                   )}
                 />
 
                 <div className="flex flex-col sm:flex-row sm:items-start sm:gap-3">
                   <div className="flex items-center gap-2 mb-1 sm:mb-0">
-                    <span className="text-sm font-mono font-semibold text-white">
+                    <span className="text-sm font-mono font-semibold text-gray-900">
                       {entry.version}
                     </span>
                     {entry.current && (
@@ -286,12 +286,12 @@ export default function DashboardDownloadsPage() {
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-cs-gray-500">
+                  <div className="flex items-center gap-1 text-xs text-gray-400">
                     <Clock className="w-3 h-3" />
                     {entry.date}
                   </div>
                 </div>
-                <p className="text-xs text-cs-gray-400 mt-1.5 leading-relaxed">
+                <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
                   {entry.notes}
                 </p>
               </div>

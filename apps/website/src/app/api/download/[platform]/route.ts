@@ -160,37 +160,6 @@ export async function GET(
     }
   }
 
-  // Fallback: serve a placeholder if the release asset doesn't exist yet
-  const placeholder = buildPlaceholder(info);
-
-  return new NextResponse(placeholder as unknown as BodyInit, {
-    status: 200,
-    headers: {
-      'Content-Type': info.contentType,
-      'Content-Disposition': `attachment; filename="${info.assetFilename}"`,
-      'Content-Length': placeholder.byteLength.toString(),
-      'Cache-Control': 'no-cache',
-      'X-NVRemote-Version': VERSION,
-      'X-NVRemote-Placeholder': 'true',
-    },
-  });
-}
-
-function buildPlaceholder(info: PlatformInfo): Uint8Array {
-  const header = [
-    `NVREMOTE ${VERSION}`,
-    `File: ${info.assetFilename}`,
-    `Description: ${info.description}`,
-    ``,
-    `This is a placeholder installer for the NVRemote alpha.`,
-    `The CI build for this platform has not completed yet.`,
-    ``,
-    `Once the GitHub Actions release workflow finishes, real binaries`,
-    `will be served automatically from this same URL.`,
-    ``,
-    `Visit https://github.com/thatcooperguy/nvstreamer for source code.`,
-    ``,
-  ].join('\n');
-
-  return new TextEncoder().encode(header);
+  // Fallback: redirect to GitHub releases page instead of serving a placeholder
+  return NextResponse.redirect(`https://github.com/thatcooperguy/nvstreamer/releases/tag/${VERSION}`, 302);
 }

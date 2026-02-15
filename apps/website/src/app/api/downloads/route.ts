@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 const releases = [
   {
-    version: 'v0.2.1-alpha',
+    version: 'v0.3.0-alpha',
     channel: 'alpha',
     date: '2025-02-10',
     latest: true,
@@ -18,21 +18,21 @@ const releases = [
         {
           platform: 'windows',
           arch: 'x64',
-          filename: 'NVRemoteHost-v0.2.1-alpha-win64.zip',
+          filename: 'NVRemoteHost-v0.3.0-alpha-win64.zip',
           sizeLabel: '~48 MB',
           url: '/api/download/windows-host',
         },
         {
           platform: 'linux',
           arch: 'x64',
-          filename: 'NVRemoteHost-v0.2.1-alpha-amd64.deb',
+          filename: 'NVRemoteHost-v0.3.0-alpha-amd64.deb',
           sizeLabel: '~42 MB',
           url: '/api/download/linux-host',
         },
         {
           platform: 'macos',
           arch: 'universal',
-          filename: 'NVRemoteHost-v0.2.1-alpha-universal.pkg',
+          filename: 'NVRemoteHost-v0.3.0-alpha-universal.pkg',
           sizeLabel: '~45 MB',
           url: '/api/download/macos-host',
         },
@@ -41,28 +41,28 @@ const releases = [
         {
           platform: 'windows',
           arch: 'x64',
-          filename: 'NVRemote-0.1.0-Setup.exe',
+          filename: 'NVRemote-v0.3.0-alpha-Setup.exe',
           sizeLabel: '~35 MB',
           url: '/api/download/windows-client',
         },
         {
           platform: 'macos',
           arch: 'universal',
-          filename: 'NVRemoteClient-v0.2.1-alpha-universal.dmg',
+          filename: 'NVRemoteClient-v0.3.0-alpha-universal.dmg',
           sizeLabel: '~38 MB',
           url: '/api/download/macos-client',
         },
         {
           platform: 'linux',
           arch: 'x64',
-          filename: 'NVRemoteClient-v0.2.1-alpha-x86_64.AppImage',
+          filename: 'NVRemoteClient-v0.3.0-alpha-x86_64.AppImage',
           sizeLabel: '~40 MB',
           url: '/api/download/linux-client',
         },
         {
           platform: 'android',
           arch: 'arm64',
-          filename: 'NVRemote-v0.2.1-alpha.apk',
+          filename: 'NVRemote-v0.3.0-alpha.apk',
           sizeLabel: '~25 MB',
           url: '/api/download/android-client',
           playStoreUrl:

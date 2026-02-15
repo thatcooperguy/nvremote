@@ -16,7 +16,7 @@ enum AppConfig {
             return envValue
         }
         return UserDefaults.standard.string(forKey: "google_client_id")
-            ?? "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+            ?? "792114077598-fmhf2q6qmga3nel978a13v59s9f8708c.apps.googleusercontent.com"
     }
 
     // MARK: - Signaling Server

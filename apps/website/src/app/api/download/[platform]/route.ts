@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const VERSION = 'v0.3.0-alpha';
-const GITHUB_REPO = 'thatcooperguy/nvstreamer';
+const GCS_BUCKET = 'https://storage.googleapis.com/nvremote-downloads';
 
 interface PlatformInfo {
-  /** The exact filename uploaded to the GitHub Release */
+  /** The exact filename in the GCS bucket */
   assetFilename: string;
-  /** Fallback content type if GitHub doesn't provide one */
+  /** Content type for the download */
   contentType: string;
   description: string;
 }
 
 /**
- * Maps platform slugs to the expected GitHub Release asset filenames.
- * These must match what the CI release workflow uploads.
+ * Maps platform slugs to the expected asset filenames in GCS.
+ * Files are stored at: gs://nvremote-downloads/{VERSION}/{filename}
  */
 const platforms: Record<string, PlatformInfo> = {
   'windows-host': {
@@ -48,65 +48,6 @@ const platforms: Record<string, PlatformInfo> = {
   },
 };
 
-/**
- * Fetches the download URL for a specific asset from the GitHub Release.
- * For private repos, uses the GitHub API with a token to get the asset
- * and proxies it through to the user.
- */
-async function getGitHubAssetUrl(
-  assetFilename: string
-): Promise<{ url: string; size: number } | null> {
-  const token = process.env.GITHUB_TOKEN;
-  const headers: Record<string, string> = {
-    Accept: 'application/vnd.github.v3+json',
-    'User-Agent': 'NVRemote-Website',
-  };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  try {
-    // Get release by tag
-    const releaseRes = await fetch(
-      `https://api.github.com/repos/${GITHUB_REPO}/releases/tags/${VERSION}`,
-      { headers, next: { revalidate: 300 } } // Cache for 5 minutes
-    );
-
-    if (!releaseRes.ok) {
-      console.error(
-        `GitHub API error: ${releaseRes.status} ${releaseRes.statusText}`
-      );
-      return null;
-    }
-
-    const release = await releaseRes.json();
-    const assets = release.assets || [];
-
-    // Find the matching asset
-    const asset = assets.find(
-      (a: { name: string }) => a.name === assetFilename
-    );
-
-    if (!asset) {
-      console.error(
-        `Asset "${assetFilename}" not found in release ${VERSION}. Available: ${assets.map((a: { name: string }) => a.name).join(', ')}`
-      );
-      return null;
-    }
-
-    // For private repos, we need the API URL with Accept header to get the binary
-    // For public repos, we can use the browser_download_url directly
-    return {
-      url: token ? asset.url : asset.browser_download_url,
-      size: asset.size,
-    };
-  } catch (err) {
-    console.error('Failed to fetch GitHub release:', err);
-    return null;
-  }
-}
-
 export async function GET(
   request: NextRequest,
   { params }: { params: { platform: string } }
@@ -124,42 +65,26 @@ export async function GET(
     );
   }
 
-  // Try to fetch real binary from GitHub Release
-  const asset = await getGitHubAssetUrl(info.assetFilename);
+  // Redirect to GCS public URL for the download
+  const gcsUrl = `${GCS_BUCKET}/${VERSION}/${info.assetFilename}`;
 
-  if (asset) {
-    const token = process.env.GITHUB_TOKEN;
+  // Check if the file exists before redirecting
+  try {
+    const headRes = await fetch(gcsUrl, {
+      method: 'HEAD',
+      next: { revalidate: 300 }, // Cache for 5 minutes
+    });
 
-    if (token) {
-      // Private repo: proxy the download through our server
-      // GitHub API requires Accept: application/octet-stream to get the binary
-      const binaryRes = await fetch(asset.url, {
-        headers: {
-          Accept: 'application/octet-stream',
-          Authorization: `Bearer ${token}`,
-          'User-Agent': 'NVRemote-Website',
-        },
-        redirect: 'follow',
-      });
-
-      if (binaryRes.ok && binaryRes.body) {
-        return new NextResponse(binaryRes.body as unknown as BodyInit, {
-          status: 200,
-          headers: {
-            'Content-Type': info.contentType,
-            'Content-Disposition': `attachment; filename="${info.assetFilename}"`,
-            'Content-Length': asset.size.toString(),
-            'Cache-Control': 'public, max-age=3600',
-            'X-NVRemote-Version': VERSION,
-          },
-        });
-      }
-    } else {
-      // Public repo: redirect directly to GitHub's CDN
-      return NextResponse.redirect(asset.url, 302);
+    if (headRes.ok) {
+      return NextResponse.redirect(gcsUrl, 302);
     }
+  } catch {
+    // GCS check failed, fall through to downloads page
   }
 
-  // Fallback: redirect to GitHub releases page instead of serving a placeholder
-  return NextResponse.redirect(`https://github.com/thatcooperguy/nvstreamer/releases/tag/${VERSION}`, 302);
+  // Fallback: redirect to downloads page
+  return NextResponse.redirect(
+    new URL('/downloads', request.url).toString(),
+    302
+  );
 }

@@ -24,8 +24,9 @@ import Button from '@/components/Button';
 /* -------------------------------------------------------------------------- */
 
 const VERSION = 'v0.3.0-alpha';
+const GCS_BUCKET = 'https://storage.googleapis.com/nvremote-downloads';
+const BASE_URL = `${GCS_BUCKET}/${VERSION}`;
 const GITHUB_RELEASES = 'https://github.com/thatcooperguy/nvstreamer/releases';
-const BASE_URL = `${GITHUB_RELEASES}/download/${VERSION}`;
 
 /* -------------------------------------------------------------------------- */
 /*  Platform Icons                                                             */
@@ -117,7 +118,7 @@ const hostDownloads: DownloadItem[] = [
     version: VERSION,
     size: '~48 MB',
     sha256: '',
-    href: GITHUB_RELEASES,
+    href: `${BASE_URL}/NVRemoteHost-${VERSION}-win64.zip`,
   },
   {
     platform: 'Linux Host',
@@ -126,7 +127,7 @@ const hostDownloads: DownloadItem[] = [
     version: VERSION,
     size: '~12 MB',
     sha256: '',
-    href: GITHUB_RELEASES,
+    href: `${BASE_URL}/NVRemoteHost-${VERSION}-linux-amd64.tar.gz`,
   },
   {
     platform: 'macOS Host',
@@ -135,7 +136,7 @@ const hostDownloads: DownloadItem[] = [
     version: VERSION,
     size: '~45 MB',
     sha256: '',
-    href: GITHUB_RELEASES,
+    href: `${BASE_URL}/NVRemoteHost-${VERSION}-universal.pkg`,
     disabled: true,
     comingSoon: true,
   },
@@ -153,7 +154,7 @@ const clientDownloads: DownloadItem[] = [
     version: VERSION,
     size: '~35 MB',
     sha256: '',
-    href: GITHUB_RELEASES,
+    href: `${BASE_URL}/NVRemote-${VERSION.replace('v', '')}-Setup.exe`,
   },
   {
     platform: 'macOS Client',
@@ -162,7 +163,7 @@ const clientDownloads: DownloadItem[] = [
     version: VERSION,
     size: '~38 MB',
     sha256: '',
-    href: GITHUB_RELEASES,
+    href: `${BASE_URL}/NVRemote-${VERSION.replace('v', '')}-universal.dmg`,
   },
   {
     platform: 'Linux Client',
@@ -171,7 +172,7 @@ const clientDownloads: DownloadItem[] = [
     version: VERSION,
     size: '~40 MB',
     sha256: '',
-    href: GITHUB_RELEASES,
+    href: `${BASE_URL}/NVRemote-${VERSION.replace('v', '')}-x86_64.AppImage`,
   },
   {
     platform: 'Android Client',
@@ -180,7 +181,7 @@ const clientDownloads: DownloadItem[] = [
     version: VERSION,
     size: '~25 MB',
     sha256: '',
-    href: GITHUB_RELEASES,
+    href: `${BASE_URL}/NVRemote-${VERSION}.apk`,
   },
   {
     platform: 'Web Client',
@@ -298,8 +299,8 @@ function DownloadCardFull({
             size="md"
             className="w-full"
           >
-            <ExternalLink className="w-4 h-4" />
-            View on GitHub
+            <FileText className="w-4 h-4" />
+            Download
           </Button>
         )}
       </div>
@@ -515,7 +516,7 @@ export default function DownloadsPage() {
                 </h4>
                 <div className="bg-white rounded-xl p-3 mb-4">
                   <QRCodeSVG
-                    value="https://github.com/thatcooperguy/nvstreamer/releases"
+                    value={`${BASE_URL}/NVRemote-${VERSION}.apk`}
                     size={140}
                     level="M"
                     bgColor="#FFFFFF"

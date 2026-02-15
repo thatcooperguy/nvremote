@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+const GCS_BUCKET = 'https://storage.googleapis.com/nvremote-downloads';
+
 const releases = [
   {
     version: 'v0.3.0-alpha',
@@ -20,51 +22,52 @@ const releases = [
           arch: 'x64',
           filename: 'NVRemoteHost-v0.3.0-alpha-win64.zip',
           sizeLabel: '~48 MB',
-          url: 'https://github.com/thatcooperguy/nvstreamer/releases',
+          url: `${GCS_BUCKET}/v0.3.0-alpha/NVRemoteHost-v0.3.0-alpha-win64.zip`,
         },
         {
           platform: 'linux',
           arch: 'x64',
-          filename: 'NVRemoteHost-v0.3.0-alpha-amd64.deb',
-          sizeLabel: '~42 MB',
-          url: 'https://github.com/thatcooperguy/nvstreamer/releases',
+          filename: 'NVRemoteHost-v0.3.0-alpha-linux-amd64.tar.gz',
+          sizeLabel: '~12 MB',
+          url: `${GCS_BUCKET}/v0.3.0-alpha/NVRemoteHost-v0.3.0-alpha-linux-amd64.tar.gz`,
         },
         {
           platform: 'macos',
           arch: 'universal',
           filename: 'NVRemoteHost-v0.3.0-alpha-universal.pkg',
           sizeLabel: '~45 MB',
-          url: 'https://github.com/thatcooperguy/nvstreamer/releases',
+          url: `${GCS_BUCKET}/v0.3.0-alpha/NVRemoteHost-v0.3.0-alpha-universal.pkg`,
+          comingSoon: true,
         },
       ],
       client: [
         {
           platform: 'windows',
           arch: 'x64',
-          filename: 'NVRemote-v0.3.0-alpha-Setup.exe',
+          filename: 'NVRemote-0.3.0-alpha-Setup.exe',
           sizeLabel: '~35 MB',
-          url: 'https://github.com/thatcooperguy/nvstreamer/releases',
+          url: `${GCS_BUCKET}/v0.3.0-alpha/NVRemote-0.3.0-alpha-Setup.exe`,
         },
         {
           platform: 'macos',
           arch: 'universal',
-          filename: 'NVRemoteClient-v0.3.0-alpha-universal.dmg',
+          filename: 'NVRemote-0.3.0-alpha-universal.dmg',
           sizeLabel: '~38 MB',
-          url: 'https://github.com/thatcooperguy/nvstreamer/releases',
+          url: `${GCS_BUCKET}/v0.3.0-alpha/NVRemote-0.3.0-alpha-universal.dmg`,
         },
         {
           platform: 'linux',
           arch: 'x64',
-          filename: 'NVRemoteClient-v0.3.0-alpha-x86_64.AppImage',
+          filename: 'NVRemote-0.3.0-alpha-x86_64.AppImage',
           sizeLabel: '~40 MB',
-          url: 'https://github.com/thatcooperguy/nvstreamer/releases',
+          url: `${GCS_BUCKET}/v0.3.0-alpha/NVRemote-0.3.0-alpha-x86_64.AppImage`,
         },
         {
           platform: 'android',
           arch: 'arm64',
           filename: 'NVRemote-v0.3.0-alpha.apk',
           sizeLabel: '~25 MB',
-          url: 'https://github.com/thatcooperguy/nvstreamer/releases',
+          url: `${GCS_BUCKET}/v0.3.0-alpha/NVRemote-v0.3.0-alpha.apk`,
           playStoreUrl:
             'https://play.google.com/store/apps/details?id=com.nvremote.client',
         },

@@ -74,4 +74,20 @@ wg-*.conf
 *.p12
 *.pfx
 credentials.json
+env-vars.yaml
+*-key.json
+scripts/migrate/*.json
+
+# Migration/temp scripts
+*.ps1
+verify-domain*.ps1
+check-mappings.ps1
+cleanup-*.ps1
+dns-check.ps1
+gh-run*.ps1
+recreate-mappings.ps1
+
+# Claude Code local settings
+.claude/settings.local.json
+
 nul

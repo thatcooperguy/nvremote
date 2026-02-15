@@ -10,8 +10,6 @@ export function DashboardPage(): React.ReactElement {
   const fetchHosts = useHostStore((s) => s.fetchHosts);
   const selectHost = useHostStore((s) => s.selectHost);
   const connect = useConnectionStore((s) => s.connect);
-  const _connectionStatus = useConnectionStore((s) => s.status);
-
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>('all');
   const [isLoading, setIsLoading] = useState(true);

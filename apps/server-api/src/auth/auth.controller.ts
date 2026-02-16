@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -47,9 +48,11 @@ export class AuthController {
 
   /**
    * Initiate Google OAuth2 login flow.
+   * Rate limited to 20 requests per minute to prevent OAuth abuse.
    */
   @Get('google')
   @Public()
+  @Throttle({ default: { ttl: 60000, limit: 20 } })
   @UseGuards(AuthGuard('google'))
   @ApiOperation({ summary: 'Initiate Google OAuth login' })
   googleAuth(): void {
@@ -91,9 +94,11 @@ export class AuthController {
 
   /**
    * Exchange a refresh token for a new access + refresh token pair.
+   * Strictly rate limited: 10 requests per minute to prevent brute force.
    */
   @Post('refresh')
   @Public()
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token' })
   @ApiOkResponse({ type: TokenResponseDto })

@@ -7,6 +7,7 @@ import {
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -42,8 +43,10 @@ export class SessionsController {
 
   /**
    * Create a new streaming session (request to connect to a host).
+   * Rate limited to 5 per minute to prevent session abuse.
    */
   @Post()
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Create a new streaming session' })
   @ApiCreatedResponse({ type: SessionConnectionInfoDto })
   async create(
@@ -99,7 +102,9 @@ export class SessionsController {
    * Send an SDP offer for a session (web client → host).
    * The API relays the offer to the host via Socket.IO and waits for
    * the SDP answer, which is returned synchronously.
+   * Rate limited: 5 per minute (one offer per session is typical).
    */
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @Post(':id/offer')
   @ApiOperation({
     summary: 'Send SDP offer (web client)',

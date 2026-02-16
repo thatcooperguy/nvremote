@@ -209,11 +209,15 @@ final class AppState: ObservableObject {
 
     /// Disconnect from the current streaming session.
     func disconnect() {
+        // Capture sessionId before clearing state
+        let sessionId = currentSessionConfig?.sessionId
+
         streamEngine.stop()
         isStreaming = false
         currentSessionConfig = nil
+        iceAgent = nil
 
-        if let sessionId = currentSessionConfig?.sessionId {
+        if let sessionId {
             Task {
                 try? await signalingClient?.endSession(sessionId: sessionId)
             }

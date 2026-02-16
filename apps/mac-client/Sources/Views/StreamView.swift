@@ -48,6 +48,7 @@ struct StreamView: View {
         }
         .onDisappear {
             streamEngine.disableInput()
+            streamEngine.stop()
         }
         .onKeyPress(.escape) {
             handleEscape()
@@ -209,7 +210,9 @@ struct StreamView: View {
 // MARK: - Metal View Representable
 
 /// NSViewRepresentable wrapper for MTKView.
+/// Starts the StreamEngine once the Metal view is available.
 struct MetalViewRepresentable: NSViewRepresentable {
+    @EnvironmentObject private var appState: AppState
     let streamEngine: StreamEngine
 
     func makeNSView(context: Context) -> MTKView {
@@ -222,6 +225,13 @@ struct MetalViewRepresentable: NSViewRepresentable {
 
         // Background color matches our theme
         mtkView.clearColor = MTLClearColor(red: 0.02, green: 0.02, blue: 0.02, alpha: 1.0)
+
+        // Start the stream engine now that the MTKView is ready
+        if let config = appState.currentSessionConfig, streamEngine.state == .idle || streamEngine.state == .stopped {
+            Task { @MainActor in
+                await streamEngine.start(config: config, metalView: mtkView)
+            }
+        }
 
         return mtkView
     }

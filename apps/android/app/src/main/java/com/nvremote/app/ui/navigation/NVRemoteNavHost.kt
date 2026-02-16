@@ -7,6 +7,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.nvremote.app.data.webrtc.WebRtcManager
 import com.nvremote.app.ui.screens.HostDetailScreen
 import com.nvremote.app.ui.screens.HostListScreen
 import com.nvremote.app.ui.screens.LoginScreen
@@ -15,7 +16,9 @@ import com.nvremote.app.ui.screens.StreamScreen
 import com.nvremote.app.ui.viewmodel.MainViewModel
 
 @Composable
-fun NVRemoteNavHost() {
+fun NVRemoteNavHost(
+    webRtcManager: WebRtcManager,
+) {
     val navController = rememberNavController()
     val mainViewModel: MainViewModel = hiltViewModel()
     val isAuthenticated by mainViewModel.isAuthenticated.collectAsState()
@@ -62,6 +65,7 @@ fun NVRemoteNavHost() {
                 onDisconnect = {
                     navController.popBackStack(Screen.HostList.route, inclusive = false)
                 },
+                webRtcManager = webRtcManager,
             )
         }
 

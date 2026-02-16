@@ -20,6 +20,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -32,7 +33,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nvremote.app.data.model.SessionState
+import com.nvremote.app.data.webrtc.WebRtcConnectionState
+import com.nvremote.app.data.webrtc.WebRtcManager
 import com.nvremote.app.ui.components.StatsOverlay
+import com.nvremote.app.ui.components.WebRtcSurfaceView
 import com.nvremote.app.ui.theme.CsBlack
 import com.nvremote.app.ui.theme.CsGreen
 import com.nvremote.app.ui.theme.CsOnSurfaceDim
@@ -43,13 +47,40 @@ import com.nvremote.app.ui.viewmodel.SessionViewModel
 fun StreamScreen(
     sessionId: String,
     onDisconnect: () -> Unit,
+    webRtcManager: WebRtcManager,
     viewModel: SessionViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val webRtcState by webRtcManager.connectionState.collectAsState()
+    val remoteVideoTrack by webRtcManager.remoteVideoTrack.collectAsState()
+    val webRtcStats by webRtcManager.streamStats.collectAsState()
+    val webRtcError by webRtcManager.error.collectAsState()
     var showControls by remember { mutableStateOf(true) }
 
     LaunchedEffect(sessionId) {
         viewModel.loadSession(sessionId)
+    }
+
+    // Start WebRTC when session has signaling info
+    val session = uiState.session
+    LaunchedEffect(session?.signalingUrl, session?.sessionId) {
+        val url = session?.signalingUrl ?: return@LaunchedEffect
+        val sid = session.sessionId
+        if (url.isNotBlank() && webRtcState == WebRtcConnectionState.IDLE) {
+            webRtcManager.startSession(
+                signalingUrl = url,
+                sessionId = sid,
+                accessToken = "", // TODO: pass from AuthRepository
+                stunServers = session.stunServers,
+            )
+        }
+    }
+
+    // Clean up WebRTC when leaving the screen
+    DisposableEffect(Unit) {
+        onDispose {
+            webRtcManager.endSession()
+        }
     }
 
     Box(
@@ -63,27 +94,52 @@ fun StreamScreen(
                 showControls = !showControls
             },
     ) {
-        // Placeholder for video surface — actual WebRTC rendering deferred
-        val session = uiState.session
-        when (session?.state) {
+        // Determine effective state: prefer WebRTC state when actively connecting/streaming
+        val effectiveState = when (webRtcState) {
+            WebRtcConnectionState.STREAMING -> SessionState.STREAMING
+            WebRtcConnectionState.CONNECTING -> SessionState.CONNECTING
+            WebRtcConnectionState.FAILED -> SessionState.ERROR
+            WebRtcConnectionState.DISCONNECTED -> SessionState.DISCONNECTED
+            WebRtcConnectionState.IDLE -> session?.state ?: SessionState.INITIALIZING
+        }
+
+        when (effectiveState) {
             SessionState.INITIALIZING,
             SessionState.SIGNALING,
             SessionState.CONNECTING,
             -> {
-                ConnectingOverlay(state = session.state)
+                ConnectingOverlay(state = effectiveState)
             }
 
             SessionState.STREAMING -> {
-                // Video surface will go here
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = "Stream Active",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = CsGreen,
+                if (remoteVideoTrack != null) {
+                    // Render the incoming video via hardware-accelerated WebRTC decoder
+                    WebRtcSurfaceView(
+                        videoTrack = remoteVideoTrack,
+                        eglBase = webRtcManager.eglBase,
+                        modifier = Modifier.fillMaxSize(),
                     )
+                } else {
+                    // P2P connected but no video track yet
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            CircularProgressIndicator(
+                                color = CsGreen,
+                                modifier = Modifier.size(32.dp),
+                            )
+                            Text(
+                                text = "Waiting for video...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = CsOnSurfaceDim,
+                            )
+                        }
+                    }
                 }
             }
 
@@ -121,7 +177,7 @@ fun StreamScreen(
                             color = MaterialTheme.colorScheme.error,
                         )
                         Text(
-                            text = uiState.error ?: "Connection lost",
+                            text = webRtcError ?: uiState.error ?: "Connection lost",
                             style = MaterialTheme.typography.bodyMedium,
                             color = CsOnSurfaceDim,
                         )
@@ -139,10 +195,16 @@ fun StreamScreen(
             }
         }
 
-        // Stats overlay (top-left)
+        // Stats overlay (top-left) — use real WebRTC stats when streaming
+        val displayStats = if (webRtcState == WebRtcConnectionState.STREAMING) {
+            webRtcStats
+        } else {
+            uiState.streamStats
+        }
+
         if (uiState.showStatsOverlay) {
             StatsOverlay(
-                stats = uiState.streamStats,
+                stats = displayStats,
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(16.dp),
@@ -173,6 +235,7 @@ fun StreamScreen(
 
                 IconButton(
                     onClick = {
+                        webRtcManager.endSession()
                         viewModel.endSession()
                         onDisconnect()
                     },

@@ -119,6 +119,9 @@ dependencies {
     implementation("org.bouncycastle:bcprov-jdk18on:1.77")
     implementation("org.bouncycastle:bctls-jdk18on:1.77")
 
+    // WebRTC (P2P connection, hardware video decoding, rendering)
+    implementation("io.getstream:stream-webrtc-android:1.1.1")
+
     // WebSocket (Socket.IO for signaling)
     implementation("io.socket:socket.io-client:2.1.0") {
         exclude(group = "org.json", module = "json")

@@ -58,6 +58,10 @@
 -keep class com.google.android.gms.** { *; }
 -dontwarn com.google.android.gms.**
 
+# WebRTC
+-keep class org.webrtc.** { *; }
+-dontwarn org.webrtc.**
+
 # Coil
 -dontwarn coil.**
 

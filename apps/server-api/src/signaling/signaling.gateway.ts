@@ -12,7 +12,7 @@ import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../common/prisma.service';
-import { HostStatus, SessionStatus } from '@prisma/client';
+import { HostStatus, Prisma, SessionStatus } from '@prisma/client';
 import { TurnServerConfig } from '../common/gateway.service';
 
 // ---------------------------------------------------------------------------
@@ -403,7 +403,7 @@ export class SignalingGatewayWs
         userId,
         hostId: host.id,
         status: SessionStatus.PENDING,
-        metadata: (payload.metadata ?? undefined) as Record<string, unknown> | undefined,
+        metadata: (payload.metadata as Prisma.InputJsonValue) ?? undefined,
       },
     });
 

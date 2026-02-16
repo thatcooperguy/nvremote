@@ -12,7 +12,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'NVREMOTE — GPU Streaming, Unleashed.',
   description:
-    'One hub. Multiple apps. Stream your NVIDIA-powered desktop to any device with adaptive quality, up to 4K resolution, up to 240 FPS, and P2P encrypted connections powered by NvFBC + NVENC.',
+    'One hub. Multiple apps. Stream your NVIDIA-powered desktop to any device with adaptive quality, up to 8K resolution, up to 240 FPS, and P2P encrypted connections powered by NvFBC + NVENC.',
   keywords: [
     'GPU streaming',
     'game streaming',
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     'remote gaming',
     'P2P streaming',
     'DTLS',
-    '4K HDR',
+    '8K HDR',
   ],
   authors: [{ name: 'NVRemote Team' }],
   openGraph: {
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     siteName: 'NVRemote',
     title: 'NVREMOTE — GPU Streaming, Unleashed.',
     description:
-      'One hub. Multiple apps. Stream your NVIDIA-powered desktop to any device. Up to 4K, up to 240 FPS, P2P encrypted.',
+      'One hub. Multiple apps. Stream your NVIDIA-powered desktop to any device. Up to 8K, up to 240 FPS, P2P encrypted.',
     images: [
       {
         url: '/og-image.png',

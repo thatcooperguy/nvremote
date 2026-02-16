@@ -29,11 +29,22 @@ type StreamerInfo struct {
 }
 
 // StreamerCapabilities describes the encoding capabilities of the streamer.
+//
+// Resolution support by codec (NVENC hardware limits):
+//   - H.264: up to 4096x4096 (spec limit)
+//   - HEVC:  up to 8192x8192 (Turing+ GPUs)
+//   - AV1:   up to 8192x8192 (Ada Lovelace+ GPUs)
+//
+// Supported resolutions: 720p, 1080p, 1440p, Ultrawide (3440x1440),
+// 4K (3840x2160), Super Ultrawide (5120x1440), 5K (5120x2880),
+// 8K (7680x4320), or native/custom.
 type StreamerCapabilities struct {
 	// Codecs lists supported video codecs.
 	Codecs []string `json:"codecs"`
 
-	// MaxResolution is the maximum supported resolution (e.g., "3840x2160").
+	// MaxResolution is the maximum supported resolution (e.g., "7680x4320").
+	// For HEVC/AV1 on Turing+ GPUs this can be up to 8K.
+	// For H.264 the max is 4096x4096.
 	MaxResolution string `json:"max_resolution"`
 
 	// MaxFPS is the maximum supported frame rate.

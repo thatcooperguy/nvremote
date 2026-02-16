@@ -91,7 +91,7 @@ private val GamingMode.displayName: String
 
 private val GamingMode.description: String
     get() = when (this) {
-        GamingMode.COMPETITIVE -> "120 FPS\nLow latency"
-        GamingMode.BALANCED -> "60 FPS\nBest quality"
-        GamingMode.CINEMATIC -> "4K 60 FPS\nMax detail"
+        GamingMode.COMPETITIVE -> "Up to 240 FPS\nLow latency"
+        GamingMode.BALANCED -> "1440p 120 FPS\nBest of both"
+        GamingMode.CINEMATIC -> "Up to 8K 60 FPS\nMax detail"
     }

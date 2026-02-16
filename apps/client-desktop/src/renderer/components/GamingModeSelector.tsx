@@ -45,7 +45,7 @@ const MODES: GamingModeOption[] = [
     label: 'Cinematic',
     icon: '\uD83C\uDFAC', // clapper board
     description: 'Max quality',
-    specs: 'Up to 4K @ 60fps',
+    specs: 'Up to 8K @ 60fps',
   },
 ];
 

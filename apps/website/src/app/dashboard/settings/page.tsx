@@ -435,7 +435,10 @@ export default function SettingsPage() {
             >
               <option value="competitive">Competitive (1080p/240fps)</option>
               <option value="balanced">Balanced (1440p/144fps)</option>
-              <option value="cinematic">Cinematic (4K/60fps)</option>
+              <option value="cinematic">Cinematic (Up to 8K/60fps)</option>
+              <option value="creative">Creative (Native/60fps, 4:4:4)</option>
+              <option value="cad">CAD/Engineering (Native/60fps, AV1)</option>
+              <option value="lan">LAN (Native/240fps, Max Quality)</option>
             </select>
           </div>
           <div>

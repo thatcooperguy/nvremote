@@ -37,8 +37,20 @@ struct Resolution {
     bool operator!=(const Resolution& o) const { return !(*this == o); }
 };
 
-// Standard gaming resolutions
+// Standard streaming resolutions (ordered by pixel count descending)
+//
+// Note on high-resolution support:
+//   - 8K (7680x4320): Requires HEVC or AV1 codec (H.264 limited to 4096x4096).
+//     Supported on Turing+ GPUs (HEVC) and Ada Lovelace+ (AV1).
+//     Recommended: LAN only with 100+ Mbps bandwidth, Ada/Blackwell GPU.
+//   - 5K (5120x2880): Requires HEVC or AV1. Common for Apple Studio Display,
+//     iMac 5K. Well within RTX 3090+ encode capability at 60fps.
+//   - Super Ultrawide (5120x1440): Requires HEVC or AV1. Samsung Odyssey G9, etc.
+//   - All resolutions above 4K require HEVC or AV1 — H.264 is spec-limited to 4096x4096.
 namespace Resolutions {
+    static constexpr Resolution RES_8K       = { 7680, 4320 };  // 8K UHD (HEVC/AV1 only, Ada+)
+    static constexpr Resolution RES_5K       = { 5120, 2880 };  // 5K (Apple Studio Display, iMac 5K)
+    static constexpr Resolution RES_5K_UW    = { 5120, 1440 };  // Super Ultrawide (Samsung G9, etc.)
     static constexpr Resolution RES_4K       = { 3840, 2160 };  // 4K UHD
     static constexpr Resolution RES_1440P_UW = { 3440, 1440 };  // Ultrawide 1440p
     static constexpr Resolution RES_1440P    = { 2560, 1440 };  // QHD
@@ -228,20 +240,27 @@ inline QosPreset getPreset(GamingMode mode, Resolution native_res = Resolutions:
     // CINEMATIC: Visual quality is king. Maintain resolution and bitrate,
     // drop frame rate before resolution.
     //
-    // Target: 4K@60fps (or native@60)
+    // Target: up to 8K@60fps (or native@60)
+    // Supports: 8K, 5K, 4K with graceful step-down
     // Will drop to: 4K@30 before 1440p@60
     // Jitter buffer: 8ms (smooth playback, slight input lag acceptable)
+    //
+    // Note: 8K requires HEVC/AV1 and Ada+ GPU. 5K requires HEVC/AV1.
+    // The QoS engine will auto-select the highest resolution the
+    // host GPU can encode and client can decode.
     // -----------------------------------------------------------------
     case GamingMode::Cinematic:
         p.target_fps     = FrameRates::FPS_60;
         p.min_fps        = FrameRates::FPS_30;
         p.max_fps        = FrameRates::FPS_60;
 
-        p.target_resolution = (native_res.pixelCount() >= Resolutions::RES_4K.pixelCount())
-                              ? Resolutions::RES_4K : native_res;
+        // Target native resolution — QoS will step down if encode/bandwidth can't keep up
+        p.target_resolution = native_res;
         p.min_resolution = Resolutions::RES_1080P;
 
         p.resolution_ladder = {
+            Resolutions::RES_8K,
+            Resolutions::RES_5K,
             Resolutions::RES_4K,
             Resolutions::RES_1440P,
             Resolutions::RES_1080P,
@@ -251,9 +270,9 @@ inline QosPreset getPreset(GamingMode mode, Resolution native_res = Resolutions:
             FrameRates::FPS_30,
         };
 
-        p.target_bitrate_kbps = 80000;  // 80 Mbps (high for 4K)
+        p.target_bitrate_kbps = 80000;  // 80 Mbps (4K baseline)
         p.min_bitrate_kbps    = 10000;  // 10 Mbps
-        p.max_bitrate_kbps    = 150000; // 150 Mbps
+        p.max_bitrate_kbps    = 200000; // 200 Mbps (headroom for 5K/8K)
 
         p.jitter_buffer_ms = 8;         // Smooth playback
         p.max_fec_ratio    = 0.25f;     // Higher FEC — protect quality
@@ -317,9 +336,10 @@ inline QosPreset getPreset(GamingMode mode, Resolution native_res = Resolutions:
     // CREATIVE: Color-accurate, native resolution, 4:4:4 chroma.
     // For photo/video editing, color grading, design work.
     //
-    // Target: native@60fps with full chroma
+    // Target: native@60fps with full chroma (supports up to 8K)
     // Will drop FPS before resolution — visual fidelity is paramount
     // Uses HEVC for better quality at given bitrate + 4:4:4 support
+    // 5K is common for Apple Studio Display creative workflows
     // -----------------------------------------------------------------
     case GamingMode::Creative:
         p.target_fps     = FrameRates::FPS_60;
@@ -330,7 +350,9 @@ inline QosPreset getPreset(GamingMode mode, Resolution native_res = Resolutions:
         p.min_resolution = Resolutions::RES_1080P;
 
         p.resolution_ladder = {
-            native_res,
+            Resolutions::RES_8K,
+            Resolutions::RES_5K,
+            Resolutions::RES_4K,
             Resolutions::RES_1440P,
             Resolutions::RES_1080P,
         };
@@ -341,7 +363,7 @@ inline QosPreset getPreset(GamingMode mode, Resolution native_res = Resolutions:
 
         p.target_bitrate_kbps = 60000;  // 60 Mbps (higher for 4:4:4)
         p.min_bitrate_kbps    = 10000;  // 10 Mbps
-        p.max_bitrate_kbps    = 120000; // 120 Mbps
+        p.max_bitrate_kbps    = 200000; // 200 Mbps (headroom for 5K/8K 4:4:4)
 
         p.jitter_buffer_ms = 8;
         p.max_fec_ratio    = 0.20f;
@@ -364,6 +386,7 @@ inline QosPreset getPreset(GamingMode mode, Resolution native_res = Resolutions:
     // Target: native@60fps with AV1 (best compression for static scenes)
     // CAD apps have lots of static frames — AV1 excels here
     // 4:4:4 for line clarity and text readability
+    // Supports up to 8K for multi-monitor / high-DPI CAD setups
     // -----------------------------------------------------------------
     case GamingMode::CAD:
         p.target_fps     = FrameRates::FPS_60;
@@ -374,7 +397,9 @@ inline QosPreset getPreset(GamingMode mode, Resolution native_res = Resolutions:
         p.min_resolution = Resolutions::RES_1080P;
 
         p.resolution_ladder = {
-            native_res,
+            Resolutions::RES_8K,
+            Resolutions::RES_5K,
+            Resolutions::RES_4K,
             Resolutions::RES_1440P,
             Resolutions::RES_1080P,
         };
@@ -385,7 +410,7 @@ inline QosPreset getPreset(GamingMode mode, Resolution native_res = Resolutions:
 
         p.target_bitrate_kbps = 40000;  // 40 Mbps (AV1 is very efficient)
         p.min_bitrate_kbps    = 5000;   // 5 Mbps
-        p.max_bitrate_kbps    = 80000;  // 80 Mbps
+        p.max_bitrate_kbps    = 120000; // 120 Mbps (headroom for 5K/8K AV1)
 
         p.jitter_buffer_ms = 10;         // Can tolerate more buffering
         p.max_fec_ratio    = 0.25f;
@@ -443,10 +468,13 @@ inline QosPreset getPreset(GamingMode mode, Resolution native_res = Resolutions:
 
     // -----------------------------------------------------------------
     // LAN: Maximum everything for same-network streaming.
-    // Assumes abundant bandwidth (100+ Mbps), minimal latency.
+    // Assumes abundant bandwidth (1 Gbps LAN), minimal latency.
     //
     // Target: native@240fps at maximum bitrate
-    // Use H.264 for fastest encode — bandwidth is not the constraint
+    // Supports up to 8K on capable hardware
+    // Use H.264 up to 4K (fastest encode), HEVC/AV1 for 5K+ (spec limit)
+    // 8K@60 HEVC ~100-150 Mbps, 4K@240 H.264 ~100-200 Mbps — both
+    // fit comfortably in Gigabit LAN.
     // -----------------------------------------------------------------
     case GamingMode::LAN:
         p.target_fps     = FrameRates::FPS_240;
@@ -457,7 +485,10 @@ inline QosPreset getPreset(GamingMode mode, Resolution native_res = Resolutions:
         p.min_resolution = Resolutions::RES_1080P;
 
         p.resolution_ladder = {
-            native_res,
+            Resolutions::RES_8K,
+            Resolutions::RES_5K,
+            Resolutions::RES_5K_UW,
+            Resolutions::RES_4K,
             Resolutions::RES_1440P,
             Resolutions::RES_1080P,
         };
@@ -468,9 +499,9 @@ inline QosPreset getPreset(GamingMode mode, Resolution native_res = Resolutions:
             FrameRates::FPS_120,
         };
 
-        p.target_bitrate_kbps = 100000; // 100 Mbps
+        p.target_bitrate_kbps = 150000; // 150 Mbps
         p.min_bitrate_kbps    = 20000;  // 20 Mbps
-        p.max_bitrate_kbps    = 200000; // 200 Mbps (LAN can handle it)
+        p.max_bitrate_kbps    = 300000; // 300 Mbps (Gigabit LAN headroom)
 
         p.jitter_buffer_ms = 1;         // Near-zero
         p.max_fec_ratio    = 0.05f;     // Minimal FEC — LAN is reliable

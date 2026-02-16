@@ -111,20 +111,20 @@ const modes: GamingMode[] = [
     ),
     specs: [
       { label: 'MAX FPS', value: '60' },
-      { label: 'RESOLUTION', value: 'Up to 4K' },
+      { label: 'RESOLUTION', value: 'Up to 8K' },
       { label: 'CODEC', value: 'HEVC / AV1' },
-      { label: 'BITRATE', value: '40–80 Mbps' },
+      { label: 'BITRATE', value: '40–200 Mbps' },
       { label: 'PRIORITY', value: 'Quality > FPS' },
     ],
-    ideal: 'Creative work, video editing, 3D rendering, CAD',
+    ideal: 'Creative work, video editing, 3D rendering, single-player games',
   },
 ];
 
 const additionalProfiles = [
-  { name: 'Creative', desc: 'Native resolution, 4:4:4 chroma, color-accurate' },
-  { name: 'CAD / Engineering', desc: 'AV1 codec, precision work, text clarity' },
+  { name: 'Creative', desc: 'Up to 8K, 4:4:4 chroma, color-accurate for editing' },
+  { name: 'CAD / Engineering', desc: 'Up to 8K AV1, precision work, text clarity' },
   { name: 'Mobile Saver', desc: '720p, low bandwidth, battery-friendly' },
-  { name: 'LAN', desc: 'Up to 240fps, 200 Mbps, same-network streaming' },
+  { name: 'LAN', desc: 'Up to 8K@240fps, 300 Mbps, same-network streaming' },
 ];
 
 export default function GamingModes() {

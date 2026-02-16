@@ -460,7 +460,7 @@ qos:
 display:
   vsync: false           # Disable for lowest latency
   fullscreen: true
-  resolution: native     # native, 1080p, 1440p, or 4k
+  resolution: native     # native, 1080p, 1440p, 4k, 5k, or 8k
 
 decoder:
   method: hardware       # hardware (recommended) or software

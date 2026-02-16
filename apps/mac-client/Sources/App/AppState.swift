@@ -234,11 +234,15 @@ final class AppState: ObservableObject {
         }
     }
 
+    /// Returns the target resolution for the given gaming mode.
+    /// The QoS engine will adapt down from these targets based on
+    /// actual GPU encode capability and network conditions.
+    /// Resolutions above 4K (5K, 8K) require HEVC or AV1 codec.
     private func resolutionForMode(_ mode: StreamSessionConfig.GamingMode) -> (UInt32, UInt32) {
         switch mode {
-        case .competitive: return (1920, 1080)
-        case .balanced:    return (2560, 1440)
-        case .cinematic:   return (3840, 2160)
+        case .competitive: return (1920, 1080)   // 1080p — FPS is priority
+        case .balanced:    return (2560, 1440)   // 1440p — balanced
+        case .cinematic:   return (3840, 2160)   // 4K — QoS can step up to 5K/8K if capable
         }
     }
 }

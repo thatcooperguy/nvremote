@@ -105,7 +105,7 @@ private struct GamingModeCard: View {
         switch mode {
         case .competitive: return "240 FPS"
         case .balanced:    return "1440p@120"
-        case .cinematic:   return "4K@60"
+        case .cinematic:   return "Up to 8K@60"
         }
     }
 

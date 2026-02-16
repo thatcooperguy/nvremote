@@ -265,7 +265,7 @@ export default function HomePage() {
             >
               <div className="inline-flex items-center glass rounded-2xl px-2 sm:px-4 py-4 sm:py-5 shadow-glow-sm">
                 <div className="flex items-center divide-x divide-gray-200">
-                  <HeroStat value="Up to 4K" label="Resolution" />
+                  <HeroStat value="Up to 8K" label="Resolution" />
                   <HeroStat value="Up to 240" label="FPS" />
                   <HeroStat value="H.264/HEVC/AV1" label="Codecs" />
                   <HeroStat value="x86 + ARM64" label="Platforms" />

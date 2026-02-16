@@ -29,6 +29,8 @@ function formatBitrate(kbps: number): string {
 }
 
 function formatResolution(res: { width: number; height: number }): string {
+  if (res.height >= 4320) return '8K';
+  if (res.height >= 2880) return '5K';
   if (res.height >= 2160) return '4K';
   if (res.height >= 1440) return '1440p';
   if (res.height >= 1080) return '1080p';

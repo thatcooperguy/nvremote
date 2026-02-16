@@ -344,6 +344,9 @@ if(APPLE)
         src/audio/coreaudio_playback.mm
         PROPERTIES COMPILE_FLAGS "-fobjc-arc"
     )
+
+    # Allow undefined N-API symbols — resolved at runtime by Node.js
+    target_link_options(nvremote-viewer PRIVATE "LINKER:-undefined,dynamic_lookup")
 endif()
 
 # ---------------------------------------------------------------------------

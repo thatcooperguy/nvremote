@@ -36,6 +36,11 @@ const platforms: Record<string, PlatformInfo> = {
     contentType: 'application/gzip',
     description: 'NVRemote Host Agent for Linux (amd64)',
   },
+  'linux-host-arm64': {
+    assetFilename: `NVRemoteHost-${VERSION}-linux-arm64.tar.gz`,
+    contentType: 'application/gzip',
+    description: 'NVRemote Host Agent for Linux (ARM64)',
+  },
   'macos-client': {
     assetFilename: `NVRemote-${VERSION.replace('v', '')}-universal.dmg`,
     contentType: 'application/x-apple-diskimage',
@@ -45,6 +50,11 @@ const platforms: Record<string, PlatformInfo> = {
     assetFilename: `NVRemote-${VERSION.replace('v', '')}-x86_64.AppImage`,
     contentType: 'application/x-executable',
     description: 'NVRemote Client for Linux (x86_64)',
+  },
+  'linux-client-arm64': {
+    assetFilename: `NVRemote-${VERSION.replace('v', '')}-arm64.AppImage`,
+    contentType: 'application/x-executable',
+    description: 'NVRemote Client for Linux (ARM64)',
   },
 };
 

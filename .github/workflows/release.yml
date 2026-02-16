@@ -736,6 +736,11 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Setup QEMU for ARM64 emulation
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
       - name: Create empty resources directory
         run: mkdir -p apps/client-desktop/resources
 
@@ -746,7 +751,7 @@ jobs:
         working-directory: apps/client-desktop
         run: |
           npm run build
-          npx electron-builder --linux --arm64
+          USE_SYSTEM_FPM=true npx electron-builder --linux AppImage --arm64
           echo ""
           echo "=== Release directory contents ==="
           find release -type f -exec ls -lh {} \;

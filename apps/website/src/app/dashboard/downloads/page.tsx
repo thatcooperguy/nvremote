@@ -18,13 +18,13 @@ import { cn } from '@/lib/utils';
 const installedApps = [
   {
     name: 'NVRemote Host',
-    version: 'v0.3.0-alpha',
+    version: 'v0.4.0-alpha',
     description: 'Stream capture and encoding service',
     upToDate: true,
   },
   {
     name: 'NVRemote Client',
-    version: 'v0.3.0-alpha',
+    version: 'v0.4.0-alpha',
     description: 'Stream receiver and decoder',
     upToDate: true,
   },
@@ -34,28 +34,28 @@ const availableDownloads = [
   {
     platform: 'Windows',
     icon: Monitor,
-    version: 'v0.3.0-alpha',
+    version: 'v0.4.0-alpha',
     size: '45 MB',
     label: 'Windows 10/11 (x64)',
   },
   {
     platform: 'macOS',
     icon: Laptop,
-    version: 'v0.3.0-alpha',
+    version: 'v0.4.0-alpha',
     size: '52 MB',
     label: 'macOS 13+ (ARM/Intel)',
   },
   {
     platform: 'Linux',
     icon: Server,
-    version: 'v0.3.0-alpha',
+    version: 'v0.4.0-alpha',
     size: '38 MB',
     label: 'Ubuntu 22.04+ / Fedora 38+',
   },
   {
     platform: 'Android',
     icon: Smartphone,
-    version: 'v0.3.0-alpha',
+    version: 'v0.4.0-alpha',
     size: '28 MB',
     label: 'Android 12+ (APK)',
   },
@@ -63,7 +63,7 @@ const availableDownloads = [
 
 const versionHistory = [
   {
-    version: 'v0.3.0-alpha',
+    version: 'v0.4.0-alpha',
     date: 'Feb 10, 2026',
     current: true,
     notes: 'Stability improvements, reduced jitter on high-latency connections, fixed relay handshake timeout.',

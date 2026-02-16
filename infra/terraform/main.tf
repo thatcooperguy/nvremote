@@ -104,6 +104,6 @@ module "dns" {
   project_name              = var.project_name
   region                    = var.region
   domain_name               = var.domain_name
-  website_cloud_run_service = "crazystream-website"
-  api_cloud_run_service     = "crazystream-api"
+  website_cloud_run_service = "nvremote-website"
+  api_cloud_run_service     = "nvremote-api"
 }

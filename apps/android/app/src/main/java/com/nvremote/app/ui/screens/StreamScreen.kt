@@ -92,6 +92,12 @@ fun StreamScreen(
         val sid = session.sessionId
         if (url.isNotBlank() && webRtcState == WebRtcConnectionState.IDLE) {
             val token = viewModel.getAccessToken()
+            if (token == null) {
+                // Token is null — the ViewModel has already set the error in uiState.
+                // Do NOT start WebRTC with an empty/missing token; it will silently
+                // fail signaling auth and never establish the P2P connection.
+                return@LaunchedEffect
+            }
             webRtcManager.startSession(
                 signalingUrl = url,
                 sessionId = sid,

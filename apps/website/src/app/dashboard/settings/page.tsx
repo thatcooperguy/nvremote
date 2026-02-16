@@ -1,40 +1,192 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
-  User,
   LogOut,
-  Eye,
-  EyeOff,
   RefreshCw,
   Shield,
-  Copy,
+  AlertCircle,
+  Save,
   CheckCircle2,
+  Loader2,
+  Building2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { authFetch, getStoredUser, logout, type AuthUser } from '@/lib/auth';
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface OrgInfo {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: string;
+}
+
+interface UserProfile {
+  id: string;
+  email: string;
+  name?: string | null;
+  avatarUrl?: string | null;
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export default function SettingsPage() {
+  const router = useRouter();
+
+  // User & org data
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [orgs, setOrgs] = useState<OrgInfo[]>([]);
+
+  // Streaming preferences (local state — no backend endpoint yet)
   const [defaultQuality, setDefaultQuality] = useState('balanced');
   const [defaultTransport, setDefaultTransport] = useState('udp');
+
+  // Notifications (local state — no backend endpoint yet)
   const [emailNotifs, setEmailNotifs] = useState(true);
   const [pushNotifs, setPushNotifs] = useState(false);
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [apiKeyCopied, setApiKeyCopied] = useState(false);
-  const [environment, setEnvironment] = useState('development');
 
-  const apiKey = 'csk_live_a1B2c3D4e5F6g7H8i9J0kLmNoPqRsTuVwXyZ';
+  // Loading & errors
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
-  const inputClass =
-    'w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 focus:border-cs-green/50 focus:ring-1 focus:ring-cs-green/20 focus:outline-none transition-colors';
+  // -----------------------------------------------------------------------
+  // Data fetching
+  // -----------------------------------------------------------------------
+
+  const fetchData = useCallback(async () => {
+    try {
+      setError(null);
+      setLoading(true);
+
+      // Load user from localStorage immediately
+      const storedUser = getStoredUser();
+      setUser(storedUser);
+
+      // Fetch fresh profile and orgs from API in parallel
+      const [profileRes, orgsRes] = await Promise.all([
+        authFetch('/api/v1/auth/me'),
+        authFetch('/api/v1/orgs'),
+      ]);
+
+      if (!profileRes.ok) {
+        throw new Error(`Failed to load profile (${profileRes.status})`);
+      }
+
+      const profileData: UserProfile = await profileRes.json();
+      setProfile(profileData);
+
+      if (orgsRes.ok) {
+        const orgsData: OrgInfo[] = await orgsRes.json();
+        setOrgs(orgsData);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load settings';
+      // Don't show error if it's an auth redirect
+      if (!message.includes('Session expired')) {
+        setError(message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // -----------------------------------------------------------------------
+  // Handlers
+  // -----------------------------------------------------------------------
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await logout();
+      router.replace('/');
+    } catch {
+      // Best-effort — clearAuth already happened in logout()
+      router.replace('/');
+    }
+  };
+
+  const handleSavePreferences = async () => {
+    setSaving(true);
+    setSaveSuccess(false);
+    try {
+      // Persist to localStorage for now (streaming prefs have no backend endpoint yet)
+      localStorage.setItem(
+        'nvremote_preferences',
+        JSON.stringify({
+          defaultQuality,
+          defaultTransport,
+          emailNotifs,
+          pushNotifs,
+        }),
+      );
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2500);
+    } catch {
+      setError('Failed to save preferences');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Load saved preferences from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('nvremote_preferences');
+      if (raw) {
+        const prefs = JSON.parse(raw);
+        if (prefs.defaultQuality) setDefaultQuality(prefs.defaultQuality);
+        if (prefs.defaultTransport) setDefaultTransport(prefs.defaultTransport);
+        if (typeof prefs.emailNotifs === 'boolean') setEmailNotifs(prefs.emailNotifs);
+        if (typeof prefs.pushNotifs === 'boolean') setPushNotifs(prefs.pushNotifs);
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }, []);
+
+  // -----------------------------------------------------------------------
+  // Derived values
+  // -----------------------------------------------------------------------
+
+  const displayName = profile?.name || user?.name || 'User';
+  const displayEmail = profile?.email || user?.email || '';
+  const initials = displayName
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+  const avatarUrl = profile?.avatarUrl || user?.avatarUrl;
+  const memberSince = profile?.createdAt
+    ? new Date(profile.createdAt).toLocaleDateString('en-US', {
+        month: 'long',
+        year: 'numeric',
+      })
+    : null;
+
+  // -----------------------------------------------------------------------
+  // Shared styles
+  // -----------------------------------------------------------------------
+
   const selectClass =
     'w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 focus:border-cs-green/50 focus:ring-1 focus:ring-cs-green/20 focus:outline-none transition-colors appearance-none';
-
-  const handleCopyApiKey = () => {
-    navigator.clipboard.writeText(apiKey);
-    setApiKeyCopied(true);
-    setTimeout(() => setApiKeyCopied(false), 2000);
-  };
 
   const Toggle = ({
     enabled,
@@ -59,6 +211,43 @@ export default function SettingsPage() {
     </button>
   );
 
+  // -----------------------------------------------------------------------
+  // Loading state
+  // -----------------------------------------------------------------------
+
+  if (loading) {
+    return (
+      <div className="space-y-8 max-w-3xl">
+        <div>
+          <motion.h1
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight"
+          >
+            Settings
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="text-sm text-gray-500 mt-1"
+          >
+            Configure your account and streaming preferences
+          </motion.p>
+        </div>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-6 h-6 text-cs-green animate-spin" />
+          <span className="ml-3 text-sm text-gray-500">Loading settings...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // -----------------------------------------------------------------------
+  // Render
+  // -----------------------------------------------------------------------
+
   return (
     <div className="space-y-8 max-w-3xl">
       {/* Header */}
@@ -81,6 +270,25 @@ export default function SettingsPage() {
         </motion.p>
       </div>
 
+      {/* Error banner */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 px-4 py-3 rounded-lg bg-red-50 border border-red-200"
+        >
+          <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+          <p className="text-sm text-red-700 flex-1">{error}</p>
+          <button
+            onClick={fetchData}
+            className="text-xs font-medium text-red-600 hover:text-red-800 flex items-center gap-1"
+          >
+            <RefreshCw className="w-3 h-3" />
+            Retry
+          </button>
+        </motion.div>
+      )}
+
       {/* Account section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -90,21 +298,81 @@ export default function SettingsPage() {
       >
         <h2 className="text-base font-semibold text-gray-900 mb-5">Account</h2>
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-cs-green/10 border border-cs-green/20 flex items-center justify-center shrink-0">
-            <span className="text-lg font-bold text-cs-green">CC</span>
-          </div>
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={displayName}
+              className="w-14 h-14 rounded-full border border-gray-200 shrink-0"
+            />
+          ) : (
+            <div className="w-14 h-14 rounded-full bg-cs-green/10 border border-cs-green/20 flex items-center justify-center shrink-0">
+              <span className="text-lg font-bold text-cs-green">{initials}</span>
+            </div>
+          )}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900">ccooper</p>
-            <p className="text-xs text-gray-500 mt-0.5">
-              ccooper@gmail.com
-            </p>
+            <p className="text-sm font-medium text-gray-900">{displayName}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{displayEmail}</p>
+            {memberSince && (
+              <p className="text-xs text-gray-400 mt-0.5">
+                Member since {memberSince}
+              </p>
+            )}
           </div>
-          <button className="shrink-0 inline-flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:border-red-500/30 hover:text-red-400 hover:bg-red-500/5 transition-all duration-300">
-            <LogOut className="w-4 h-4" />
-            Sign Out
+          <button
+            onClick={handleSignOut}
+            disabled={signingOut}
+            className="shrink-0 inline-flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:border-red-500/30 hover:text-red-400 hover:bg-red-500/5 transition-all duration-300 disabled:opacity-50"
+          >
+            {signingOut ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <LogOut className="w-4 h-4" />
+            )}
+            {signingOut ? 'Signing Out...' : 'Sign Out'}
           </button>
         </div>
       </motion.div>
+
+      {/* Organisation section */}
+      {orgs.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.18 }}
+          className="gradient-border p-5 sm:p-6"
+        >
+          <h2 className="text-base font-semibold text-gray-900 mb-5">
+            Organisation
+          </h2>
+          <div className="space-y-3">
+            {orgs.map((org) => (
+              <div
+                key={org.id}
+                className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100"
+              >
+                <div className="w-10 h-10 rounded-lg bg-cs-green/10 border border-cs-green/20 flex items-center justify-center shrink-0">
+                  <Building2 className="w-5 h-5 text-cs-green" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900">{org.name}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {org.slug}
+                    {org.createdAt && (
+                      <span className="ml-2 text-gray-400">
+                        Created{' '}
+                        {new Date(org.createdAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* Streaming preferences */}
       <motion.div
@@ -184,71 +452,38 @@ export default function SettingsPage() {
         </div>
       </motion.div>
 
-      {/* Advanced */}
+      {/* Save button */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.3 }}
-        className="gradient-border p-5 sm:p-6"
+        className="flex items-center gap-3"
       >
-        <h2 className="text-base font-semibold text-gray-900 mb-5">Advanced</h2>
-        <div className="space-y-5">
-          {/* API Key */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">
-              API Key
-            </label>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-mono text-gray-600 truncate">
-                {showApiKey
-                  ? apiKey
-                  : 'csk_live_\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
-              </div>
-              <button
-                onClick={() => setShowApiKey(!showApiKey)}
-                className="shrink-0 p-2.5 rounded-lg border border-gray-200 hover:border-cs-green/30 hover:bg-cs-green/5 text-gray-600 hover:text-cs-green transition-all"
-              >
-                {showApiKey ? (
-                  <EyeOff className="w-4 h-4" />
-                ) : (
-                  <Eye className="w-4 h-4" />
-                )}
-              </button>
-              <button
-                onClick={handleCopyApiKey}
-                className="shrink-0 p-2.5 rounded-lg border border-gray-200 hover:border-cs-green/30 hover:bg-cs-green/5 text-gray-600 hover:text-cs-green transition-all"
-              >
-                {apiKeyCopied ? (
-                  <CheckCircle2 className="w-4 h-4 text-cs-green" />
-                ) : (
-                  <Copy className="w-4 h-4" />
-                )}
-              </button>
-            </div>
-            <button className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-amber-600 transition-colors">
-              <RefreshCw className="w-3 h-3" />
-              Regenerate Key
-            </button>
-          </div>
-
-          <div className="border-t border-gray-200/60" />
-
-          {/* Environment selector */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">
-              Environment
-            </label>
-            <select
-              value={environment}
-              onChange={(e) => setEnvironment(e.target.value)}
-              className={selectClass}
-            >
-              <option value="development">Development</option>
-              <option value="staging">Staging</option>
-              <option value="production">Production</option>
-            </select>
-          </div>
-        </div>
+        <button
+          onClick={handleSavePreferences}
+          disabled={saving}
+          className={cn(
+            'inline-flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-300',
+            saveSuccess
+              ? 'bg-cs-green text-white'
+              : 'bg-gray-900 text-white hover:bg-gray-800',
+            saving && 'opacity-70 cursor-not-allowed'
+          )}
+        >
+          {saving ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : saveSuccess ? (
+            <CheckCircle2 className="w-4 h-4" />
+          ) : (
+            <Save className="w-4 h-4" />
+          )}
+          {saving ? 'Saving...' : saveSuccess ? 'Saved' : 'Save Preferences'}
+        </button>
+        {saveSuccess && (
+          <span className="text-xs text-cs-green font-medium">
+            Preferences saved successfully
+          </span>
+        )}
       </motion.div>
 
       {/* Security note */}
@@ -260,9 +495,9 @@ export default function SettingsPage() {
       >
         <Shield className="w-4 h-4 text-cs-green shrink-0 mt-0.5" />
         <p className="text-xs text-gray-500 leading-relaxed">
-          Your API key and session tokens are encrypted at rest and in transit.
-          Never share your API key publicly. Regenerate immediately if
-          compromised.
+          Your session tokens are encrypted at rest and in transit. Streaming
+          preferences are stored locally in your browser. Sign out on shared
+          devices when you are done.
         </p>
       </motion.div>
     </div>

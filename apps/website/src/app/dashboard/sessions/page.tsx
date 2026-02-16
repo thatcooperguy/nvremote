@@ -1,122 +1,281 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
+  AlertCircle,
   CheckCircle2,
-  Copy,
-  Eye,
-  EyeOff,
+  Clock,
   Loader2,
+  Monitor,
+  RefreshCw,
   Unplug,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { authFetch } from '@/lib/auth';
 
-const activeSessions = [
-  {
-    name: 'Gaming Session #12',
-    host: '192.168.1.100',
-    status: 'Active' as const,
-    latency: '11ms',
-  },
-  {
-    name: 'Dev Testing',
-    host: '10.0.0.50',
-    status: 'Active' as const,
-    latency: '8ms',
-  },
-  {
-    name: 'Remote Desktop',
-    host: '172.16.0.10',
-    status: 'Connecting' as const,
-    latency: '--',
-  },
-  {
-    name: 'Movie Night',
-    host: '192.168.1.100',
-    status: 'Idle' as const,
-    latency: '15ms',
-  },
-];
+// ---------------------------------------------------------------------------
+// Types — match the API DTOs
+// ---------------------------------------------------------------------------
+
+interface Session {
+  id: string;
+  userId: string;
+  hostId: string;
+  status: string; // ACTIVE | PENDING | ENDED | FAILED
+  startedAt: string;
+  endedAt?: string | null;
+  clientIp?: string | null;
+  metadata?: Record<string, unknown> | null;
+}
+
+interface Host {
+  id: string;
+  name: string;
+  hostname: string;
+  status: string; // ONLINE | OFFLINE | MAINTENANCE
+  gpuInfo?: string | null;
+  publicIp?: string | null;
+  privateIp?: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 const statusColors: Record<string, string> = {
-  Active: 'bg-cs-green/10 text-cs-green border-cs-green/20',
-  Connecting: 'bg-amber-50 text-amber-600 border-amber-200',
-  Idle: 'bg-gray-100 text-gray-500 border-gray-300',
+  ACTIVE: 'bg-cs-green/10 text-cs-green border-cs-green/20',
+  PENDING: 'bg-amber-50 text-amber-600 border-amber-200',
+  ENDED: 'bg-gray-100 text-gray-500 border-gray-300',
+  FAILED: 'bg-red-50 text-red-600 border-red-200',
 };
 
 const statusDots: Record<string, string> = {
-  Active: 'bg-cs-green',
-  Connecting: 'bg-amber-400 animate-pulse',
-  Idle: 'bg-gray-400',
+  ACTIVE: 'bg-cs-green',
+  PENDING: 'bg-amber-400 animate-pulse',
+  ENDED: 'bg-gray-400',
+  FAILED: 'bg-red-400',
 };
 
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatDuration(startedAt: string, endedAt?: string | null): string {
+  const start = new Date(startedAt).getTime();
+  const end = endedAt ? new Date(endedAt).getTime() : Date.now();
+  const ms = end - start;
+  if (ms <= 0) return '--';
+  const seconds = Math.floor(ms / 1000);
+  const mins = Math.floor(seconds / 60);
+  const hrs = Math.floor(mins / 60);
+  if (hrs > 0) return `${hrs}h ${mins % 60}m`;
+  if (mins > 0) return `${mins}m ${seconds % 60}s`;
+  return `${seconds}s`;
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 export default function SessionsPage() {
-  const [sessionName, setSessionName] = useState('');
-  const [targetHost, setTargetHost] = useState('');
-  const [transport, setTransport] = useState('udp');
-  const [quality, setQuality] = useState('balanced');
-  const [relayEnabled, setRelayEnabled] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [sessionCreated, setSessionCreated] = useState(false);
-  const [showToken, setShowToken] = useState(false);
-  const [copiedLink, setCopiedLink] = useState(false);
-  const [copiedToken, setCopiedToken] = useState(false);
+  // Data state
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [hosts, setHosts] = useState<Host[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const sessionLink = 'https://nvremote.com/s/abc123xYz789QwErTy';
-  const sessionToken = 'cs_Kx9mP2vL8nQwRtFgHjDk4aBcEfUiOp7sXyZ';
+  // Create session form state
+  const [selectedHostId, setSelectedHostId] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [createdSessionId, setCreatedSessionId] = useState<string | null>(null);
 
-  const handleGenerate = () => {
-    setGenerating(true);
-    setTimeout(() => {
-      setGenerating(false);
-      setSessionCreated(true);
-    }, 1500);
-  };
+  // End session state
+  const [endingSessionId, setEndingSessionId] = useState<string | null>(null);
 
-  const handleCopy = (text: string, type: 'link' | 'token') => {
-    navigator.clipboard.writeText(text);
-    if (type === 'link') {
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2000);
-    } else {
-      setCopiedToken(true);
-      setTimeout(() => setCopiedToken(false), 2000);
+  // ---------------------------------------------------------------------------
+  // Data fetching
+  // ---------------------------------------------------------------------------
+
+  const fetchData = useCallback(async () => {
+    try {
+      setError(null);
+
+      const [sessionsRes, hostsRes] = await Promise.all([
+        authFetch('/api/v1/sessions'),
+        authFetch('/api/v1/hosts').catch(() => null),
+      ]);
+
+      if (!sessionsRes.ok) {
+        throw new Error(`Failed to load sessions (${sessionsRes.status})`);
+      }
+
+      const sessionsData = await sessionsRes.json();
+      const sessionsList: Session[] = Array.isArray(sessionsData)
+        ? sessionsData
+        : sessionsData.data ?? [];
+      setSessions(sessionsList);
+
+      if (hostsRes?.ok) {
+        const hostsData = await hostsRes.json();
+        const hostsList: Host[] = Array.isArray(hostsData)
+          ? hostsData
+          : hostsData.data ?? [];
+        setHosts(hostsList);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load sessions');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // ---------------------------------------------------------------------------
+  // Create session
+  // ---------------------------------------------------------------------------
+
+  const handleCreateSession = async () => {
+    if (!selectedHostId) {
+      setCreateError('Please select a host.');
+      return;
+    }
+
+    try {
+      setCreating(true);
+      setCreateError(null);
+
+      const res = await authFetch('/api/v1/sessions', {
+        method: 'POST',
+        body: JSON.stringify({ hostId: selectedHostId }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(
+          body?.message || `Failed to create session (${res.status})`,
+        );
+      }
+
+      const data = await res.json();
+      setCreatedSessionId(data.sessionId);
+
+      // Refresh session list
+      setLoading(true);
+      await fetchData();
+    } catch (err) {
+      setCreateError(
+        err instanceof Error ? err.message : 'Failed to create session',
+      );
+    } finally {
+      setCreating(false);
     }
   };
 
-  const inputClass =
-    'w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 focus:border-cs-green/50 focus:ring-1 focus:ring-cs-green/20 focus:outline-none transition-colors';
+  // ---------------------------------------------------------------------------
+  // End session
+  // ---------------------------------------------------------------------------
+
+  const handleEndSession = async (sessionId: string) => {
+    try {
+      setEndingSessionId(sessionId);
+
+      const res = await authFetch(`/api/v1/sessions/${sessionId}/end`, {
+        method: 'POST',
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(
+          body?.message || `Failed to end session (${res.status})`,
+        );
+      }
+
+      // Refresh session list
+      await fetchData();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to end session',
+      );
+    } finally {
+      setEndingSessionId(null);
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // Derived data
+  // ---------------------------------------------------------------------------
+
+  const activeSessions = sessions.filter(
+    (s) => s.status === 'ACTIVE' || s.status === 'PENDING',
+  );
+  const pastSessions = sessions.filter(
+    (s) => s.status === 'ENDED' || s.status === 'FAILED',
+  );
   const selectClass =
     'w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 focus:border-cs-green/50 focus:ring-1 focus:ring-cs-green/20 focus:outline-none transition-colors appearance-none';
 
-  const qualityLabels: Record<string, string> = {
-    competitive: '1080p / 240 FPS',
-    balanced: '1440p / 144 FPS',
-    cinematic: '4K / 60 FPS',
+  // Helper to resolve host name from hostId
+  const getHostName = (hostId: string): string => {
+    const host = hosts.find((h) => h.id === hostId);
+    return host?.name || host?.hostname || hostId.slice(0, 8);
   };
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <motion.h1
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight"
+      <div className="flex items-center justify-between">
+        <div>
+          <motion.h1
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight"
+          >
+            Session Management
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="text-sm text-gray-500 mt-1"
+          >
+            Create and manage streaming sessions
+          </motion.p>
+        </div>
+        <button
+          onClick={() => {
+            setLoading(true);
+            fetchData();
+          }}
+          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
         >
-          Session Management
-        </motion.h1>
-        <motion.p
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          className="text-sm text-gray-500 mt-1"
-        >
-          Create and manage streaming sessions
-        </motion.p>
+          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          Refresh
+        </button>
       </div>
+
+      {/* Global error */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+        >
+          <AlertCircle size={16} className="shrink-0" />
+          {error}
+        </motion.div>
+      )}
 
       {/* Create session form */}
       <motion.div
@@ -126,11 +285,11 @@ export default function SessionsPage() {
         className="gradient-border p-5 sm:p-6 relative overflow-hidden"
       >
         <h2 className="text-lg font-semibold text-gray-900 mb-5">
-          Generate Secure Session
+          Start New Session
         </h2>
 
         <AnimatePresence mode="wait">
-          {!sessionCreated ? (
+          {!createdSessionId ? (
             <motion.div
               key="form"
               initial={{ opacity: 1 }}
@@ -138,107 +297,61 @@ export default function SessionsPage() {
               transition={{ duration: 0.2 }}
               className="space-y-4"
             >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                    Session Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="My Gaming Session"
-                    value={sessionName}
-                    onChange={(e) => setSessionName(e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                    Target Host
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="192.168.1.100 or hostname"
-                    value={targetHost}
-                    onChange={(e) => setTargetHost(e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                    Transport
-                  </label>
+              {/* Host selector */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                  Select Host
+                </label>
+                {hosts.length === 0 && !loading ? (
+                  <p className="text-sm text-gray-400 py-2">
+                    No hosts registered yet. Install the host agent on an
+                    NVIDIA-powered machine first.
+                  </p>
+                ) : (
                   <select
-                    value={transport}
-                    onChange={(e) => setTransport(e.target.value)}
+                    value={selectedHostId}
+                    onChange={(e) => {
+                      setSelectedHostId(e.target.value);
+                      setCreateError(null);
+                    }}
                     className={selectClass}
                   >
-                    <option value="udp">UDP</option>
-                    <option value="tcp">TCP</option>
+                    <option value="">Choose a host...</option>
+                    {hosts.map((host) => (
+                      <option key={host.id} value={host.id}>
+                        {host.name || host.hostname}
+                        {host.status === 'ONLINE' ? ' (Online)' : ` (${host.status})`}
+                        {host.gpuInfo ? ` - ${host.gpuInfo}` : ''}
+                      </option>
+                    ))}
                   </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                    Quality Preset
-                  </label>
-                  <select
-                    value={quality}
-                    onChange={(e) => setQuality(e.target.value)}
-                    className={selectClass}
-                  >
-                    <option value="competitive">
-                      Competitive (1080p/240fps)
-                    </option>
-                    <option value="balanced">Balanced (1440p/144fps)</option>
-                    <option value="cinematic">Cinematic (4K/60fps)</option>
-                  </select>
-                </div>
+                )}
               </div>
 
-              {/* Relay toggle */}
-              <div className="flex items-center justify-between py-2">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    Enable Secure Relay
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Route traffic through an encrypted relay server
-                  </p>
+              {/* Create error */}
+              {createError && (
+                <div className="flex items-center gap-2 text-sm text-red-600">
+                  <AlertCircle size={14} className="shrink-0" />
+                  {createError}
                 </div>
-                <button
-                  onClick={() => setRelayEnabled(!relayEnabled)}
-                  className={cn(
-                    'relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-cs-green/30',
-                    relayEnabled ? 'bg-cs-green' : 'bg-gray-300'
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-200',
-                      relayEnabled ? 'translate-x-5' : 'translate-x-0'
-                    )}
-                  />
-                </button>
-              </div>
+              )}
 
-              {/* Generate button */}
+              {/* Create button */}
               <button
-                onClick={handleGenerate}
-                disabled={generating}
+                onClick={handleCreateSession}
+                disabled={creating || hosts.length === 0}
                 className={cn(
-                  'w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-cs-green text-white font-semibold text-sm rounded-lg hover:bg-cs-green-300 transition-all duration-300 shadow-glow hover:shadow-glow-lg',
-                  generating && 'opacity-80 cursor-wait'
+                  'w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-cs-green text-white font-semibold text-sm rounded-lg hover:bg-cs-green-300 transition-all duration-300 shadow-glow hover:shadow-glow-lg disabled:opacity-50 disabled:cursor-not-allowed',
+                  creating && 'opacity-80 cursor-wait',
                 )}
               >
-                {generating ? (
+                {creating ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Generating...
+                    Creating Session...
                   </>
                 ) : (
-                  'Generate Secure Session'
+                  'Start Session'
                 )}
               </button>
             </motion.div>
@@ -277,64 +390,18 @@ export default function SessionsPage() {
                       Session Created
                     </h3>
                     <p className="text-xs text-gray-500">
-                      Share the link below to start streaming
+                      Your session is being established with the host
                     </p>
                   </div>
                 </div>
 
-                {/* Session link */}
+                {/* Session ID */}
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1.5">
-                    Session Link
+                    Session ID
                   </label>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-mono text-cs-green truncate">
-                      {sessionLink}
-                    </div>
-                    <button
-                      onClick={() => handleCopy(sessionLink, 'link')}
-                      className="shrink-0 p-2.5 rounded-lg border border-gray-200 hover:border-cs-green/30 hover:bg-cs-green/5 text-gray-600 hover:text-cs-green transition-all"
-                    >
-                      {copiedLink ? (
-                        <CheckCircle2 className="w-4 h-4 text-cs-green" />
-                      ) : (
-                        <Copy className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Session token */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1.5">
-                    Session Token
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-mono text-gray-600 truncate">
-                      {showToken
-                        ? sessionToken
-                        : 'cs_Kx9\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
-                    </div>
-                    <button
-                      onClick={() => setShowToken(!showToken)}
-                      className="shrink-0 p-2.5 rounded-lg border border-gray-200 hover:border-cs-green/30 hover:bg-cs-green/5 text-gray-600 hover:text-cs-green transition-all"
-                    >
-                      {showToken ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </button>
-                    <button
-                      onClick={() => handleCopy(sessionToken, 'token')}
-                      className="shrink-0 p-2.5 rounded-lg border border-gray-200 hover:border-cs-green/30 hover:bg-cs-green/5 text-gray-600 hover:text-cs-green transition-all"
-                    >
-                      {copiedToken ? (
-                        <CheckCircle2 className="w-4 h-4 text-cs-green" />
-                      ) : (
-                        <Copy className="w-4 h-4" />
-                      )}
-                    </button>
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-mono text-gray-700 truncate">
+                    {createdSessionId}
                   </div>
                 </div>
 
@@ -345,48 +412,15 @@ export default function SessionsPage() {
                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cs-green" />
                   </span>
                   <span className="text-sm text-cs-green font-medium">
-                    Waiting for connection...
+                    Connecting to host...
                   </span>
-                </div>
-
-                {/* QoS summary */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {[
-                    { label: 'Transport', value: transport.toUpperCase() },
-                    {
-                      label: 'Quality',
-                      value:
-                        quality.charAt(0).toUpperCase() + quality.slice(1),
-                    },
-                    {
-                      label: 'Resolution',
-                      value: qualityLabels[quality],
-                    },
-                    {
-                      label: 'Relay',
-                      value: relayEnabled ? 'Enabled' : 'Direct',
-                    },
-                  ].map((item) => (
-                    <div
-                      key={item.label}
-                      className="bg-gray-50 rounded-lg px-3 py-2.5 border border-gray-200/60"
-                    >
-                      <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">
-                        {item.label}
-                      </p>
-                      <p className="text-sm font-medium text-gray-900 mt-0.5">
-                        {item.value}
-                      </p>
-                    </div>
-                  ))}
                 </div>
 
                 {/* New session button */}
                 <button
                   onClick={() => {
-                    setSessionCreated(false);
-                    setSessionName('');
-                    setTargetHost('');
+                    setCreatedSessionId(null);
+                    setSelectedHostId('');
                   }}
                   className="text-sm text-gray-500 hover:text-cs-green transition-colors font-medium"
                 >
@@ -407,49 +441,160 @@ export default function SessionsPage() {
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
           Active Sessions
         </h2>
-        <div className="space-y-3">
-          {activeSessions.map((session, i) => (
-            <div
-              key={i}
-              className="gradient-border p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-sm font-semibold text-gray-900 truncate">
-                    {session.name}
-                  </span>
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold border shrink-0',
-                      statusColors[session.status]
-                    )}
-                  >
+
+        {loading && sessions.length === 0 ? (
+          <div className="gradient-border p-8 text-center">
+            <Loader2 className="w-6 h-6 animate-spin text-gray-400 mx-auto mb-2" />
+            <p className="text-sm text-gray-400">Loading sessions...</p>
+          </div>
+        ) : activeSessions.length === 0 ? (
+          <div className="gradient-border p-8 text-center">
+            <Monitor className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+            <p className="text-sm text-gray-500 font-medium">
+              No active sessions
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Start a new session above to begin streaming
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {activeSessions.map((session) => (
+              <div
+                key={session.id}
+                className="gradient-border p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-sm font-semibold text-gray-900 truncate">
+                      {getHostName(session.hostId)}
+                    </span>
                     <span
                       className={cn(
-                        'w-1.5 h-1.5 rounded-full',
-                        statusDots[session.status]
+                        'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold border shrink-0',
+                        statusColors[session.status] ||
+                          'bg-gray-100 text-gray-500 border-gray-300',
                       )}
-                    />
-                    {session.status}
-                  </span>
+                    >
+                      <span
+                        className={cn(
+                          'w-1.5 h-1.5 rounded-full',
+                          statusDots[session.status] || 'bg-gray-400',
+                        )}
+                      />
+                      {session.status}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="text-xs font-mono text-gray-500">
+                      {session.id.slice(0, 8)}...
+                    </span>
+                    <span className="text-xs text-gray-400 flex items-center gap-1">
+                      <Clock size={11} />
+                      {formatDuration(session.startedAt, session.endedAt)}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      Started {formatTime(session.startedAt)}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 mt-1">
-                  <span className="text-xs font-mono text-gray-500">
-                    {session.host}
-                  </span>
-                  <span className="text-xs text-gray-400">
-                    Latency: {session.latency}
-                  </span>
+                <button
+                  onClick={() => handleEndSession(session.id)}
+                  disabled={endingSessionId === session.id}
+                  className={cn(
+                    'shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-red-400 border border-gray-200 hover:border-red-500/30 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed',
+                  )}
+                >
+                  {endingSessionId === session.id ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Unplug className="w-3.5 h-3.5" />
+                  )}
+                  {endingSessionId === session.id
+                    ? 'Ending...'
+                    : 'End Session'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </motion.div>
+
+      {/* Past sessions */}
+      {pastSessions.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Past Sessions
+          </h2>
+          <div className="space-y-3">
+            {pastSessions.map((session) => (
+              <div
+                key={session.id}
+                className="gradient-border p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-sm font-semibold text-gray-900 truncate">
+                      {getHostName(session.hostId)}
+                    </span>
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold border shrink-0',
+                        statusColors[session.status] ||
+                          'bg-gray-100 text-gray-500 border-gray-300',
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'w-1.5 h-1.5 rounded-full',
+                          statusDots[session.status] || 'bg-gray-400',
+                        )}
+                      />
+                      {session.status}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="text-xs font-mono text-gray-500">
+                      {session.id.slice(0, 8)}...
+                    </span>
+                    <span className="text-xs text-gray-400 flex items-center gap-1">
+                      <Clock size={11} />
+                      {formatDuration(session.startedAt, session.endedAt)}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {formatTime(session.startedAt)}
+                      {session.endedAt && ` - ${formatTime(session.endedAt)}`}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <button className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-red-400 border border-gray-200 hover:border-red-500/30 rounded-lg transition-all">
-                <Unplug className="w-3.5 h-3.5" />
-                Disconnect
-              </button>
-            </div>
-          ))}
-        </div>
-      </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Empty state — no sessions at all */}
+      {!loading && sessions.length === 0 && !error && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="gradient-border p-10 text-center"
+        >
+          <Monitor className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+          <p className="text-base font-medium text-gray-600">
+            No sessions yet
+          </p>
+          <p className="text-sm text-gray-400 mt-1 max-w-md mx-auto">
+            Select a host above and start your first streaming session. Sessions
+            will appear here once created.
+          </p>
+        </motion.div>
+      )}
     </div>
   );
 }

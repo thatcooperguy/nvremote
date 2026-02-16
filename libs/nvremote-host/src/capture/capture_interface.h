@@ -1,12 +1,14 @@
 ///////////////////////////////////////////////////////////////////////////////
 // capture_interface.h -- Abstract capture device interface
 //
-// Defines the contract for screen capture backends.  Two implementations
-// exist today:
-//   - NvfbcCapture   (NvFBC -- NVIDIA FrameBuffer Capture, GPU-direct)
-//   - DxgiCapture    (DXGI Desktop Duplication, D3D11-based fallback)
+// Defines the contract for screen capture backends.  Implementations:
+//   - NvfbcCapture   (NvFBC -- NVIDIA FrameBuffer Capture, GPU-direct, Windows)
+//   - DxgiCapture    (DXGI Desktop Duplication, D3D11-based fallback, Windows)
+//   - DrmCapture     (DRM/KMS framebuffer, Linux ARM64 -- Jetson/Orin/DGX Spark)
 //
-// The session manager probes NvFBC first and falls back to DXGI.
+// The session manager probes backends in order:
+//   Windows: NvFBC → DXGI
+//   Linux ARM64: NvFBC (DGX Spark only) → DRM/KMS
 ///////////////////////////////////////////////////////////////////////////////
 #pragma once
 

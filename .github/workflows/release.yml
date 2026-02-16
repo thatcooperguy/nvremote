@@ -5,16 +5,19 @@
 # creates a GitHub Release with the resulting binaries.
 #
 # Jobs:
-#   1. build-native-libs       -- C++17 streaming core (Windows, MSVC + NVENC/FFmpeg)
-#   2. build-host-agent        -- Go host agent (Windows)
-#   3. build-host-agent-linux  -- Go host agent (Linux)
-#   4. build-host-bundle       -- Zip nvremote-host.exe + NVRemoteAgent.exe (Windows)
-#   5. build-host-bundle-linux -- Tar.gz NVRemoteAgent (Linux)
-#   6. build-client            -- Electron desktop client (Windows NSIS installer)
-#   7. build-client-linux      -- Electron desktop client (Linux AppImage)
-#   8. build-client-macos      -- Electron desktop client (macOS DMG)
-#   9. build-android           -- Android APK (Kotlin/Compose)
-#  10. create-release          -- Publish GitHub Release with all artifacts
+#   1.  build-native-libs             -- C++17 streaming core (Windows, MSVC + NVENC/FFmpeg)
+#   2.  build-host-agent              -- Go host agent (Windows)
+#   3.  build-host-agent-linux        -- Go host agent (Linux x86_64)
+#   4.  build-host-agent-linux-arm64  -- Go host agent (Linux ARM64 — Jetson/Orin/DGX Spark)
+#   5.  build-host-bundle             -- Zip nvremote-host.exe + NVRemoteAgent.exe (Windows)
+#   6.  build-host-bundle-linux       -- Tar.gz NVRemoteAgent (Linux x86_64)
+#   7.  build-host-bundle-linux-arm64 -- Tar.gz NVRemoteAgent (Linux ARM64)
+#   8.  build-client                  -- Electron desktop client (Windows NSIS installer)
+#   9.  build-client-linux            -- Electron desktop client (Linux x86_64 AppImage)
+#  10.  build-client-linux-arm64      -- Electron desktop client (Linux ARM64 AppImage)
+#  11.  build-client-macos            -- Electron desktop client (macOS DMG)
+#  12.  build-android                 -- Android APK (Kotlin/Compose)
+#  13.  create-release                -- Publish GitHub Release with all artifacts
 ###############################################################################
 
 name: Release
@@ -391,7 +394,48 @@ jobs:
           retention-days: 5
 
   ###########################################################################
-  # Job 4: Bundle host streamer + agent into a single zip (Windows)
+  # Job 4: Build Go host agent (Linux ARM64 — Jetson/Orin/DGX Spark)
+  ###########################################################################
+  build-host-agent-linux-arm64:
+    name: Build Host Agent (Go/Linux ARM64)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: apps/host-agent/go.sum
+
+      - name: Tidy Go modules
+        working-directory: apps/host-agent
+        run: go mod tidy
+
+      - name: Build host agent (ARM64 cross-compile)
+        working-directory: apps/host-agent
+        run: |
+          TAG="${{ github.ref_name }}"
+          echo "Building NVRemoteAgent for tag: $TAG (linux/arm64)"
+          go build -ldflags="-s -w -X main.version=$TAG" -o NVRemoteAgent-arm64 ./cmd/agent
+          echo "Built NVRemoteAgent-arm64 ($(stat -c%s NVRemoteAgent-arm64) bytes)"
+        env:
+          GOOS: linux
+          GOARCH: arm64
+          CGO_ENABLED: "0"
+
+      - name: Upload host agent (ARM64)
+        uses: actions/upload-artifact@v4
+        with:
+          name: host-agent-linux-arm64
+          path: apps/host-agent/NVRemoteAgent-arm64
+          if-no-files-found: error
+          retention-days: 5
+
+  ###########################################################################
+  # Job 5: Bundle host streamer + agent into a single zip (Windows)
   ###########################################################################
   build-host-bundle:
     name: Bundle Host Package
@@ -497,7 +541,45 @@ jobs:
           retention-days: 5
 
   ###########################################################################
-  # Job 6: Build Electron desktop client (Windows installer)
+  # Job 7: Bundle host agent for Linux ARM64 (Jetson/Orin/DGX Spark)
+  ###########################################################################
+  build-host-bundle-linux-arm64:
+    name: Bundle Host Package (Linux ARM64)
+    runs-on: ubuntu-latest
+    needs: [build-host-agent-linux-arm64]
+
+    steps:
+      - name: Download host agent artifact (ARM64)
+        uses: actions/download-artifact@v4
+        with:
+          name: host-agent-linux-arm64
+          path: host-agent-linux-arm64
+
+      - name: Create host bundle tarball
+        run: |
+          TAG="${{ github.ref_name }}"
+          BUNDLE_NAME="NVRemoteHost-${TAG}-linux-arm64"
+          mkdir -p "$BUNDLE_NAME"
+
+          cp host-agent-linux-arm64/NVRemoteAgent-arm64 "$BUNDLE_NAME/NVRemoteAgent"
+          chmod +x "$BUNDLE_NAME/NVRemoteAgent"
+
+          echo "=== Bundle contents ==="
+          ls -lh "$BUNDLE_NAME/"
+
+          tar -czf "${BUNDLE_NAME}.tar.gz" "$BUNDLE_NAME/"
+          echo "Created ${BUNDLE_NAME}.tar.gz ($(du -h ${BUNDLE_NAME}.tar.gz | cut -f1))"
+
+      - name: Upload host bundle (ARM64)
+        uses: actions/upload-artifact@v4
+        with:
+          name: host-bundle-linux-arm64
+          path: "NVRemoteHost-${{ github.ref_name }}-linux-arm64.tar.gz"
+          if-no-files-found: error
+          retention-days: 5
+
+  ###########################################################################
+  # Job 8: Build Electron desktop client (Windows installer)
   ###########################################################################
   build-client:
     name: Build Desktop Client (Electron)
@@ -639,7 +721,48 @@ jobs:
           retention-days: 5
 
   ###########################################################################
-  # Job 8a: Build macOS native viewer addon (VideoToolbox + Metal)
+  # Job 10: Build Electron desktop client (Linux ARM64 AppImage)
+  ###########################################################################
+  build-client-linux-arm64:
+    name: Build Desktop Client (Linux ARM64)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Create empty resources directory
+        run: mkdir -p apps/client-desktop/resources
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build and package client (ARM64)
+        working-directory: apps/client-desktop
+        run: |
+          npm run build
+          npx electron-builder --linux --arm64
+          echo ""
+          echo "=== Release directory contents ==="
+          find release -type f -exec ls -lh {} \;
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload client AppImage (ARM64)
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-linux-arm64
+          path: apps/client-desktop/release/NVRemote-*arm64*.AppImage
+          if-no-files-found: warn
+          retention-days: 5
+
+  ###########################################################################
+  # Job 11a: Build macOS native viewer addon (VideoToolbox + Metal)
   ###########################################################################
   build-native-libs-macos:
     name: Build Native Libs (macOS)
@@ -901,8 +1024,10 @@ jobs:
     needs:
       - build-host-bundle
       - build-host-bundle-linux
+      - build-host-bundle-linux-arm64
       - build-client
       - build-client-linux
+      - build-client-linux-arm64
       - build-client-macos
       - build-android
 
@@ -931,17 +1056,25 @@ jobs:
           cp release-artifacts/host-bundle/*.zip release-files/ 2>/dev/null && \
             echo "Collected Windows host bundle zip" || echo "Warning: Windows host bundle zip not found"
 
-          # Linux host bundle tarball
+          # Linux host bundle tarball (x86_64)
           cp release-artifacts/host-bundle-linux/*.tar.gz release-files/ 2>/dev/null && \
-            echo "Collected Linux host bundle tarball" || echo "Warning: Linux host bundle tarball not found"
+            echo "Collected Linux host bundle tarball (x86_64)" || echo "Warning: Linux host bundle tarball not found"
+
+          # Linux host bundle tarball (ARM64 — Jetson/Orin/DGX Spark)
+          cp release-artifacts/host-bundle-linux-arm64/*.tar.gz release-files/ 2>/dev/null && \
+            echo "Collected Linux host bundle tarball (ARM64)" || echo "Warning: Linux ARM64 host bundle tarball not found"
 
           # Windows client installer
           cp release-artifacts/client-installer/*.exe release-files/ 2>/dev/null && \
             echo "Collected Windows client installer exe" || echo "Warning: Windows client installer exe not found"
 
-          # Linux client AppImage
+          # Linux client AppImage (x86_64)
           cp release-artifacts/client-linux/*.AppImage release-files/ 2>/dev/null && \
-            echo "Collected Linux client AppImage" || echo "Warning: Linux client AppImage not found"
+            echo "Collected Linux client AppImage (x86_64)" || echo "Warning: Linux client AppImage not found"
+
+          # Linux client AppImage (ARM64)
+          cp release-artifacts/client-linux-arm64/*.AppImage release-files/ 2>/dev/null && \
+            echo "Collected Linux client AppImage (ARM64)" || echo "Warning: Linux ARM64 client AppImage not found"
 
           # macOS client DMG
           cp release-artifacts/client-macos/*.dmg release-files/ 2>/dev/null && \
@@ -983,18 +1116,22 @@ jobs:
             | Platform | Artifact | Description |
             |----------|----------|-------------|
             | Windows (Host) | `NVRemoteHost-${{ github.ref_name }}-win64.zip` | Streaming host + agent bundle |
-            | Linux (Host) | `NVRemoteHost-${{ github.ref_name }}-linux-amd64.tar.gz` | Host agent (Go, no GPU streamer yet) |
+            | Linux x86_64 (Host) | `NVRemoteHost-${{ github.ref_name }}-linux-amd64.tar.gz` | Host agent (Go) |
+            | Linux ARM64 (Host) | `NVRemoteHost-${{ github.ref_name }}-linux-arm64.tar.gz` | Host agent for Jetson/Orin/DGX Spark |
             | Windows (Client) | `NVRemote-*-Setup.exe` | Desktop viewer (Electron) installer |
-            | Linux (Client) | `NVRemote-*-x86_64.AppImage` | Desktop client (Electron AppImage) |
+            | Linux x86_64 (Client) | `NVRemote-*-x86_64.AppImage` | Desktop client (Electron AppImage) |
+            | Linux ARM64 (Client) | `NVRemote-*-arm64.AppImage` | Desktop client for Jetson/ARM64 |
             | macOS (Client) | `NVRemote-*-universal.dmg` | Desktop client (Electron DMG) |
             | Android | `NVRemote-${{ github.ref_name }}.apk` | Android mobile client |
 
             ### Requirements
             - **Host (Windows)**: NVIDIA GPU with NVENC support, Windows 10/11 x64
-            - **Host (Linux)**: Agent-only (GPU streaming requires Windows host for now)
+            - **Host (Linux x86_64)**: Agent-only (GPU streaming requires Windows host for now)
+            - **Host (Linux ARM64)**: NVIDIA Jetson Orin / DGX Spark with JetPack 5.0+ (agent-only, GPU streaming TBD)
             - **Desktop Client (Windows)**: Windows 10/11 x64 (D3D11VA/NVDEC decode)
             - **Desktop Client (macOS)**: macOS 13+ Apple Silicon (VideoToolbox decode, Metal render)
-            - **Desktop Client (Linux)**: Linux x86_64 (signaling + host management only)
+            - **Desktop Client (Linux x86_64)**: Linux x86_64 (signaling + host management only)
+            - **Desktop Client (Linux ARM64)**: Linux ARM64 / Jetson (signaling + host management only)
             - **Android Client**: Android 7.0+ (API 24)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

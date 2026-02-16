@@ -9,6 +9,7 @@ import com.nvremote.app.data.model.SessionState
 import com.nvremote.app.data.model.StreamConfig
 import com.nvremote.app.data.model.StreamStats
 import com.nvremote.app.data.model.toStreamConfig
+import android.util.Log
 import com.nvremote.app.data.repository.AuthRepository
 import com.nvremote.app.data.repository.HostRepository
 import com.nvremote.app.data.repository.SessionRepository
@@ -26,6 +27,10 @@ class SessionViewModel @Inject constructor(
     private val hostRepository: HostRepository,
     private val sessionRepository: SessionRepository,
 ) : ViewModel() {
+
+    companion object {
+        private const val TAG = "SessionViewModel"
+    }
 
     private val _uiState = MutableStateFlow(SessionUiState())
     val uiState: StateFlow<SessionUiState> = _uiState.asStateFlow()
@@ -119,9 +124,17 @@ class SessionViewModel @Inject constructor(
     /**
      * Retrieve the current JWT access token for WebRTC signaling authentication.
      * Automatically refreshes the token if it's expired or about to expire.
+     * Returns null if the user is not authenticated or the token could not be refreshed.
      */
-    suspend fun getAccessToken(): String {
-        return authRepository.getAccessToken() ?: ""
+    suspend fun getAccessToken(): String? {
+        val token = authRepository.getAccessToken()
+        if (token == null) {
+            Log.w(TAG, "Access token is null — user may not be authenticated or token refresh failed")
+            _uiState.value = _uiState.value.copy(
+                error = "Authentication required. Please sign in to start streaming.",
+            )
+        }
+        return token
     }
 
     private fun startSessionPolling(sessionId: String) {

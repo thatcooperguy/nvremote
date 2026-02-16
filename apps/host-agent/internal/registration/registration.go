@@ -16,19 +16,27 @@ import (
 	"time"
 
 	"github.com/nvidia/nvremote/host-agent/internal/config"
+	"github.com/nvidia/nvremote/host-agent/internal/platform"
 )
 
 const registrationFile = "registration.json"
 
 // RegistrationRequest is the payload sent to the control plane during host registration.
 type RegistrationRequest struct {
-	BootstrapToken    string `json:"bootstrap_token"`
-	HostName          string `json:"host_name"`
-	GPUModel          string `json:"gpu_model"`
+	BootstrapToken  string `json:"bootstrap_token"`
+	HostName        string `json:"host_name"`
+	GPUModel        string `json:"gpu_model"`
 	StreamerVersion string `json:"streamer_version"`
-	PublicIP          string `json:"public_ip,omitempty"`
-	OS                string `json:"os"`
-	Arch              string `json:"arch"`
+	PublicIP        string `json:"public_ip,omitempty"`
+	OS              string `json:"os"`
+	Arch            string `json:"arch"`
+
+	// ARM64 / Jetson platform metadata (empty on desktop)
+	PlatformType   string `json:"platform_type,omitempty"`   // "desktop", "jetson", "dgx"
+	SoC            string `json:"soc,omitempty"`             // e.g. "Orin", "Grace Blackwell"
+	L4TVersion     string `json:"l4t_version,omitempty"`     // Linux for Tegra version
+	JetPackVersion string `json:"jetpack_version,omitempty"` // JetPack SDK version
+	PowerMode      string `json:"power_mode,omitempty"`      // Current power mode
 }
 
 // RegistrationResponse is the payload returned by the control plane after successful registration.
@@ -55,13 +63,24 @@ func Register(cfg *config.Config) (*RegistrationResponse, error) {
 		streamerVersion = "unknown"
 	}
 
+	// Detect platform (Jetson/Orin/DGX Spark on ARM64, desktop otherwise)
+	platformInfo := platform.Detect()
+	if gpuModel == "unknown" && platformInfo.GPUModel != "" {
+		gpuModel = platformInfo.GPUModel
+	}
+
 	reqBody := RegistrationRequest{
 		BootstrapToken:  cfg.BootstrapToken,
 		HostName:        cfg.HostName,
 		GPUModel:        gpuModel,
 		StreamerVersion: streamerVersion,
-		OS:                runtime.GOOS,
-		Arch:              runtime.GOARCH,
+		OS:              runtime.GOOS,
+		Arch:            runtime.GOARCH,
+		PlatformType:    string(platformInfo.Type),
+		SoC:             platformInfo.SoC,
+		L4TVersion:      platformInfo.L4TVersion,
+		JetPackVersion:  platformInfo.JetPackVersion,
+		PowerMode:       platformInfo.PowerMode,
 	}
 
 	payload, err := json.Marshal(reqBody)

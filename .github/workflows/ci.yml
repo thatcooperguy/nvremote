@@ -106,7 +106,7 @@ jobs:
       - name: Build client
         run: cd apps/client-desktop && npm run build
 
-  # Build the host agent (Go)
+  # Build the host agent (Go — Windows + Linux + ARM64)
   host-agent:
     name: Host Agent
     runs-on: windows-latest
@@ -136,6 +136,35 @@ jobs:
         with:
           name: host-agent-windows
           path: apps/host-agent/host-agent.exe
+
+  # Build the host agent (Go — Linux ARM64 cross-compile)
+  host-agent-linux-arm64:
+    name: Host Agent (Linux ARM64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: apps/host-agent/go.sum
+
+      - name: Tidy Go modules
+        run: cd apps/host-agent && go mod tidy
+
+      - name: Build (linux/arm64)
+        run: cd apps/host-agent && go build -o host-agent-arm64 ./cmd/agent
+        env:
+          GOOS: linux
+          GOARCH: arm64
+          CGO_ENABLED: "0"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: host-agent-linux-arm64
+          path: apps/host-agent/host-agent-arm64
 
   # Build the gateway (Go, Linux)
   gateway:

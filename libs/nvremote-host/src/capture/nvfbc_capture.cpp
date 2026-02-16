@@ -320,9 +320,12 @@ bool NvfbcCapture::setupToCuda() {
     }
 
     CUcontext cuCtx;
-    cr = cuCtxCreate(&cuCtx, 0, cuDev);
+    cr = cuDevicePrimaryCtxRetain(&cuCtx, cuDev);
+    if (cr == CUDA_SUCCESS) {
+        cr = cuCtxSetCurrent(cuCtx);
+    }
     if (cr != CUDA_SUCCESS) {
-        CS_LOG(WARN, "NvFBC: cuCtxCreate failed (%d)", (int)cr);
+        CS_LOG(WARN, "NvFBC: cuDevicePrimaryCtxRetain failed (%d)", (int)cr);
         return false;
     }
 

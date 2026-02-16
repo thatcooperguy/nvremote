@@ -48,6 +48,9 @@ public:
     /// Get number of frames dropped due to age timeout.
     uint64_t getFramesDropped() const;
 
+    /// Flush all buffered frames (used on reconnect to clear stale data).
+    void flush();
+
 private:
     /// Internal structure tracking the assembly state of one frame.
     struct FrameAssembly {

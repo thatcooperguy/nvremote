@@ -278,4 +278,11 @@ bool JitterBuffer::assembleFrame(const FrameAssembly& assembly,
     return true;
 }
 
+void JitterBuffer::flush() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    frames_.clear();
+    first_frame_ = true;
+    next_release_frame_ = 0;
+}
+
 } // namespace cs

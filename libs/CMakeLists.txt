@@ -75,21 +75,34 @@ else()
 endif()
 
 # Opus (audio codec)
-find_package(PkgConfig QUIET)
-if(PkgConfig_FOUND)
-  pkg_check_modules(OPUS opus)
-endif()
-if(NOT OPUS_FOUND)
-  # Fall back to FetchContent
-  include(FetchContent)
-  FetchContent_Declare(opus
-    GIT_REPOSITORY https://github.com/xiph/opus.git
-    GIT_TAG        v1.5.2
-  )
-  set(OPUS_BUILD_SHARED_LIBRARY OFF CACHE BOOL "" FORCE)
-  FetchContent_MakeAvailable(opus)
-  set(OPUS_LIBRARIES opus)
-  set(OPUS_INCLUDE_DIRS "${opus_SOURCE_DIR}/include")
+# Try vcpkg/CMake config first, then pkg-config, then FetchContent
+find_package(Opus CONFIG QUIET)
+if(Opus_FOUND OR TARGET Opus::opus)
+  message(STATUS "Opus found via CMake config")
+  set(OPUS_LIBRARIES Opus::opus)
+  set(OPUS_INCLUDE_DIRS "")
+  set(OPUS_FOUND TRUE)
+else()
+  find_package(PkgConfig QUIET)
+  if(PkgConfig_FOUND)
+    pkg_check_modules(OPUS opus)
+    if(OPUS_FOUND)
+      # pkg-config may not set full paths; add link directories
+      link_directories(${OPUS_LIBRARY_DIRS})
+    endif()
+  endif()
+  if(NOT OPUS_FOUND)
+    # Fall back to FetchContent
+    include(FetchContent)
+    FetchContent_Declare(opus
+      GIT_REPOSITORY https://github.com/xiph/opus.git
+      GIT_TAG        v1.5.2
+    )
+    set(OPUS_BUILD_SHARED_LIBRARY OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(opus)
+    set(OPUS_LIBRARIES opus)
+    set(OPUS_INCLUDE_DIRS "${opus_SOURCE_DIR}/include")
+  endif()
 endif()
 
 # FFmpeg (for hardware decode abstraction on client side)

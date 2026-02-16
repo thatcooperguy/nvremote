@@ -282,18 +282,19 @@ bool SessionManager::startSession(const PeerInfo& peer) {
         // Exchange protocol version tag (CS01) with the viewer.
         // Host sends first, then waits for the viewer's response.
         if (dtls_->isEstablished()) {
-            std::vector<uint8_t> enc_out;
+            uint8_t enc_buf[cs::PROTOCOL_VERSION_TAG_LEN + 256];
+            size_t enc_len = 0;
             if (!dtls_->encrypt(cs::PROTOCOL_VERSION_TAG,
-                                cs::PROTOCOL_VERSION_TAG_LEN, enc_out)) {
+                                cs::PROTOCOL_VERSION_TAG_LEN, enc_buf, &enc_len)) {
                 CS_LOG(ERR, "Failed to send protocol version tag");
                 cs_close_socket(udp_socket_);
                 udp_socket_ = -1;
                 return false;
             }
             // Send encrypted version tag
-            if (!enc_out.empty()) {
-                ::sendto(udp_socket_, reinterpret_cast<const char*>(enc_out.data()),
-                         static_cast<int>(enc_out.size()), 0,
+            if (enc_len > 0) {
+                ::sendto(udp_socket_, reinterpret_cast<const char*>(enc_buf),
+                         static_cast<int>(enc_len), 0,
                          reinterpret_cast<const ::sockaddr*>(&peer_addr_),
                          sizeof(peer_addr_));
             }
@@ -315,10 +316,11 @@ bool SessionManager::startSession(const PeerInfo& peer) {
                                    sizeof(recv_buf), 0,
                                    reinterpret_cast<::sockaddr*>(&from), &fromLen);
                 if (n > 0) {
-                    std::vector<uint8_t> plain;
-                    if (dtls_->decrypt(recv_buf, static_cast<size_t>(n), plain) &&
-                        plain.size() == cs::PROTOCOL_VERSION_TAG_LEN &&
-                        std::memcmp(plain.data(), cs::PROTOCOL_VERSION_TAG,
+                    uint8_t plain[64];
+                    size_t plain_len = 0;
+                    if (dtls_->decrypt(recv_buf, static_cast<size_t>(n), plain, &plain_len) &&
+                        plain_len == cs::PROTOCOL_VERSION_TAG_LEN &&
+                        std::memcmp(plain, cs::PROTOCOL_VERSION_TAG,
                                     cs::PROTOCOL_VERSION_TAG_LEN) == 0) {
                         CS_LOG(INFO, "Protocol version verified: CS01");
                     } else {

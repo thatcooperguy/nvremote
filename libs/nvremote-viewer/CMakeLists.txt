@@ -217,6 +217,23 @@ else()
         ${NAPI_INCLUDE_DIR}
         ${NODE_INCLUDE_DIR}
     )
+    # Link against node.lib for N-API symbols
+    # node.lib should be alongside NODE_INCLUDE_DIR or specified via NODE_LIB_PATH
+    set(NODE_LIB_PATH "" CACHE FILEPATH "Path to node.lib for N-API linking")
+    if(NOT NODE_LIB_PATH)
+        # Try to find node.lib next to the headers directory
+        get_filename_component(_node_dir "${NODE_INCLUDE_DIR}" DIRECTORY)
+        get_filename_component(_node_dir "${_node_dir}" DIRECTORY)
+        if(EXISTS "${_node_dir}/node.lib")
+            set(NODE_LIB_PATH "${_node_dir}/node.lib")
+        endif()
+    endif()
+    if(NODE_LIB_PATH)
+        target_link_libraries(nvremote-viewer PRIVATE "${NODE_LIB_PATH}")
+        message(STATUS "[nvremote-viewer] Linking node.lib: ${NODE_LIB_PATH}")
+    else()
+        message(WARNING "[nvremote-viewer] node.lib not found — N-API symbols will be unresolved")
+    endif()
 endif()
 
 # ---------------------------------------------------------------------------
@@ -227,6 +244,11 @@ if(AVCODEC_FOUND AND AVUTIL_FOUND AND SWSCALE_FOUND)
         ${AVCODEC_INCLUDE_DIRS}
         ${AVUTIL_INCLUDE_DIRS}
         ${SWSCALE_INCLUDE_DIRS}
+    )
+    target_link_directories(nvremote-viewer PRIVATE
+        ${AVCODEC_LIBRARY_DIRS}
+        ${AVUTIL_LIBRARY_DIRS}
+        ${SWSCALE_LIBRARY_DIRS}
     )
     target_link_libraries(nvremote-viewer PRIVATE
         ${AVCODEC_LIBRARIES}

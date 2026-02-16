@@ -10,6 +10,7 @@ import { SignalingModule } from './signaling/signaling.module';
 import { AuditModule } from './audit/audit.module';
 import { AdminModule } from './admin/admin.module';
 import { VpnModule } from './vpn/vpn.module';
+import { TunnelModule } from './tunnel/tunnel.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { VpnModule } from './vpn/vpn.module';
     AuditModule,
     AdminModule,
     VpnModule,
+    TunnelModule,
   ],
   providers: [PrismaService],
   exports: [PrismaService],

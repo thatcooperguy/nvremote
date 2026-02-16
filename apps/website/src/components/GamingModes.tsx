@@ -50,10 +50,10 @@ const modes: GamingMode[] = [
   {
     name: 'Balanced',
     tagline: 'Best of both worlds',
-    color: 'text-cs-green',
+    color: 'text-nv-green',
     glowColor: 'shadow-glow',
     borderClass: '',
-    bgAccent: 'bg-cs-green',
+    bgAccent: 'bg-nv-green',
     icon: (
       <svg
         width="24"
@@ -143,8 +143,8 @@ export default function GamingModes() {
 
           {/* RECOMMENDED badge */}
           {mode.recommended && (
-            <div className="absolute top-4 right-4 px-2.5 py-1 rounded-md bg-cs-green/10 border border-cs-green/30">
-              <span className="text-[10px] font-bold text-cs-green tracking-widest uppercase">
+            <div className="absolute top-4 right-4 px-2.5 py-1 rounded-md bg-nv-green/10 border border-nv-green/30">
+              <span className="text-[10px] font-bold text-nv-green tracking-widest uppercase">
                 Recommended
               </span>
             </div>
@@ -157,7 +157,7 @@ export default function GamingModes() {
                 mode.name === 'Competitive'
                   ? 'bg-red-500/10 border-red-500/20'
                   : mode.name === 'Balanced'
-                  ? 'bg-cs-green/10 border-cs-green/20'
+                  ? 'bg-nv-green/10 border-nv-green/20'
                   : 'bg-purple-500/10 border-purple-500/20'
               } border flex items-center justify-center ${mode.color} transition-all duration-300`}
             >
@@ -167,7 +167,7 @@ export default function GamingModes() {
               <h3 className={`text-xl font-bold ${mode.color} tracking-tight`}>
                 {mode.name}
               </h3>
-              <p className="text-xs text-cs-gray-400 mt-0.5">{mode.tagline}</p>
+              <p className="text-xs text-nv-gray-400 mt-0.5">{mode.tagline}</p>
             </div>
           </div>
 
@@ -178,7 +178,7 @@ export default function GamingModes() {
                 key={spec.label}
                 className="flex items-center justify-between py-2.5 border-b border-white/[0.04] last:border-0"
               >
-                <span className="text-[11px] font-medium text-cs-gray-500 tracking-wider uppercase">
+                <span className="text-[11px] font-medium text-nv-gray-500 tracking-wider uppercase">
                   {spec.label}
                 </span>
                 <span className="text-sm font-mono font-semibold text-white">
@@ -190,8 +190,8 @@ export default function GamingModes() {
 
           {/* Ideal for */}
           <div className="relative z-10 pt-4 border-t border-white/[0.06]">
-            <p className="text-xs text-cs-gray-400">
-              <span className="font-semibold text-cs-gray-200 uppercase tracking-wide text-[11px]">
+            <p className="text-xs text-nv-gray-400">
+              <span className="font-semibold text-nv-gray-200 uppercase tracking-wide text-[11px]">
                 Ideal for:
               </span>{' '}
               {mode.ideal}
@@ -209,7 +209,7 @@ export default function GamingModes() {
           className="gradient-border p-4 text-center"
         >
           <h4 className="text-sm font-semibold text-white mb-1">{p.name}</h4>
-          <p className="text-[11px] text-cs-gray-400 leading-relaxed">{p.desc}</p>
+          <p className="text-[11px] text-nv-gray-400 leading-relaxed">{p.desc}</p>
         </div>
       ))}
     </div>

@@ -58,7 +58,7 @@ function Logo() {
         </svg>
       </div>
       <span className="text-xl font-bold tracking-tight text-gray-900">
-        NV<span className="text-cs-green">REMOTE</span>
+        NV<span className="text-nv-green">REMOTE</span>
       </span>
     </Link>
   );
@@ -115,14 +115,14 @@ export default function Navbar() {
                     className={cn(
                       'relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
                       isActive
-                        ? 'text-cs-green-600'
+                        ? 'text-nv-green-600'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/60'
                     )}
                   >
                     {link.label}
                     {/* Active indicator -- green dot */}
                     {isActive && (
-                      <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-cs-green" />
+                      <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-nv-green" />
                     )}
                   </Link>
                 );
@@ -146,7 +146,7 @@ export default function Navbar() {
               {/* Sign In / Dashboard button */}
               <Link
                 href={loggedIn ? '/dashboard' : '/login'}
-                className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-cs-green text-white text-sm font-medium hover:bg-cs-green-600 transition-all duration-200 shadow-sm"
+                className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-nv-green text-white text-sm font-medium hover:bg-nv-green-600 transition-all duration-200 shadow-sm"
               >
                 <User size={16} />
                 {loggedIn ? 'Dashboard' : 'Sign In'}
@@ -194,12 +194,12 @@ export default function Navbar() {
                           className={cn(
                             'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-200',
                             isActive
-                              ? 'text-cs-green-600 bg-cs-green/5'
+                              ? 'text-nv-green-600 bg-nv-green/5'
                               : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                           )}
                         >
                           {isActive && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-cs-green" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-nv-green" />
                           )}
                           {link.label}
                         </Link>

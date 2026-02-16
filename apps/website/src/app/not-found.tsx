@@ -17,7 +17,7 @@ export default function NotFound() {
         <h1 className="text-2xl sm:text-3xl font-bold text-white mb-4 tracking-tight">
           Page Not Found
         </h1>
-        <p className="text-cs-gray-300 mb-10 max-w-md mx-auto leading-relaxed">
+        <p className="text-nv-gray-300 mb-10 max-w-md mx-auto leading-relaxed">
           The page you&apos;re looking for doesn&apos;t exist, has been moved, or
           the stream dropped. Let&apos;s get you back.
         </p>

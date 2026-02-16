@@ -69,8 +69,8 @@ export default function AdminDashboardPage() {
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-cs-green/10 border border-cs-green/20 flex items-center justify-center">
-            <ShieldCheck size={20} className="text-cs-green" />
+          <div className="w-10 h-10 rounded-xl bg-nv-green/10 border border-nv-green/20 flex items-center justify-center">
+            <ShieldCheck size={20} className="text-nv-green" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Platform Health</h1>
@@ -189,13 +189,13 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <a
           href="/dashboard/admin/sessions"
-          className="flex items-center gap-4 rounded-xl bg-white border border-gray-200 p-5 hover:border-cs-green/30 hover:shadow-sm transition-all group"
+          className="flex items-center gap-4 rounded-xl bg-white border border-gray-200 p-5 hover:border-nv-green/30 hover:shadow-sm transition-all group"
         >
           <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
             <Activity size={20} />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 group-hover:text-cs-green transition-colors">
+            <h3 className="text-sm font-semibold text-gray-900 group-hover:text-nv-green transition-colors">
               Session Explorer
             </h3>
             <p className="text-xs text-gray-500">Browse all sessions, filter by status, host, or user</p>
@@ -203,13 +203,13 @@ export default function AdminDashboardPage() {
         </a>
         <a
           href="/dashboard/admin/hosts"
-          className="flex items-center gap-4 rounded-xl bg-white border border-gray-200 p-5 hover:border-cs-green/30 hover:shadow-sm transition-all group"
+          className="flex items-center gap-4 rounded-xl bg-white border border-gray-200 p-5 hover:border-nv-green/30 hover:shadow-sm transition-all group"
         >
           <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center text-green-600">
             <Server size={20} />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 group-hover:text-cs-green transition-colors">
+            <h3 className="text-sm font-semibold text-gray-900 group-hover:text-nv-green transition-colors">
               Host Management
             </h3>
             <p className="text-xs text-gray-500">View host diagnostics, GPU info, and connection status</p>

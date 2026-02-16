@@ -134,7 +134,7 @@ export default function PrivacyPolicyPage() {
                 href="https://github.com/thatcooperguy/nvstreamer"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-cs-green hover:underline"
+                className="text-nv-green hover:underline"
               >
                 GitHub repository
               </a>{' '}

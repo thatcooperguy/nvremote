@@ -44,14 +44,14 @@ interface Host {
 // ---------------------------------------------------------------------------
 
 const statusColors: Record<string, string> = {
-  ACTIVE: 'bg-cs-green/10 text-cs-green border-cs-green/20',
+  ACTIVE: 'bg-nv-green/10 text-nv-green border-nv-green/20',
   PENDING: 'bg-amber-50 text-amber-600 border-amber-200',
   ENDED: 'bg-gray-100 text-gray-500 border-gray-300',
   FAILED: 'bg-red-50 text-red-600 border-red-200',
 };
 
 const statusDots: Record<string, string> = {
-  ACTIVE: 'bg-cs-green',
+  ACTIVE: 'bg-nv-green',
   PENDING: 'bg-amber-400 animate-pulse',
   ENDED: 'bg-gray-400',
   FAILED: 'bg-red-400',
@@ -223,7 +223,7 @@ export default function SessionsPage() {
     (s) => s.status === 'ENDED' || s.status === 'FAILED',
   );
   const selectClass =
-    'w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 focus:border-cs-green/50 focus:ring-1 focus:ring-cs-green/20 focus:outline-none transition-colors appearance-none';
+    'w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 focus:border-nv-green/50 focus:ring-1 focus:ring-nv-green/20 focus:outline-none transition-colors appearance-none';
 
   // Helper to resolve host name from hostId
   const getHostName = (hostId: string): string => {
@@ -341,7 +341,7 @@ export default function SessionsPage() {
                 onClick={handleCreateSession}
                 disabled={creating || hosts.length === 0}
                 className={cn(
-                  'w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-cs-green text-white font-semibold text-sm rounded-lg hover:bg-cs-green-300 transition-all duration-300 shadow-glow hover:shadow-glow-lg disabled:opacity-50 disabled:cursor-not-allowed',
+                  'w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-nv-green text-white font-semibold text-sm rounded-lg hover:bg-nv-green-300 transition-all duration-300 shadow-glow hover:shadow-glow-lg disabled:opacity-50 disabled:cursor-not-allowed',
                   creating && 'opacity-80 cursor-wait',
                 )}
               >
@@ -369,21 +369,21 @@ export default function SessionsPage() {
                   initial={{ width: 0, height: 0, opacity: 0.8 }}
                   animate={{ width: '150%', height: '150%', opacity: 0 }}
                   transition={{ duration: 1.2, ease: 'easeOut' }}
-                  className="absolute rounded-full border-2 border-cs-green/40"
+                  className="absolute rounded-full border-2 border-nv-green/40"
                 />
                 <motion.div
                   initial={{ width: 0, height: 0, opacity: 0.5 }}
                   animate={{ width: '120%', height: '120%', opacity: 0 }}
                   transition={{ duration: 1, ease: 'easeOut', delay: 0.15 }}
-                  className="absolute rounded-full border border-cs-green/30"
+                  className="absolute rounded-full border border-nv-green/30"
                 />
               </div>
 
               <div className="space-y-5">
                 {/* Success header */}
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-cs-green/10 border border-cs-green/30 flex items-center justify-center">
-                    <CheckCircle2 className="w-5 h-5 text-cs-green" />
+                  <div className="w-10 h-10 rounded-full bg-nv-green/10 border border-nv-green/30 flex items-center justify-center">
+                    <CheckCircle2 className="w-5 h-5 text-nv-green" />
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">
@@ -406,12 +406,12 @@ export default function SessionsPage() {
                 </div>
 
                 {/* Status */}
-                <div className="flex items-center gap-2.5 py-3 px-4 rounded-lg bg-cs-green/[0.04] border border-cs-green/10">
+                <div className="flex items-center gap-2.5 py-3 px-4 rounded-lg bg-nv-green/[0.04] border border-nv-green/10">
                   <span className="relative flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cs-green opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cs-green" />
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-nv-green opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-nv-green" />
                   </span>
-                  <span className="text-sm text-cs-green font-medium">
+                  <span className="text-sm text-nv-green font-medium">
                     Connecting to host...
                   </span>
                 </div>
@@ -422,7 +422,7 @@ export default function SessionsPage() {
                     setCreatedSessionId(null);
                     setSelectedHostId('');
                   }}
-                  className="text-sm text-gray-500 hover:text-cs-green transition-colors font-medium"
+                  className="text-sm text-gray-500 hover:text-nv-green transition-colors font-medium"
                 >
                   Create another session
                 </button>

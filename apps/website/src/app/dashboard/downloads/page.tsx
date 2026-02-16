@@ -167,7 +167,7 @@ function DownloadCard({
     >
       {/* Header */}
       <div className="flex items-start gap-3 mb-3">
-        <div className="w-10 h-10 rounded-lg bg-cs-green/10 border border-cs-green/20 flex items-center justify-center shrink-0 text-cs-green">
+        <div className="w-10 h-10 rounded-lg bg-nv-green/10 border border-nv-green/20 flex items-center justify-center shrink-0 text-nv-green">
           {platform.icon}
         </div>
         <div className="min-w-0">
@@ -192,7 +192,7 @@ function DownloadCard({
           </span>
         )}
         {!platform.comingSoon && isAvailable && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cs-green/10 border border-cs-green/20 text-[10px] font-semibold text-cs-green">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-nv-green/10 border border-nv-green/20 text-[10px] font-semibold text-nv-green">
             <CheckCircle2 className="w-3 h-3" />
             Available
           </span>
@@ -241,7 +241,7 @@ function DownloadCard({
             className={cn(
               'w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300',
               isAvailable
-                ? 'bg-cs-green text-white hover:bg-cs-green-300 shadow-glow hover:shadow-glow-lg'
+                ? 'bg-nv-green text-white hover:bg-nv-green-300 shadow-glow hover:shadow-glow-lg'
                 : 'border border-gray-200 text-gray-400 cursor-not-allowed'
             )}
           >
@@ -253,12 +253,12 @@ function DownloadCard({
           {isAvailable && (
             <button
               onClick={handleCopyLink}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-medium rounded-lg border border-gray-200 text-gray-500 hover:text-gray-700 hover:border-cs-green/30 hover:bg-cs-green/5 transition-all duration-200"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-medium rounded-lg border border-gray-200 text-gray-500 hover:text-gray-700 hover:border-nv-green/30 hover:bg-nv-green/5 transition-all duration-200"
             >
               {copied ? (
                 <>
-                  <Check className="w-3 h-3 text-cs-green" />
-                  <span className="text-cs-green">Copied!</span>
+                  <Check className="w-3 h-3 text-nv-green" />
+                  <span className="text-nv-green">Copied!</span>
                 </>
               ) : (
                 <>
@@ -325,7 +325,7 @@ function EmptyState() {
         href={GITHUB_RELEASES}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1.5 mt-4 text-xs font-medium text-cs-green hover:text-cs-green-300 transition-colors"
+        className="inline-flex items-center gap-1.5 mt-4 text-xs font-medium text-nv-green hover:text-nv-green-300 transition-colors"
       >
         <ExternalLink className="w-3 h-3" />
         View GitHub Releases
@@ -414,7 +414,7 @@ export default function DashboardDownloadsPage() {
             href={GITHUB_RELEASES}
             target="_blank"
             rel="noopener noreferrer"
-            className="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:border-cs-green/30 hover:text-cs-green hover:bg-cs-green/5 transition-all duration-300"
+            className="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:border-nv-green/30 hover:text-nv-green hover:bg-nv-green/5 transition-all duration-300"
           >
             <ExternalLink className="w-3.5 h-3.5" />
             GitHub Releases
@@ -427,10 +427,10 @@ export default function DashboardDownloadsPage() {
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.15 }}
-        className="flex items-center justify-between px-4 py-3 rounded-lg bg-cs-green/[0.04] border border-cs-green/15"
+        className="flex items-center justify-between px-4 py-3 rounded-lg bg-nv-green/[0.04] border border-nv-green/15"
       >
         <div className="flex items-center gap-3">
-          <span className="px-2.5 py-1 rounded-md bg-cs-green/10 border border-cs-green/20 text-xs font-mono font-semibold text-cs-green">
+          <span className="px-2.5 py-1 rounded-md bg-nv-green/10 border border-nv-green/20 text-xs font-mono font-semibold text-nv-green">
             {VERSION}
           </span>
           <span className="text-sm text-gray-600">
@@ -531,7 +531,7 @@ export default function DashboardDownloadsPage() {
                   <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-2.5">
-                        <span className="text-cs-green">{p.icon}</span>
+                        <span className="text-nv-green">{p.icon}</span>
                         <span className="font-medium text-gray-900 text-sm">
                           {p.name}
                         </span>
@@ -549,7 +549,7 @@ export default function DashboardDownloadsPage() {
                           Coming Soon
                         </span>
                       ) : status === 'available' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cs-green/10 border border-cs-green/20 text-[10px] font-semibold text-cs-green">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-nv-green/10 border border-nv-green/20 text-[10px] font-semibold text-nv-green">
                           <CheckCircle2 className="w-3 h-3" />
                           Available
                         </span>
@@ -585,7 +585,7 @@ export default function DashboardDownloadsPage() {
               href={GITHUB_RELEASES}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-cs-green transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-nv-green transition-colors"
             >
               <ExternalLink className="w-3 h-3" />
               Release Notes
@@ -594,14 +594,14 @@ export default function DashboardDownloadsPage() {
               href="https://github.com/thatcooperguy/nvstreamer/issues"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-cs-green transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-nv-green transition-colors"
             >
               <ExternalLink className="w-3 h-3" />
               Report an Issue
             </a>
             <a
               href="/downloads"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-cs-green transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-nv-green transition-colors"
             >
               <Download className="w-3 h-3" />
               Public Downloads Page

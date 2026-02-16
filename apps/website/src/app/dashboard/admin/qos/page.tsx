@@ -26,7 +26,7 @@ interface QosAnalytics {
 }
 
 const barColors = [
-  'bg-cs-green',
+  'bg-nv-green',
   'bg-blue-500',
   'bg-purple-500',
   'bg-amber-500',

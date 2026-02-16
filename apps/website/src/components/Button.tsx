@@ -17,11 +17,11 @@ interface ButtonProps {
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    'relative bg-cs-green text-cs-dark font-semibold hover:bg-cs-green-300 active:bg-cs-green-500 shadow-glow hover:shadow-glow-lg overflow-hidden group/btn',
+    'relative bg-nv-green text-nv-dark font-semibold hover:bg-nv-green-300 active:bg-nv-green-500 shadow-glow hover:shadow-glow-lg overflow-hidden group/btn',
   secondary:
-    'relative bg-transparent text-white font-medium border border-white/[0.12] hover:border-cs-green/40 hover:text-cs-green hover:bg-cs-green/5 hover:shadow-glow-sm',
+    'relative bg-transparent text-white font-medium border border-white/[0.12] hover:border-nv-green/40 hover:text-nv-green hover:bg-nv-green/5 hover:shadow-glow-sm',
   ghost:
-    'bg-transparent text-cs-gray-200 hover:text-white hover:bg-white/5',
+    'bg-transparent text-nv-gray-200 hover:text-white hover:bg-white/5',
 };
 
 const sizeStyles: Record<ButtonSize, string> = {

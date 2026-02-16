@@ -81,7 +81,7 @@ struct LoginView: View {
             Spacer()
 
             // Footer
-            Text("v1.0.0")
+            Text("v0.4.0-alpha")
                 .font(CSTypography.caption2)
                 .foregroundColor(CSColors.textMuted)
                 .padding(.bottom, 20)

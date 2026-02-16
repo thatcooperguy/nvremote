@@ -61,7 +61,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-8 h-8 border-3 border-cs-green border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-3 border-nv-green border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -79,7 +79,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <defs><linearGradient id="dash-logo" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse"><stop stopColor="#76B900" /><stop offset="1" stopColor="#9AD411" /></linearGradient></defs>
             </svg>
             <span className="text-lg font-bold text-gray-900">
-              NV<span className="text-cs-green">REMOTE</span>
+              NV<span className="text-nv-green">REMOTE</span>
             </span>
           </Link>
         </div>
@@ -97,11 +97,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                   isActive
-                    ? 'bg-cs-green/10 text-cs-green-700'
+                    ? 'bg-nv-green/10 text-nv-green-700'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 )}
               >
-                <Icon size={18} className={isActive ? 'text-cs-green' : ''} />
+                <Icon size={18} className={isActive ? 'text-nv-green' : ''} />
                 {link.label}
               </Link>
             );
@@ -123,11 +123,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   className={cn(
                     'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-cs-green/10 text-cs-green-700'
+                      ? 'bg-nv-green/10 text-nv-green-700'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   )}
                 >
-                  <Icon size={18} className={isActive ? 'text-cs-green' : ''} />
+                  <Icon size={18} className={isActive ? 'text-nv-green' : ''} />
                   {link.label}
                 </Link>
               );
@@ -145,7 +145,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 className="w-8 h-8 rounded-full"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-cs-green/20 flex items-center justify-center text-cs-green text-sm font-semibold">
+              <div className="w-8 h-8 rounded-full bg-nv-green/20 flex items-center justify-center text-nv-green text-sm font-semibold">
                 {user?.name?.[0] || user?.email?.[0] || '?'}
               </div>
             )}

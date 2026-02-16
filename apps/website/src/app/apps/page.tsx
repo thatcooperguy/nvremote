@@ -42,12 +42,12 @@ const statusConfig: Record<
   }
 > = {
   'In Development': {
-    badgeBg: 'bg-cs-green/[0.08]',
-    badgeBorder: 'border-cs-green/20',
-    badgeText: 'text-cs-green',
-    iconBg: 'bg-cs-green/10',
-    iconBorder: 'border-cs-green/20',
-    iconColor: 'text-cs-green',
+    badgeBg: 'bg-nv-green/[0.08]',
+    badgeBorder: 'border-nv-green/20',
+    badgeText: 'text-nv-green',
+    iconBg: 'bg-nv-green/10',
+    iconBorder: 'border-nv-green/20',
+    iconColor: 'text-nv-green',
   },
   Beta: {
     badgeBg: 'bg-amber-50',
@@ -172,10 +172,10 @@ function AppCard({ app }: { app: AppEntry }) {
       )}
     >
       {/* Top accent line */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cs-green/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-nv-green/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
       {/* Hover overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-cs-green/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute inset-0 bg-gradient-to-br from-nv-green/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
       <div className="relative z-10 flex flex-col h-full">
         {/* Icon + Status row */}
@@ -194,7 +194,7 @@ function AppCard({ app }: { app: AppEntry }) {
               className={cn(
                 'absolute inset-0 rounded-xl blur-xl transition-all duration-500 opacity-0 group-hover:opacity-100',
                 app.status === 'In Development'
-                  ? 'bg-cs-green/10'
+                  ? 'bg-nv-green/10'
                   : app.status === 'Beta'
                   ? 'bg-amber-500/10'
                   : 'bg-purple-500/10'
@@ -272,7 +272,7 @@ export default function AppsPage() {
             transition={{ duration: 0.6 }}
             className="max-w-3xl mx-auto text-center"
           >
-            <p className="text-xs text-cs-green uppercase tracking-[0.2em] font-semibold mb-4">
+            <p className="text-xs text-nv-green uppercase tracking-[0.2em] font-semibold mb-4">
               Platform
             </p>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-5">
@@ -304,7 +304,7 @@ export default function AppsPage() {
                 placeholder="Search apps..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 rounded-xl bg-white border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-cs-green/40 focus:ring-1 focus:ring-cs-green/20 transition-all duration-200"
+                className="w-full pl-11 pr-4 py-3 rounded-xl bg-white border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-nv-green/40 focus:ring-1 focus:ring-nv-green/20 transition-all duration-200"
               />
             </div>
 
@@ -317,7 +317,7 @@ export default function AppsPage() {
                   className={cn(
                     'px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all duration-200',
                     activeFilter === option
-                      ? 'bg-cs-green/15 text-cs-green border border-cs-green/25'
+                      ? 'bg-nv-green/15 text-nv-green border border-nv-green/25'
                       : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 border border-transparent'
                   )}
                 >

@@ -64,15 +64,15 @@ function FeatureItem({ icon, title, description, delay = 0 }: FeatureItemProps) 
       className="gradient-border gradient-border-hover group relative overflow-hidden p-6 sm:p-8 transition-all duration-500 hover:-translate-y-1 hover:shadow-card-hover"
     >
       {/* Top accent line */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cs-green/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-nv-green/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
       {/* Subtle gradient hover overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-cs-green/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute inset-0 bg-gradient-to-br from-nv-green/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
       <div className="relative z-10">
         {/* Icon container */}
-        <div className="relative w-14 h-14 rounded-xl bg-cs-green/10 border border-cs-green/20 flex items-center justify-center mb-6 group-hover:border-cs-green/40 group-hover:bg-cs-green/15 transition-all duration-300">
-          <div className="text-cs-green-600">{icon}</div>
+        <div className="relative w-14 h-14 rounded-xl bg-nv-green/10 border border-nv-green/20 flex items-center justify-center mb-6 group-hover:border-nv-green/40 group-hover:bg-nv-green/15 transition-all duration-300">
+          <div className="text-nv-green-600">{icon}</div>
         </div>
 
         <h3 className="text-lg font-bold text-gray-900 mb-3 tracking-tight">
@@ -100,7 +100,7 @@ function ArchNode({
   return (
     <div className="flex flex-col items-center gap-3">
       <div className="glass gradient-border w-24 h-24 sm:w-28 sm:h-28 flex flex-col items-center justify-center gap-2 rounded-2xl">
-        <div className="text-cs-green-600">{icon}</div>
+        <div className="text-nv-green-600">{icon}</div>
         <span className="text-xs font-bold text-gray-900 tracking-tight">
           {label}
         </span>
@@ -136,10 +136,10 @@ function StepCard({
       transition={{ duration: 0.5, delay }}
       className="relative flex flex-col items-center text-center"
     >
-      <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-cs-green text-white text-xs font-bold flex items-center justify-center z-20 shadow-glow-sm">
+      <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-nv-green text-white text-xs font-bold flex items-center justify-center z-20 shadow-glow-sm">
         {number}
       </div>
-      <div className="w-16 h-16 rounded-2xl bg-cs-green/10 border border-cs-green/20 flex items-center justify-center mb-6 text-cs-green-600">
+      <div className="w-16 h-16 rounded-2xl bg-nv-green/10 border border-nv-green/20 flex items-center justify-center mb-6 text-nv-green-600">
         {number === 1 && <Server size={24} />}
         {number === 2 && <Zap size={24} />}
         {number === 3 && <Monitor size={24} />}
@@ -230,7 +230,7 @@ export default function HomePage() {
             >
               <Link
                 href="/downloads"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold rounded-xl bg-cs-green text-white hover:bg-cs-green-500 active:bg-cs-green-600 shadow-glow hover:shadow-glow-lg transition-all duration-300 group/btn relative overflow-hidden"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold rounded-xl bg-nv-green text-white hover:bg-nv-green-500 active:bg-nv-green-600 shadow-glow hover:shadow-glow-lg transition-all duration-300 group/btn relative overflow-hidden"
               >
                 <span className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
                   <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
@@ -243,14 +243,14 @@ export default function HomePage() {
               </Link>
               <Link
                 href="/downloads"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl bg-transparent text-gray-700 border border-gray-300 hover:border-cs-green/50 hover:text-cs-green-600 hover:bg-cs-green/5 transition-all duration-300"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl bg-transparent text-gray-700 border border-gray-300 hover:border-nv-green/50 hover:text-nv-green-600 hover:bg-nv-green/5 transition-all duration-300"
               >
                 <Download size={18} />
                 Download Host
               </Link>
               <Link
                 href="/downloads"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl bg-transparent text-gray-700 border border-gray-300 hover:border-cs-green/50 hover:text-cs-green-600 hover:bg-cs-green/5 transition-all duration-300"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl bg-transparent text-gray-700 border border-gray-300 hover:border-nv-green/50 hover:text-nv-green-600 hover:bg-nv-green/5 transition-all duration-300"
               >
                 <Monitor size={18} />
                 Download Client
@@ -283,7 +283,7 @@ export default function HomePage() {
       {/* ================================================================== */}
       {/*  FEATURE HIGHLIGHTS                                                */}
       {/* ================================================================== */}
-      <section className="section-padding py-24 sm:py-32 relative bg-cs-surface">
+      <section className="section-padding py-24 sm:py-32 relative bg-nv-surface">
         {/* Background accent */}
         <div className="absolute inset-0 dot-overlay opacity-20 mask-fade-y pointer-events-none" />
 
@@ -295,7 +295,7 @@ export default function HomePage() {
             transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
-            <p className="text-xs text-cs-green-600 uppercase tracking-[0.2em] font-semibold mb-4">
+            <p className="text-xs text-nv-green-600 uppercase tracking-[0.2em] font-semibold mb-4">
               Core Features
             </p>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900 mb-5">
@@ -360,7 +360,7 @@ export default function HomePage() {
             transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
-            <p className="text-xs text-cs-green-600 uppercase tracking-[0.2em] font-semibold mb-4">
+            <p className="text-xs text-nv-green-600 uppercase tracking-[0.2em] font-semibold mb-4">
               Architecture
             </p>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900 mb-5">
@@ -378,7 +378,7 @@ export default function HomePage() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="gradient-border p-8 sm:p-12 mb-16 bg-cs-surface shadow-card"
+            className="gradient-border p-8 sm:p-12 mb-16 bg-nv-surface shadow-card"
           >
             {/* Top row: Client -> Signaling -> Host */}
             <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-0 mb-12">
@@ -392,8 +392,8 @@ export default function HomePage() {
               {/* Connection line: Client -> Signaling */}
               <div className="hidden md:flex items-center flex-1 max-w-[160px] px-4">
                 <div className="w-full relative">
-                  <div className="h-px bg-gradient-to-r from-cs-green/30 via-cs-green/50 to-cs-green/30" />
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-l-[6px] border-l-cs-green/50 border-y-[3px] border-y-transparent" />
+                  <div className="h-px bg-gradient-to-r from-nv-green/30 via-nv-green/50 to-nv-green/30" />
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-l-[6px] border-l-nv-green/50 border-y-[3px] border-y-transparent" />
                   <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] text-gray-400 whitespace-nowrap font-mono">
                     WebSocket
                   </span>
@@ -401,7 +401,7 @@ export default function HomePage() {
               </div>
 
               {/* Mobile arrow */}
-              <div className="md:hidden text-cs-green/40">
+              <div className="md:hidden text-nv-green/40">
                 <ArrowRight size={20} className="rotate-90" />
               </div>
 
@@ -415,8 +415,8 @@ export default function HomePage() {
               {/* Connection line: Signaling -> Host */}
               <div className="hidden md:flex items-center flex-1 max-w-[160px] px-4">
                 <div className="w-full relative">
-                  <div className="h-px bg-gradient-to-r from-cs-green/30 via-cs-green/50 to-cs-green/30" />
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-l-[6px] border-l-cs-green/50 border-y-[3px] border-y-transparent" />
+                  <div className="h-px bg-gradient-to-r from-nv-green/30 via-nv-green/50 to-nv-green/30" />
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-l-[6px] border-l-nv-green/50 border-y-[3px] border-y-transparent" />
                   <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] text-gray-400 whitespace-nowrap font-mono">
                     WebSocket
                   </span>
@@ -424,7 +424,7 @@ export default function HomePage() {
               </div>
 
               {/* Mobile arrow */}
-              <div className="md:hidden text-cs-green/40">
+              <div className="md:hidden text-nv-green/40">
                 <ArrowRight size={20} className="rotate-90" />
               </div>
 
@@ -440,9 +440,9 @@ export default function HomePage() {
             <div className="hidden md:block relative max-w-xl mx-auto mb-8">
               <div className="relative">
                 {/* Curved line representation using a bordered div */}
-                <div className="h-12 border-b-2 border-l-2 border-r-2 border-dashed border-cs-green/30 rounded-b-3xl" />
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 px-4 py-1.5 rounded-full bg-white border border-cs-green/30 shadow-glow-sm">
-                  <span className="text-xs font-mono font-bold text-cs-green-600">
+                <div className="h-12 border-b-2 border-l-2 border-r-2 border-dashed border-nv-green/30 rounded-b-3xl" />
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 px-4 py-1.5 rounded-full bg-white border border-nv-green/30 shadow-glow-sm">
+                  <span className="text-xs font-mono font-bold text-nv-green-600">
                     P2P Direct (DTLS)
                   </span>
                 </div>
@@ -451,8 +451,8 @@ export default function HomePage() {
 
             {/* Mobile P2P label */}
             <div className="md:hidden flex items-center justify-center mb-8">
-              <div className="px-4 py-2 rounded-full bg-white border border-cs-green/30 shadow-glow-sm">
-                <span className="text-xs font-mono font-bold text-cs-green-600">
+              <div className="px-4 py-2 rounded-full bg-white border border-nv-green/30 shadow-glow-sm">
+                <span className="text-xs font-mono font-bold text-nv-green-600">
                   P2P Direct (DTLS)
                 </span>
               </div>
@@ -484,7 +484,7 @@ export default function HomePage() {
           {/* Connecting lines (desktop only) */}
           <div className="hidden md:flex items-center justify-center max-w-4xl mx-auto -mt-[180px] mb-[180px] px-28">
             <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-gray-300" />
-            <div className="w-2 h-2 rounded-full bg-cs-green/40 mx-2" />
+            <div className="w-2 h-2 rounded-full bg-nv-green/40 mx-2" />
             <div className="flex-1 h-px bg-gradient-to-r from-gray-300 via-gray-300 to-transparent" />
           </div>
         </div>
@@ -493,7 +493,7 @@ export default function HomePage() {
       {/* ================================================================== */}
       {/*  DOWNLOAD PREVIEW                                                  */}
       {/* ================================================================== */}
-      <section className="section-padding py-24 sm:py-32 relative bg-cs-surface">
+      <section className="section-padding py-24 sm:py-32 relative bg-nv-surface">
         <div className="absolute inset-0 grid-overlay opacity-20 mask-fade-y pointer-events-none" />
 
         <div className="relative">
@@ -504,7 +504,7 @@ export default function HomePage() {
             transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
-            <p className="text-xs text-cs-green-600 uppercase tracking-[0.2em] font-semibold mb-4">
+            <p className="text-xs text-nv-green-600 uppercase tracking-[0.2em] font-semibold mb-4">
               Downloads
             </p>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900 mb-5">
@@ -526,11 +526,11 @@ export default function HomePage() {
               transition={{ duration: 0.5, delay: 0 }}
               className="gradient-border gradient-border-hover group relative overflow-hidden p-8 transition-all duration-500 hover:shadow-card-hover bg-white"
             >
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cs-green/40 to-transparent" />
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-nv-green/40 to-transparent" />
 
               <div className="relative z-10">
-                <div className="relative w-14 h-14 rounded-2xl bg-cs-green/10 border border-cs-green/20 flex items-center justify-center mb-6 group-hover:border-cs-green/40 transition-all duration-300">
-                  <Server size={24} className="text-cs-green-600" />
+                <div className="relative w-14 h-14 rounded-2xl bg-nv-green/10 border border-nv-green/20 flex items-center justify-center mb-6 group-hover:border-nv-green/40 transition-all duration-300">
+                  <Server size={24} className="text-nv-green-600" />
                 </div>
 
                 <h3 className="text-xl font-bold text-gray-900 mb-2 tracking-tight">
@@ -556,7 +556,7 @@ export default function HomePage() {
 
                 <Link
                   href="/downloads"
-                  className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 text-sm font-semibold rounded-xl bg-cs-green text-white hover:bg-cs-green-500 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+                  className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 text-sm font-semibold rounded-xl bg-nv-green text-white hover:bg-nv-green-500 shadow-glow hover:shadow-glow-lg transition-all duration-300"
                 >
                   <Download size={16} />
                   Download Host
@@ -573,11 +573,11 @@ export default function HomePage() {
               transition={{ duration: 0.5, delay: 0.15 }}
               className="gradient-border gradient-border-hover group relative overflow-hidden p-8 transition-all duration-500 hover:shadow-card-hover bg-white"
             >
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cs-green/40 to-transparent" />
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-nv-green/40 to-transparent" />
 
               <div className="relative z-10">
-                <div className="relative w-14 h-14 rounded-2xl bg-cs-green/10 border border-cs-green/20 flex items-center justify-center mb-6 group-hover:border-cs-green/40 transition-all duration-300">
-                  <Monitor size={24} className="text-cs-green-600" />
+                <div className="relative w-14 h-14 rounded-2xl bg-nv-green/10 border border-nv-green/20 flex items-center justify-center mb-6 group-hover:border-nv-green/40 transition-all duration-300">
+                  <Monitor size={24} className="text-nv-green-600" />
                 </div>
 
                 <h3 className="text-xl font-bold text-gray-900 mb-2 tracking-tight">
@@ -611,7 +611,7 @@ export default function HomePage() {
 
                 <Link
                   href="/downloads"
-                  className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 text-sm font-semibold rounded-xl bg-cs-green text-white hover:bg-cs-green-500 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+                  className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 text-sm font-semibold rounded-xl bg-nv-green text-white hover:bg-nv-green-500 shadow-glow hover:shadow-glow-lg transition-all duration-300"
                 >
                   <Download size={16} />
                   Download Client
@@ -630,7 +630,7 @@ export default function HomePage() {
           >
             <Link
               href="/downloads"
-              className="inline-flex items-center gap-2 text-sm font-medium text-cs-green-600 hover:text-cs-green-500 transition-colors duration-200 group"
+              className="inline-flex items-center gap-2 text-sm font-medium text-nv-green-600 hover:text-nv-green-500 transition-colors duration-200 group"
             >
               View all downloads
               <ArrowRight
@@ -648,7 +648,7 @@ export default function HomePage() {
       <section className="section-padding py-24 sm:py-32 relative bg-white">
         <div className="relative rounded-3xl overflow-hidden">
           {/* Background layers */}
-          <div className="absolute inset-0 bg-gradient-to-br from-cs-green/[0.06] via-gray-50 to-white" />
+          <div className="absolute inset-0 bg-gradient-to-br from-nv-green/[0.06] via-gray-50 to-white" />
           <div className="absolute inset-0 grid-overlay opacity-20" />
 
           <div className="relative px-8 sm:px-16 lg:px-24 py-20 sm:py-28 text-center">
@@ -668,7 +668,7 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
                   href="/downloads"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold rounded-xl bg-cs-green text-white hover:bg-cs-green-500 active:bg-cs-green-600 shadow-glow hover:shadow-glow-lg transition-all duration-300 group/btn relative overflow-hidden"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold rounded-xl bg-nv-green text-white hover:bg-nv-green-500 active:bg-nv-green-600 shadow-glow hover:shadow-glow-lg transition-all duration-300 group/btn relative overflow-hidden"
                 >
                   <span className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
                     <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
@@ -683,7 +683,7 @@ export default function HomePage() {
                   href="https://github.com/thatcooperguy/nvstreamer"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl bg-transparent text-gray-700 border border-gray-300 hover:border-cs-green/50 hover:text-cs-green-600 hover:bg-cs-green/5 transition-all duration-300"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl bg-transparent text-gray-700 border border-gray-300 hover:border-nv-green/50 hover:text-nv-green-600 hover:bg-nv-green/5 transition-all duration-300"
                 >
                   <Github size={18} />
                   Star on GitHub

@@ -9,7 +9,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        'cs-green': {
+        'nv-green': {
           DEFAULT: '#76B900',
           50: '#F0FAD6',
           100: '#E0F5A8',
@@ -22,10 +22,10 @@ const config: Config = {
           800: '#2A4600',
           900: '#172900',
         },
-        'cs-dark': '#FFFFFF',
-        'cs-surface': '#FAFAFA',
-        'cs-card': '#F5F5F5',
-        'cs-gray': {
+        'nv-dark': '#FFFFFF',
+        'nv-surface': '#FAFAFA',
+        'nv-card': '#F5F5F5',
+        'nv-gray': {
           DEFAULT: '#1A1A1A',
           50: '#F5F5F5',
           100: '#E0E0E0',

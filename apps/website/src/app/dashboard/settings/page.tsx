@@ -187,7 +187,7 @@ export default function SettingsPage() {
   // -----------------------------------------------------------------------
 
   const selectClass =
-    'w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 focus:border-cs-green/50 focus:ring-1 focus:ring-cs-green/20 focus:outline-none transition-colors appearance-none';
+    'w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 focus:border-nv-green/50 focus:ring-1 focus:ring-nv-green/20 focus:outline-none transition-colors appearance-none';
 
   const Toggle = ({
     enabled,
@@ -199,8 +199,8 @@ export default function SettingsPage() {
     <button
       onClick={() => onChange(!enabled)}
       className={cn(
-        'relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-cs-green/30',
-        enabled ? 'bg-cs-green' : 'bg-gray-300'
+        'relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-nv-green/30',
+        enabled ? 'bg-nv-green' : 'bg-gray-300'
       )}
     >
       <span
@@ -238,7 +238,7 @@ export default function SettingsPage() {
           </motion.p>
         </div>
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-6 h-6 text-cs-green animate-spin" />
+          <Loader2 className="w-6 h-6 text-nv-green animate-spin" />
           <span className="ml-3 text-sm text-gray-500">Loading settings...</span>
         </div>
       </div>
@@ -306,8 +306,8 @@ export default function SettingsPage() {
               className="w-14 h-14 rounded-full border border-gray-200 shrink-0"
             />
           ) : (
-            <div className="w-14 h-14 rounded-full bg-cs-green/10 border border-cs-green/20 flex items-center justify-center shrink-0">
-              <span className="text-lg font-bold text-cs-green">{initials}</span>
+            <div className="w-14 h-14 rounded-full bg-nv-green/10 border border-nv-green/20 flex items-center justify-center shrink-0">
+              <span className="text-lg font-bold text-nv-green">{initials}</span>
             </div>
           )}
           <div className="flex-1 min-w-0">
@@ -351,8 +351,8 @@ export default function SettingsPage() {
                 key={org.id}
                 className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100"
               >
-                <div className="w-10 h-10 rounded-lg bg-cs-green/10 border border-cs-green/20 flex items-center justify-center shrink-0">
-                  <Building2 className="w-5 h-5 text-cs-green" />
+                <div className="w-10 h-10 rounded-lg bg-nv-green/10 border border-nv-green/20 flex items-center justify-center shrink-0">
+                  <Building2 className="w-5 h-5 text-nv-green" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900">{org.name}</p>
@@ -507,7 +507,7 @@ export default function SettingsPage() {
           className={cn(
             'inline-flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-300',
             saveSuccess
-              ? 'bg-cs-green text-white'
+              ? 'bg-nv-green text-white'
               : 'bg-gray-900 text-white hover:bg-gray-800',
             saving && 'opacity-70 cursor-not-allowed'
           )}
@@ -522,7 +522,7 @@ export default function SettingsPage() {
           {saving ? 'Saving...' : saveSuccess ? 'Saved' : 'Save Preferences'}
         </button>
         {saveSuccess && (
-          <span className="text-xs text-cs-green font-medium">
+          <span className="text-xs text-nv-green font-medium">
             Preferences saved successfully
           </span>
         )}
@@ -533,9 +533,9 @@ export default function SettingsPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.35 }}
-        className="flex items-start gap-3 px-4 py-3 rounded-lg bg-cs-green/[0.03] border border-cs-green/10"
+        className="flex items-start gap-3 px-4 py-3 rounded-lg bg-nv-green/[0.03] border border-nv-green/10"
       >
-        <Shield className="w-4 h-4 text-cs-green shrink-0 mt-0.5" />
+        <Shield className="w-4 h-4 text-nv-green shrink-0 mt-0.5" />
         <p className="text-xs text-gray-500 leading-relaxed">
           Your session tokens are encrypted at rest and in transit. Streaming
           preferences are stored locally in your browser. Sign out on shared

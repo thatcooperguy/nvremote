@@ -283,8 +283,8 @@ function StepItem({
       <div
         className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
           completed
-            ? 'bg-cs-green text-white'
-            : 'bg-cs-green/10 text-cs-green'
+            ? 'bg-nv-green text-white'
+            : 'bg-nv-green/10 text-nv-green'
         }`}
       >
         {completed ? '\u2713' : step}
@@ -295,7 +295,7 @@ function StepItem({
         {action && !completed && (
           <a
             href={action.href}
-            className="inline-flex items-center text-sm text-cs-green hover:text-cs-green-700 font-medium mt-2"
+            className="inline-flex items-center text-sm text-nv-green hover:text-nv-green-700 font-medium mt-2"
           >
             {action.label} &rarr;
           </a>

@@ -50,7 +50,7 @@ export default function LoginPage() {
                 </defs>
               </svg>
               <span className="text-2xl font-bold tracking-tight text-gray-900">
-                NV<span className="text-cs-green">REMOTE</span>
+                NV<span className="text-nv-green">REMOTE</span>
               </span>
             </div>
             <h1 className="text-lg font-semibold text-gray-900">Welcome back</h1>

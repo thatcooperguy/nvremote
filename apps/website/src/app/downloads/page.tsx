@@ -284,7 +284,7 @@ function DownloadCardFull({
       )}
     >
       {/* Top accent line */}
-      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cs-green/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-nv-green/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
       {/* Coming Soon badge */}
       {item.comingSoon && (
@@ -297,9 +297,9 @@ function DownloadCardFull({
 
       {/* Header: Icon + Platform */}
       <div className="flex items-start gap-4 mb-5">
-        <div className="relative w-12 h-12 rounded-xl bg-cs-green/10 border border-cs-green/20 flex items-center justify-center shrink-0 text-cs-green group-hover:border-cs-green/40 transition-all duration-300">
+        <div className="relative w-12 h-12 rounded-xl bg-nv-green/10 border border-nv-green/20 flex items-center justify-center shrink-0 text-nv-green group-hover:border-nv-green/40 transition-all duration-300">
           {item.icon}
-          <div className="absolute inset-0 rounded-xl bg-cs-green/0 group-hover:bg-cs-green/10 blur-xl transition-all duration-500" />
+          <div className="absolute inset-0 rounded-xl bg-nv-green/0 group-hover:bg-nv-green/10 blur-xl transition-all duration-500" />
         </div>
         <div>
           <h3 className="text-lg font-bold text-gray-900 tracking-tight">
@@ -315,14 +315,14 @@ function DownloadCardFull({
 
       {/* Version + Alpha + Status badges */}
       <div className="flex flex-wrap items-center gap-2 mb-5">
-        <span className="px-2.5 py-1 rounded-md bg-cs-green/[0.08] border border-cs-green/15 text-xs font-mono font-medium text-cs-green">
+        <span className="px-2.5 py-1 rounded-md bg-nv-green/[0.08] border border-nv-green/15 text-xs font-mono font-medium text-nv-green">
           {item.version}
         </span>
         <span className="px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-xs font-medium text-amber-600">
           Alpha
         </span>
         {!item.comingSoon && isAvailable && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cs-green/10 border border-cs-green/20 text-[10px] font-semibold text-cs-green">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-nv-green/10 border border-nv-green/20 text-[10px] font-semibold text-nv-green">
             <Check className="w-3 h-3" />
             Available
           </span>
@@ -396,12 +396,12 @@ function DownloadCardFull({
       {!item.comingSoon && isAvailable && (
         <button
           onClick={handleCopyLink}
-          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-gray-200 text-gray-600 hover:text-gray-900 hover:border-cs-green/30 hover:bg-cs-green/5 transition-all duration-200"
+          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-gray-200 text-gray-600 hover:text-gray-900 hover:border-nv-green/30 hover:bg-nv-green/5 transition-all duration-200"
         >
           {copied ? (
             <>
-              <Check className="w-4 h-4 text-cs-green" />
-              <span className="text-cs-green">Copied!</span>
+              <Check className="w-4 h-4 text-nv-green" />
+              <span className="text-nv-green">Copied!</span>
             </>
           ) : (
             <>
@@ -418,7 +418,7 @@ function DownloadCardFull({
           href={GITHUB_RELEASES}
           target="_blank"
           rel="noopener noreferrer"
-          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-gray-200 text-gray-600 hover:text-gray-900 hover:border-cs-green/30 hover:bg-cs-green/5 transition-all duration-200"
+          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-gray-200 text-gray-600 hover:text-gray-900 hover:border-nv-green/30 hover:bg-nv-green/5 transition-all duration-200"
         >
           <ExternalLink className="w-4 h-4" />
           View on GitHub
@@ -441,7 +441,7 @@ function DownloadCardFull({
           href="https://github.com/thatcooperguy/nvstreamer/releases"
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-cs-green transition-colors duration-200"
+          className="mt-3 inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-nv-green transition-colors duration-200"
         >
           <ExternalLink className="w-3 h-3" />
           Release Notes
@@ -503,7 +503,7 @@ export default function DownloadsPage() {
             transition={{ duration: 0.6 }}
             className="max-w-3xl mx-auto text-center"
           >
-            <p className="text-xs text-cs-green uppercase tracking-[0.2em] font-semibold mb-4">
+            <p className="text-xs text-nv-green uppercase tracking-[0.2em] font-semibold mb-4">
               Get Started
             </p>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-5">
@@ -590,9 +590,9 @@ export default function DownloadsPage() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-cs-green/20 mb-6">
-              <Monitor className="w-4 h-4 text-cs-green" />
-              <span className="text-xs font-semibold text-cs-green tracking-wide uppercase">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-nv-green/20 mb-6">
+              <Monitor className="w-4 h-4 text-nv-green" />
+              <span className="text-xs font-semibold text-nv-green tracking-wide uppercase">
                 Server Side
               </span>
             </div>
@@ -625,7 +625,7 @@ export default function DownloadsPage() {
       >
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center gap-4 px-6 py-4 rounded-xl glass border border-gray-200">
-            <div className="w-2 h-2 rounded-full bg-cs-green shrink-0" />
+            <div className="w-2 h-2 rounded-full bg-nv-green shrink-0" />
             <p className="text-sm text-gray-600">
               <span className="text-gray-900 font-medium">Host</span> runs on
               the machine streaming the game.{' '}
@@ -650,9 +650,9 @@ export default function DownloadsPage() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-cs-green/20 mb-6">
-              <Smartphone className="w-4 h-4 text-cs-green" />
-              <span className="text-xs font-semibold text-cs-green tracking-wide uppercase">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-nv-green/20 mb-6">
+              <Smartphone className="w-4 h-4 text-nv-green" />
+              <span className="text-xs font-semibold text-nv-green tracking-wide uppercase">
                 Client Side
               </span>
             </div>
@@ -727,7 +727,7 @@ export default function DownloadsPage() {
                   href="https://play.google.com/store/apps/details?id=com.nvremote.client"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl bg-gray-100 border border-gray-300 hover:border-cs-green/30 hover:bg-cs-green/5 transition-all duration-300"
+                  className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl bg-gray-100 border border-gray-300 hover:border-nv-green/30 hover:bg-nv-green/5 transition-all duration-300"
                 >
                   <PlayStoreIcon />
                   <div className="text-left">
@@ -788,7 +788,7 @@ export default function DownloadsPage() {
               className="gradient-border p-6 sm:p-8"
             >
               <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2.5 tracking-tight">
-                <Shield className="w-5 h-5 text-cs-green" />
+                <Shield className="w-5 h-5 text-nv-green" />
                 Verify Your Download
               </h3>
               <p className="text-sm text-gray-600 mb-5 leading-relaxed">
@@ -826,7 +826,7 @@ export default function DownloadsPage() {
               className="gradient-border p-6 sm:p-8"
             >
               <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2.5 tracking-tight">
-                <HelpCircle className="w-5 h-5 text-cs-green" />
+                <HelpCircle className="w-5 h-5 text-nv-green" />
                 Need Help?
               </h3>
               <p className="text-sm text-gray-600 mb-6 leading-relaxed">

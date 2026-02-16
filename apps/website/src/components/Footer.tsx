@@ -76,7 +76,7 @@ function FooterLogo() {
         </defs>
       </svg>
       <span className="text-lg font-bold tracking-tight text-white">
-        NV<span className="text-cs-green">REMOTE</span>
+        NV<span className="text-nv-green">REMOTE</span>
       </span>
     </div>
   );
@@ -86,7 +86,7 @@ export default function Footer() {
   return (
     <footer className="relative border-t border-gray-800 bg-[#1A1A1A] overflow-hidden">
       {/* Gradient divider line at top */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cs-green/30 to-transparent" />
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-nv-green/30 to-transparent" />
 
       <div className="relative section-padding pt-16 pb-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
@@ -104,7 +104,7 @@ export default function Footer() {
               href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-700 bg-white/[0.03] text-sm text-gray-300 hover:text-white hover:border-cs-green/30 hover:bg-cs-green/5 transition-all duration-200"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-700 bg-white/[0.03] text-sm text-gray-300 hover:text-white hover:border-nv-green/30 hover:bg-nv-green/5 transition-all duration-200"
             >
               <Github size={18} />
               <span>Star on GitHub</span>
@@ -121,7 +121,7 @@ export default function Footer() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-sm text-gray-400 hover:text-cs-green transition-colors duration-200"
+                    className="text-sm text-gray-400 hover:text-nv-green transition-colors duration-200"
                   >
                     {link.label}
                   </Link>
@@ -142,7 +142,7 @@ export default function Footer() {
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-gray-400 hover:text-cs-green transition-colors duration-200"
+                    className="text-sm text-gray-400 hover:text-nv-green transition-colors duration-200"
                   >
                     {link.label}
                   </a>

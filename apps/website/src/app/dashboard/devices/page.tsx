@@ -97,7 +97,7 @@ function maskIp(ip: string | null | undefined): string {
 }
 
 const statusStyles: Record<string, { dot: string; text: string }> = {
-  Online: { dot: 'bg-cs-green', text: 'text-cs-green' },
+  Online: { dot: 'bg-nv-green', text: 'text-nv-green' },
   Idle: { dot: 'bg-amber-400', text: 'text-amber-600' },
   Offline: { dot: 'bg-gray-400', text: 'text-gray-400' },
 };
@@ -265,7 +265,7 @@ export default function DevicesPage() {
           </p>
           <Link
             href="/downloads"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cs-green text-white text-sm font-medium hover:bg-cs-green-700 transition-colors shadow-sm"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-nv-green text-white text-sm font-medium hover:bg-nv-green-700 transition-colors shadow-sm"
           >
             <Download size={16} />
             Download Host Agent
@@ -291,8 +291,8 @@ export default function DevicesPage() {
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center border bg-cs-green/10 border-cs-green/20">
-                      <Icon className="w-5 h-5 text-cs-green" />
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center border bg-nv-green/10 border-nv-green/20">
+                      <Icon className="w-5 h-5 text-nv-green" />
                     </div>
                     <div>
                       <h3 className="text-sm font-semibold text-gray-900">
@@ -352,7 +352,7 @@ export default function DevicesPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-400">Auth Method</span>
                     <span className="inline-flex items-center gap-1 text-xs text-gray-600">
-                      <ShieldCheck className="w-3 h-3 text-cs-green" />
+                      <ShieldCheck className="w-3 h-3 text-nv-green" />
                       OAuth
                     </span>
                   </div>

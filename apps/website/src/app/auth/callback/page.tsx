@@ -67,7 +67,7 @@ export default function AuthCallbackPage() {
           <p className="text-gray-500 mb-6">{error}</p>
           <a
             href="/login"
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-cs-green text-white font-medium hover:bg-cs-green-600 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-nv-green text-white font-medium hover:bg-nv-green-600 transition-colors"
           >
             Try Again
           </a>
@@ -79,7 +79,7 @@ export default function AuthCallbackPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="text-center">
-        <div className="w-12 h-12 mx-auto mb-4 border-4 border-cs-green border-t-transparent rounded-full animate-spin" />
+        <div className="w-12 h-12 mx-auto mb-4 border-4 border-nv-green border-t-transparent rounded-full animate-spin" />
         <p className="text-gray-500 text-sm">Signing you in...</p>
       </div>
     </div>

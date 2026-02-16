@@ -123,118 +123,57 @@ function createMockViewer(): ViewerModule {
 
   return {
     start(config: ViewerConfig): void {
-      console.log('[Viewer Mock] start() called with:', {
-        sessionId: config.sessionId,
-        codec: config.codec,
-        gamingMode: config.gamingMode,
-        maxBitrate: config.maxBitrate,
-        targetFps: config.targetFps,
-      });
       running = true;
       currentGamingMode = config.gamingMode;
       currentCodec = config.codec;
     },
 
     stop(): void {
-      console.log('[Viewer Mock] stop() called');
       running = false;
     },
 
     getStats(): StreamStats {
-      if (!running) {
-        return {
-          bitrate: 0,
-          fps: 0,
-          packetLoss: 0,
-          jitter: 0,
-          rtt: 0,
-          codec: 'none',
-          resolution: { width: 0, height: 0 },
-          connectionType: 'none',
-          decodeTimeMs: 0,
-          renderTimeMs: 0,
-          gamingMode: currentGamingMode,
-        };
-      }
-
-      // Return simulated stats that look realistic
       return {
-        bitrate: 20_000 + Math.round(Math.random() * 30_000),
-        fps: currentGamingMode === 'competitive' ? 235 + Math.round(Math.random() * 10)
-           : currentGamingMode === 'balanced' ? 118 + Math.round(Math.random() * 4)
-           : 58 + Math.round(Math.random() * 4),
-        packetLoss: Math.round(Math.random() * 5) / 10,
-        jitter: Math.round(Math.random() * 3 * 10) / 10,
-        rtt: 5 + Math.round(Math.random() * 15),
-        codec: currentCodec,
-        resolution: currentGamingMode === 'cinematic'
-          ? { width: 3840, height: 2160 }
-          : currentGamingMode === 'balanced'
-          ? { width: 2560, height: 1440 }
-          : { width: 1920, height: 1080 },
-        connectionType: 'p2p',
-        decodeTimeMs: Math.round(Math.random() * 3 * 10) / 10,
-        renderTimeMs: Math.round(Math.random() * 2 * 10) / 10,
+        bitrate: 0,
+        fps: 0,
+        packetLoss: 0,
+        jitter: 0,
+        rtt: 0,
+        codec: running ? currentCodec : 'none',
+        resolution: { width: 0, height: 0 },
+        connectionType: running ? 'mock' : 'none',
+        decodeTimeMs: 0,
+        renderTimeMs: 0,
         gamingMode: currentGamingMode,
       };
     },
 
     onDisconnect(callback: () => void): void {
       disconnectCallback = callback;
-      console.log('[Viewer Mock] onDisconnect() registered');
     },
 
-    setQuality(preset: string): void {
-      console.log('[Viewer Mock] setQuality():', preset);
+    setQuality(_preset: string): void {
+      // No-op in mock mode
     },
 
     setGamingMode(mode: string): void {
-      console.log('[Viewer Mock] setGamingMode():', mode);
       currentGamingMode = mode;
     },
 
-    async gatherIceCandidates(stunServers: string[]): Promise<IceCandidate[]> {
-      console.log('[Viewer Mock] gatherIceCandidates() with STUN servers:', stunServers);
-
-      // Simulate a brief gathering delay
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      // Return mock candidates
-      return [
-        {
-          type: 'host',
-          ip: '192.168.1.100',
-          port: 49152,
-          protocol: 'udp',
-          priority: 2130706431,
-          foundation: '1',
-        },
-        {
-          type: 'srflx',
-          ip: '203.0.113.50',
-          port: 55000,
-          protocol: 'udp',
-          priority: 1694498815,
-          foundation: '2',
-        },
-      ];
+    async gatherIceCandidates(_stunServers: string[]): Promise<IceCandidate[]> {
+      // Mock returns empty candidates — real ICE requires native addon
+      return [];
     },
 
-    addRemoteCandidate(candidate: IceCandidate): void {
-      console.log('[Viewer Mock] addRemoteCandidate():', candidate.type, candidate.ip, candidate.port);
+    addRemoteCandidate(_candidate: IceCandidate): void {
+      // No-op in mock mode
     },
 
-    async connectP2P(config: { dtlsFingerprint: string }): Promise<{ connectionType: string }> {
-      console.log('[Viewer Mock] connectP2P() with DTLS fingerprint:', config.dtlsFingerprint.slice(0, 16) + '...');
-
-      // Simulate connection delay
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      return { connectionType: 'p2p' };
+    async connectP2P(_config: { dtlsFingerprint: string }): Promise<{ connectionType: string }> {
+      return { connectionType: 'mock' };
     },
 
     disconnectP2P(): void {
-      console.log('[Viewer Mock] disconnectP2P() called');
       running = false;
       if (disconnectCallback) {
         disconnectCallback();
@@ -261,7 +200,7 @@ export function loadViewer(): ViewerModule {
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const addon = require(addonPath) as ViewerModule;
-      console.log(`[Viewer] Native addon loaded from: ${addonPath}`);
+      // Native addon loaded successfully
       nativeViewer = addon;
       usingMock = false;
       return addon;

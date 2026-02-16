@@ -157,7 +157,7 @@ export default function AdminSessionsPage() {
               className={cn(
                 'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border',
                 statusFilter === s
-                  ? 'bg-cs-green/10 text-cs-green-700 border-cs-green/30'
+                  ? 'bg-nv-green/10 text-nv-green-700 border-nv-green/30'
                   : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
               )}
             >

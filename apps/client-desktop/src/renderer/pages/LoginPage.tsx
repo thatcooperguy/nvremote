@@ -4,7 +4,7 @@ import { Button } from '../components/Button';
 import { useAuthStore } from '../store/authStore';
 import { toast } from '../components/Toast';
 
-const APP_VERSION = '0.1.0';
+const APP_VERSION = '0.4.0-alpha';
 
 export function LoginPage(): React.ReactElement {
   const [loading, setLoading] = useState(false);

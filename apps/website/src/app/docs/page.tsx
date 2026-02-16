@@ -20,7 +20,7 @@ function SectionAnchor({ id, children }: { id: string; children: string }) {
     >
       <a href={`#${id}`} className="group">
         {children}
-        <span className="ml-2 text-cs-green opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="ml-2 text-nv-green opacity-0 group-hover:opacity-100 transition-opacity">
           #
         </span>
       </a>
@@ -36,7 +36,7 @@ function SubSection({ id, children }: { id: string; children: string }) {
     >
       <a href={`#${id}`} className="group">
         {children}
-        <span className="ml-2 text-cs-green/60 opacity-0 group-hover:opacity-100 transition-opacity text-sm">
+        <span className="ml-2 text-nv-green/60 opacity-0 group-hover:opacity-100 transition-opacity text-sm">
           #
         </span>
       </a>
@@ -77,7 +77,7 @@ function InfoBox({
   const iconColorMap = {
     info: 'text-blue-400',
     warning: 'text-amber-600',
-    tip: 'text-cs-green',
+    tip: 'text-nv-green',
   };
 
   return (
@@ -103,8 +103,8 @@ function StepItem({
 }) {
   return (
     <div className="flex gap-4">
-      <div className="w-8 h-8 rounded-lg bg-cs-green/10 border border-cs-green/20 flex items-center justify-center shrink-0">
-        <span className="text-xs font-bold text-cs-green">{number}</span>
+      <div className="w-8 h-8 rounded-lg bg-nv-green/10 border border-nv-green/20 flex items-center justify-center shrink-0">
+        <span className="text-xs font-bold text-nv-green">{number}</span>
       </div>
       <div>
         <p className="text-sm text-gray-900 font-medium mb-1">{title}</p>
@@ -126,7 +126,7 @@ function CheckItem({ children }: { children: React.ReactNode }) {
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="text-cs-green shrink-0 mt-0.5"
+        className="text-nv-green shrink-0 mt-0.5"
       >
         <polyline points="20 6 9 17 4 12" />
       </svg>
@@ -165,7 +165,7 @@ export default function DocsPage() {
 
         <div className="relative section-padding pt-24 sm:pt-32 pb-16">
           <div className="max-w-3xl mx-auto text-center">
-            <p className="text-xs text-cs-green uppercase tracking-[0.2em] font-semibold mb-4">
+            <p className="text-xs text-nv-green uppercase tracking-[0.2em] font-semibold mb-4">
               Getting Started
             </p>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-5">
@@ -196,7 +196,7 @@ export default function DocsPage() {
                     <li key={item.href}>
                       <a
                         href={item.href}
-                        className="block px-3 py-1.5 text-sm text-gray-600 hover:text-cs-green rounded-lg hover:bg-cs-green/5 transition-all duration-200"
+                        className="block px-3 py-1.5 text-sm text-gray-600 hover:text-nv-green rounded-lg hover:bg-nv-green/5 transition-all duration-200"
                       >
                         {item.label}
                       </a>
@@ -209,7 +209,7 @@ export default function DocsPage() {
                     href="https://github.com/thatcooperguy/nvstreamer"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-gray-600 hover:text-cs-green transition-colors"
+                    className="flex items-center gap-2 text-sm text-gray-600 hover:text-nv-green transition-colors"
                   >
                     <svg
                       width="16"
@@ -285,13 +285,13 @@ export default function DocsPage() {
               <div className="space-y-4 mb-6">
                 <StepItem number={1} title="Download the installer">
                   Get the latest{' '}
-                  <code className="text-cs-green bg-cs-green/10 px-1.5 py-0.5 rounded text-xs">
+                  <code className="text-nv-green bg-nv-green/10 px-1.5 py-0.5 rounded text-xs">
                     NVRemoteHost-v0.4.0-alpha-win64.zip
                   </code>{' '}
                   from the{' '}
                   <a
                     href="/downloads/"
-                    className="text-cs-green hover:underline"
+                    className="text-nv-green hover:underline"
                   >
                     Downloads page
                   </a>
@@ -333,13 +333,13 @@ export default function DocsPage() {
               <div className="space-y-4 mb-6">
                 <StepItem number={1} title="Download the client">
                   Get{' '}
-                  <code className="text-cs-green bg-cs-green/10 px-1.5 py-0.5 rounded text-xs">
+                  <code className="text-nv-green bg-nv-green/10 px-1.5 py-0.5 rounded text-xs">
                     NVRemote-Setup.exe
                   </code>{' '}
                   from the{' '}
                   <a
                     href="/downloads/"
-                    className="text-cs-green hover:underline"
+                    className="text-nv-green hover:underline"
                   >
                     Downloads page
                   </a>
@@ -575,7 +575,7 @@ overlay:
                     href="https://github.com/thatcooperguy/nvstreamer/issues"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-cs-green hover:underline"
+                    className="text-nv-green hover:underline"
                   >
                     GitHub Issues
                   </a>{' '}
@@ -584,7 +584,7 @@ overlay:
                     href="https://github.com/thatcooperguy/nvstreamer/discussions"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-cs-green hover:underline"
+                    className="text-nv-green hover:underline"
                   >
                     Discussion
                   </a>

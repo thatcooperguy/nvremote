@@ -14,7 +14,7 @@
   }
 
   ::selection {
-    @apply bg-cs-green/20 text-gray-900;
+    @apply bg-nv-green/20 text-gray-900;
   }
 
   /* Thin, subtle custom scrollbar */

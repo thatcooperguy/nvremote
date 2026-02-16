@@ -1021,6 +1021,7 @@ jobs:
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
+    if: always()
     needs:
       - build-host-bundle
       - build-host-bundle-linux

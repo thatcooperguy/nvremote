@@ -320,6 +320,14 @@ function setupIpcHandlers(): void {
   ipcMain.handle('viewer:start', (_event, config: ViewerConfig) => {
     try {
       const viewer = loadViewer();
+
+      // Inject the real native window handle (HWND on Windows, NSView* on macOS).
+      // The renderer sends Buffer.alloc(0) as a placeholder; we replace it here
+      // with the actual handle so the C++ input capture hooks the right window.
+      if (mainWindow && (!config.windowHandle || config.windowHandle.length === 0)) {
+        config.windowHandle = mainWindow.getNativeWindowHandle();
+      }
+
       viewer.start(config);
       return { success: true };
     } catch (err) {

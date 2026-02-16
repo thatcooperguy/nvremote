@@ -278,7 +278,7 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
       const viewerResult = await window.nvrs.viewer.start({
         sessionId: sessionInfo.sessionId,
         codec: sessionInfo.codec,
-        windowHandle: Buffer.alloc(0), // Will be provided by native integration
+        windowHandle: Buffer.alloc(0), // Main process injects the real HWND via getNativeWindowHandle()
         gamingMode,
         maxBitrate: preset.maxBitrate,
         targetFps: preset.targetFps,

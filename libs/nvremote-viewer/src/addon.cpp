@@ -252,6 +252,40 @@ Napi::Value SetQuality(const Napi::CallbackInfo& info) {
 }
 
 // ---------------------------------------------------------------------------
+// viewer.setGamingMode(mode)
+// Maps gaming mode strings to quality presets:
+//   "competitive" -> PERFORMANCE (lowest latency)
+//   "balanced"    -> BALANCED
+//   "cinematic"   -> QUALITY (highest quality)
+// ---------------------------------------------------------------------------
+Napi::Value SetGamingMode(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+
+    if (info.Length() < 1 || !info[0].IsString()) {
+        Napi::TypeError::New(env, "Expected gaming mode string").ThrowAsJavaScriptException();
+        return env.Undefined();
+    }
+
+    std::string mode = info[0].As<Napi::String>().Utf8Value();
+
+    // Map gaming mode to quality preset
+    cs::QualityPreset preset = cs::QualityPreset::BALANCED;
+    if (mode == "competitive") {
+        preset = cs::QualityPreset::PERFORMANCE;
+    } else if (mode == "balanced") {
+        preset = cs::QualityPreset::BALANCED;
+    } else if (mode == "cinematic") {
+        preset = cs::QualityPreset::QUALITY;
+    }
+
+    if (g_viewer) {
+        g_viewer->setQuality(preset);
+    }
+
+    return env.Undefined();
+}
+
+// ---------------------------------------------------------------------------
 // viewer.gatherIceCandidates(stunServers) -> Promise<candidates[]>
 // ---------------------------------------------------------------------------
 class GatherIceWorker : public Napi::AsyncWorker {
@@ -432,6 +466,7 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
     exports.Set("getStats",             Napi::Function::New(env, GetStats));
     exports.Set("onDisconnect",         Napi::Function::New(env, OnDisconnect));
     exports.Set("setQuality",           Napi::Function::New(env, SetQuality));
+    exports.Set("setGamingMode",        Napi::Function::New(env, SetGamingMode));
     exports.Set("gatherIceCandidates",  Napi::Function::New(env, GatherIceCandidates));
     exports.Set("addRemoteCandidate",   Napi::Function::New(env, AddRemoteCandidate));
     exports.Set("connectP2P",           Napi::Function::New(env, ConnectP2P));

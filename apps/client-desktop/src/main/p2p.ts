@@ -24,6 +24,7 @@ export interface SessionInfo {
   hostId: string;
   codec: string;
   gamingMode: 'competitive' | 'balanced' | 'cinematic';
+  dtlsFingerprint?: string;
   stunServers?: string[];
   turnServers?: Array<{ urls: string | string[]; username?: string; credential?: string }>;
 }

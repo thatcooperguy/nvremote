@@ -32,6 +32,8 @@ jobs:
 
       - name: Lint website
         run: cd apps/website && npx next lint
+        env:
+          ESLINT_USE_FLAT_CONFIG: "false"
 
       - name: Type check API
         run: cd apps/server-api && npx tsc --noEmit

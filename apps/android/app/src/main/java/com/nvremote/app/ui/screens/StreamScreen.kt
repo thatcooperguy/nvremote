@@ -1,6 +1,10 @@
 package com.nvremote.app.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -11,10 +15,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -30,7 +38,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nvremote.app.data.model.SessionState
 import com.nvremote.app.data.webrtc.WebRtcConnectionState
@@ -42,6 +53,17 @@ import com.nvremote.app.ui.theme.CsGreen
 import com.nvremote.app.ui.theme.CsOnSurfaceDim
 import com.nvremote.app.ui.theme.OverlayBackground
 import com.nvremote.app.ui.viewmodel.SessionViewModel
+
+/** Available streaming profiles */
+private val STREAMING_PROFILES = listOf(
+    "Competitive" to "Max FPS",
+    "Balanced" to "Default",
+    "Cinematic" to "Max quality",
+    "Creative" to "Color-accurate",
+    "CAD" to "Precision",
+    "MobileSaver" to "Low bandwidth",
+    "LAN" to "Same network",
+)
 
 @Composable
 fun StreamScreen(
@@ -56,6 +78,8 @@ fun StreamScreen(
     val webRtcStats by webRtcManager.streamStats.collectAsState()
     val webRtcError by webRtcManager.error.collectAsState()
     var showControls by remember { mutableStateOf(true) }
+    var showProfileMenu by remember { mutableStateOf(false) }
+    var currentProfile by remember { mutableStateOf("Balanced") }
 
     LaunchedEffect(sessionId) {
         viewModel.loadSession(sessionId)
@@ -213,13 +237,62 @@ fun StreamScreen(
         }
 
         // Controls overlay (top-right)
-        if (showControls) {
+        AnimatedVisibility(
+            visible = showControls,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.TopEnd),
+        ) {
             Row(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp),
+                modifier = Modifier.padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                // Profile selector button
+                Box {
+                    IconButton(
+                        onClick = { showProfileMenu = !showProfileMenu },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(OverlayBackground),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Streaming Profile",
+                            tint = CsGreen,
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showProfileMenu,
+                        onDismissRequest = { showProfileMenu = false },
+                    ) {
+                        STREAMING_PROFILES.forEach { (name, desc) ->
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text(
+                                            text = name,
+                                            fontWeight = if (name == currentProfile) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (name == currentProfile) CsGreen else Color.Unspecified,
+                                        )
+                                        Text(
+                                            text = desc,
+                                            fontSize = 11.sp,
+                                            color = CsOnSurfaceDim,
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    currentProfile = name
+                                    showProfileMenu = false
+                                    webRtcManager.requestProfileChange(sessionId, name)
+                                },
+                            )
+                        }
+                    }
+                }
+
                 IconButton(
                     onClick = { viewModel.toggleStatsOverlay() },
                     modifier = Modifier

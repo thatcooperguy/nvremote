@@ -200,6 +200,17 @@ class SignalingClient @Inject constructor() {
     }
 
     /**
+     * Request a streaming profile change via signaling.
+     * Sent from client → server → host agent.
+     */
+    fun requestProfileChange(sessionId: String, profile: String) {
+        socket?.emit("qos:profile-change", JSONObject().apply {
+            put("sessionId", sessionId)
+            put("profile", profile)
+        })
+    }
+
+    /**
      * Disconnect from signaling server.
      */
     fun disconnect() {

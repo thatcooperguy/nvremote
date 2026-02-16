@@ -67,13 +67,21 @@ type PeerInfo struct {
 
 // SessionStats holds real-time statistics for an active streaming session.
 type SessionStats struct {
-	BitrateKbps int     `json:"bitrate_kbps"`
-	FPS         int     `json:"fps"`
-	PacketLoss  float64 `json:"packet_loss"`
-	Jitter      float64 `json:"jitter_ms"`
-	RTT         float64 `json:"rtt_ms"`
-	FramesSent  int64   `json:"frames_sent"`
-	BytesSent   int64   `json:"bytes_sent"`
+	BitrateKbps     int     `json:"bitrate_kbps"`
+	FPS             int     `json:"fps"`
+	Width           int     `json:"width"`
+	Height          int     `json:"height"`
+	PacketLoss      float64 `json:"packet_loss"`
+	Jitter          float64 `json:"jitter_ms"`
+	RTT             float64 `json:"rtt_ms"`
+	FramesSent      int64   `json:"frames_sent"`
+	BytesSent       int64   `json:"bytes_sent"`
+	Codec           string  `json:"codec"`
+	GamingMode      string  `json:"gaming_mode"`
+	FecRatio        float64 `json:"fec_ratio"`
+	EstimatedBwKbps int     `json:"estimated_bw_kbps"`
+	DecodeTimeUs    int     `json:"decode_time_us"`
+	QosState        string  `json:"qos_state"`
 }
 
 const (

@@ -217,6 +217,15 @@ class WebRtcManager @Inject constructor(
     }
 
     /**
+     * Request a streaming profile change via signaling.
+     * The profile change is relayed to the host agent which applies it to the QoS engine.
+     */
+    fun requestProfileChange(sessionId: String, profile: String) {
+        Log.d(TAG, "Requesting profile change: $profile for session $sessionId")
+        signalingClient.requestProfileChange(sessionId, profile)
+    }
+
+    /**
      * End the current session and release all resources.
      */
     fun endSession() {

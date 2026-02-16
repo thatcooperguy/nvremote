@@ -44,11 +44,15 @@ const (
 	MsgIceComplete    MessageType = "ice:complete"
 
 	// Outbound message types (from host to control plane).
-	MsgHostHeartbeat  MessageType = "host:heartbeat"
-	MsgHostStatus     MessageType = "host:status"
-	MsgSessionAccept  MessageType = "session:accept"
-	MsgSessionAnswer  MessageType = "session:answer"
-	MsgSessionReject  MessageType = "session:reject"
+	MsgHostHeartbeat    MessageType = "host:heartbeat"
+	MsgHostStatus       MessageType = "host:status"
+	MsgSessionAccept    MessageType = "session:accept"
+	MsgSessionAnswer    MessageType = "session:answer"
+	MsgSessionReject    MessageType = "session:reject"
+	MsgQosStats         MessageType = "qos:stats"
+
+	// Inbound QoS messages
+	MsgQosProfileChange MessageType = "qos:profile-change"
 )
 
 // WSMessage is the envelope for all WebSocket messages.
@@ -80,6 +84,30 @@ type IceCandidateMessage struct {
 // IceCompleteMessage is the payload for ice:complete messages.
 type IceCompleteMessage struct {
 	SessionID string `json:"session_id"`
+}
+
+// QosStatsPayload is sent periodically by the host to report real-time QoS metrics.
+type QosStatsPayload struct {
+	SessionID          string  `json:"sessionId"`
+	BitrateKbps        int     `json:"bitrateKbps"`
+	FPS                int     `json:"fps"`
+	Width              int     `json:"width"`
+	Height             int     `json:"height"`
+	Codec              string  `json:"codec"`
+	Profile            string  `json:"profile"`
+	PacketLossPercent  float64 `json:"packetLossPercent"`
+	RttMs              float64 `json:"rttMs"`
+	JitterMs           float64 `json:"jitterMs"`
+	FecRatio           float64 `json:"fecRatio"`
+	EstimatedBwKbps    int     `json:"estimatedBwKbps"`
+	DecodeTimeUs       int     `json:"decodeTimeUs,omitempty"`
+	QosState           string  `json:"qosState"`
+}
+
+// QosProfileChangeMessage is received when a client requests a profile change.
+type QosProfileChangeMessage struct {
+	SessionID string `json:"sessionId"`
+	Profile   string `json:"profile"`
 }
 
 // ConnectSignaling establishes and maintains a persistent WebSocket connection to the
@@ -219,6 +247,9 @@ func handleMessage(ctx context.Context, conn *websocket.Conn, raw []byte, sigHan
 	case MsgConfigUpdate:
 		return handleConfigUpdate(msg.Payload)
 
+	case MsgQosProfileChange:
+		return handleQosProfileChange(msg.Payload, sigHandler)
+
 	default:
 		slog.Warn("unknown WebSocket message type", "type", msg.Type)
 		return nil
@@ -326,6 +357,36 @@ func handleSessionEnd(payload json.RawMessage, sigHandler *p2p.SignalingHandler)
 	return nil
 }
 
+// handleQosProfileChange processes a streaming profile change request from a client.
+func handleQosProfileChange(payload json.RawMessage, sigHandler *p2p.SignalingHandler) error {
+	var msg QosProfileChangeMessage
+	if err := json.Unmarshal(payload, &msg); err != nil {
+		return fmt.Errorf("unmarshalling qos:profile-change: %w", err)
+	}
+
+	slog.Info("streaming profile change requested",
+		"sessionId", msg.SessionID,
+		"profile", msg.Profile,
+	)
+
+	// Delegate to the signaling handler which has access to the streamer manager
+	if sigHandler != nil {
+		session := sigHandler.GetCurrentSession()
+		if session != nil && session.SessionID == msg.SessionID {
+			mgr := sigHandler.GetStreamerManager()
+			if mgr != nil {
+				if err := mgr.SetGamingMode(msg.Profile); err != nil {
+					slog.Error("failed to apply profile change", "error", err)
+					return err
+				}
+				slog.Info("streaming profile changed", "profile", msg.Profile)
+			}
+		}
+	}
+
+	return nil
+}
+
 // handleConfigUpdate processes a configuration update pushed by the control plane.
 func handleConfigUpdate(payload json.RawMessage) error {
 	slog.Info("received config update from control plane")
@@ -364,6 +425,12 @@ func sendMessage(conn *websocket.Conn, msgType MessageType, payload interface{})
 
 	slog.Debug("sent WebSocket message", "type", msgType)
 	return nil
+}
+
+// SendQosStats sends QoS statistics for an active session to the control plane.
+// This should be called periodically (~every 2 seconds) by the QoS reporter goroutine.
+func SendQosStats(conn *websocket.Conn, stats QosStatsPayload) error {
+	return sendMessage(conn, MsgQosStats, stats)
 }
 
 // sendPings periodically sends WebSocket ping frames to keep the connection alive.

@@ -116,6 +116,30 @@ interface HostCapabilityPayload {
   }>;
 }
 
+// -- QoS stat reporting & profile control -----------------------------------
+
+interface QosStatsPayload {
+  sessionId: string;
+  bitrateKbps: number;
+  fps: number;
+  width: number;
+  height: number;
+  codec: string;
+  profile: string;
+  packetLossPercent: number;
+  rttMs: number;
+  jitterMs: number;
+  fecRatio: number;
+  estimatedBwKbps: number;
+  decodeTimeUs?: number;
+  qosState: 'INCREASE' | 'HOLD' | 'DECREASE';
+}
+
+interface QosProfileChangePayload {
+  sessionId: string;
+  profile: string;  // e.g. 'Competitive', 'Balanced', 'Cinematic', 'Creative', 'CAD', 'MobileSaver', 'LAN'
+}
+
 // ---------------------------------------------------------------------------
 // Data forwarded to the host agent when a new streaming session is created.
 // ---------------------------------------------------------------------------
@@ -774,6 +798,113 @@ export class SignalingGatewayWs
         `Capability negotiation complete for session ${session.id}`,
       );
     }
+
+    return { success: true };
+  }
+
+  // -----------------------------------------------------------------------
+  // QoS stats & profile control
+  // -----------------------------------------------------------------------
+
+  /**
+   * Host reports real-time QoS metrics for the active session.
+   * Stored on the session metadata for admin dashboard analytics.
+   * Sent ~every 2 seconds by the host agent.
+   */
+  @SubscribeMessage('qos:stats')
+  async handleQosStats(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: QosStatsPayload,
+  ): Promise<{ success: boolean }> {
+    const hostId = client.data.hostId;
+    if (!hostId) throw new WsException('Only host agents can report QoS stats');
+
+    const session = await this.prisma.session.findUnique({
+      where: { id: payload.sessionId },
+    });
+
+    if (!session || session.hostId !== hostId) {
+      throw new WsException('Session not found on this host');
+    }
+
+    // Store latest QoS snapshot on session metadata
+    const existingMeta = (session.metadata as Record<string, unknown>) ?? {};
+    await this.prisma.session.update({
+      where: { id: session.id },
+      data: {
+        metadata: {
+          ...existingMeta,
+          qosStats: {
+            bitrateKbps: payload.bitrateKbps,
+            fps: payload.fps,
+            width: payload.width,
+            height: payload.height,
+            codec: payload.codec,
+            profile: payload.profile,
+            packetLossPercent: payload.packetLossPercent,
+            rttMs: payload.rttMs,
+            jitterMs: payload.jitterMs,
+            fecRatio: payload.fecRatio,
+            estimatedBwKbps: payload.estimatedBwKbps,
+            decodeTimeUs: payload.decodeTimeUs,
+            qosState: payload.qosState,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      },
+    });
+
+    // Also forward to the client so the UI can show real-time stats
+    this.server.to(`user:${session.userId}`).emit('qos:stats', {
+      sessionId: session.id,
+      ...payload,
+    });
+
+    return { success: true };
+  }
+
+  /**
+   * Client requests a streaming profile change during an active session.
+   * Relayed to the host agent which applies the new profile to the QoS engine.
+   */
+  @SubscribeMessage('qos:profile-change')
+  async handleQosProfileChange(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: QosProfileChangePayload,
+  ): Promise<{ success: boolean }> {
+    const userId = client.data.userId;
+    if (!userId) throw new WsException('Not authenticated');
+
+    const session = await this.prisma.session.findUnique({
+      where: { id: payload.sessionId },
+    });
+
+    if (!session) throw new WsException('Session not found');
+    if (session.userId !== userId) throw new WsException('Not the session owner');
+    if (session.status !== 'ACTIVE') throw new WsException('Session is not active');
+
+    // Store the profile change in session metadata
+    const existingMeta = (session.metadata as Record<string, unknown>) ?? {};
+    await this.prisma.session.update({
+      where: { id: session.id },
+      data: {
+        metadata: {
+          ...existingMeta,
+          streamingProfile: payload.profile,
+          profileChangedAt: new Date().toISOString(),
+        },
+      },
+    });
+
+    // Relay to the host agent
+    this.server.to(`host:${session.hostId}`).emit('qos:profile-change', {
+      sessionId: session.id,
+      profile: payload.profile,
+    });
+
+    this.logger.log(
+      `Profile change requested for session ${session.id}: ${payload.profile}`,
+    );
 
     return { success: true };
   }

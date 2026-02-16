@@ -305,6 +305,12 @@ func (h *SignalingHandler) GetCurrentSession() *SessionState {
 	return h.currentSession
 }
 
+// GetStreamerManager returns the underlying streamer manager.
+// Used by the websocket handler for QoS profile changes during active sessions.
+func (h *SignalingHandler) GetStreamerManager() *streamer.Manager {
+	return h.streamerManager
+}
+
 // sendIceCandidate sends a single ICE candidate to the control plane via WebSocket.
 func (h *SignalingHandler) sendIceCandidate(conn *websocket.Conn, sessionID string, candidate IceCandidate) error {
 	payload := struct {

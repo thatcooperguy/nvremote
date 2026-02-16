@@ -1,10 +1,14 @@
 ////////////////////////////////////////////////////////////////////////////////
-// NVRemote — Gaming Mode Presets
+// NVRemote — Streaming Profile Presets
 //
 // Defines the quality/performance trade-off presets users can select:
 //   - Competitive: Maximum FPS, lowest latency, sacrifice resolution/quality
-//   - Cinematic:   Maximum resolution + quality, allow higher latency
 //   - Balanced:    Middle ground, adapts both FPS and quality
+//   - Cinematic:   Maximum resolution + quality, allow higher latency
+//   - Creative:    Native resolution, 4:4:4 chroma, color-accurate
+//   - CAD:         Native resolution, AV1, precision work
+//   - MobileSaver: Low bandwidth, small screen optimization
+//   - LAN:         Maximum everything for same-network streaming
 //
 // The QoS controller uses these presets to guide its adaptive algorithm.
 ////////////////////////////////////////////////////////////////////////////////
@@ -60,6 +64,10 @@ enum class GamingMode : uint8_t {
     Competitive = 0,   // Max FPS, lowest latency
     Balanced    = 1,   // Adapts both FPS and quality
     Cinematic   = 2,   // Max quality, allows higher latency
+    Creative    = 3,   // Native res, 4:4:4 chroma, color-accurate
+    CAD         = 4,   // Native res, AV1, precision work
+    MobileSaver = 5,   // Low bandwidth, small screen optimization
+    LAN         = 6,   // Maximum everything for same-network streaming
 };
 
 inline std::string gamingModeToString(GamingMode mode) {
@@ -67,8 +75,23 @@ inline std::string gamingModeToString(GamingMode mode) {
         case GamingMode::Competitive: return "Competitive";
         case GamingMode::Balanced:    return "Balanced";
         case GamingMode::Cinematic:   return "Cinematic";
+        case GamingMode::Creative:    return "Creative";
+        case GamingMode::CAD:         return "CAD";
+        case GamingMode::MobileSaver: return "MobileSaver";
+        case GamingMode::LAN:         return "LAN";
         default:                      return "Unknown";
     }
+}
+
+inline GamingMode gamingModeFromString(const std::string& name) {
+    if (name == "Competitive" || name == "competitive") return GamingMode::Competitive;
+    if (name == "Balanced"    || name == "balanced")    return GamingMode::Balanced;
+    if (name == "Cinematic"   || name == "cinematic")   return GamingMode::Cinematic;
+    if (name == "Creative"    || name == "creative")    return GamingMode::Creative;
+    if (name == "CAD"         || name == "cad")         return GamingMode::CAD;
+    if (name == "MobileSaver" || name == "mobile_saver" || name == "mobile") return GamingMode::MobileSaver;
+    if (name == "LAN"         || name == "lan")         return GamingMode::LAN;
+    return GamingMode::Balanced;  // default
 }
 
 // ---------------------------------------------------------------------------
@@ -82,6 +105,20 @@ inline std::string gamingModeToString(GamingMode mode) {
 //   - FEC overhead budget
 //   - Priority weights for the adaptive algorithm
 // ---------------------------------------------------------------------------
+// Preferred codec hint for the QoS engine
+enum class PreferredCodec : uint8_t {
+    H264    = 0,  // Widest compatibility, fastest encode
+    HEVC    = 1,  // Better compression, good for higher resolutions
+    AV1     = 2,  // Best compression, requires Ada Lovelace+
+    Auto    = 3,  // Let QoS engine decide based on conditions
+};
+
+// Chroma subsampling mode
+enum class ChromaMode : uint8_t {
+    YUV420  = 0,  // Standard — best compression
+    YUV444  = 1,  // Full chroma — color-accurate for creative work
+};
+
 struct QosPreset {
     GamingMode mode;
 
@@ -123,6 +160,15 @@ struct QosPreset {
 
     // How aggressively to recover when conditions improve
     float recovery_speed;        // 0.0 = slow (conservative), 1.0 = fast (aggressive)
+
+    // Codec preference
+    PreferredCodec preferred_codec = PreferredCodec::Auto;
+
+    // Chroma subsampling
+    ChromaMode chroma = ChromaMode::YUV420;
+
+    // VPN-aware QoS adjustments (applied automatically when VPN detected)
+    bool vpn_mode = false;
 };
 
 // ---------------------------------------------------------------------------
@@ -263,7 +309,180 @@ inline QosPreset getPreset(GamingMode mode, Resolution native_res = Resolutions:
         p.quality_weight = 0.5f;
         p.latency_weight = 0.7f;
 
-        p.recovery_speed = 0.6f;
+        p.recovery_speed     = 0.6f;
+        p.preferred_codec    = PreferredCodec::HEVC;
+        break;
+
+    // -----------------------------------------------------------------
+    // CREATIVE: Color-accurate, native resolution, 4:4:4 chroma.
+    // For photo/video editing, color grading, design work.
+    //
+    // Target: native@60fps with full chroma
+    // Will drop FPS before resolution — visual fidelity is paramount
+    // Uses HEVC for better quality at given bitrate + 4:4:4 support
+    // -----------------------------------------------------------------
+    case GamingMode::Creative:
+        p.target_fps     = FrameRates::FPS_60;
+        p.min_fps        = FrameRates::FPS_30;
+        p.max_fps        = FrameRates::FPS_60;
+
+        p.target_resolution = native_res;
+        p.min_resolution = Resolutions::RES_1080P;
+
+        p.resolution_ladder = {
+            native_res,
+            Resolutions::RES_1440P,
+            Resolutions::RES_1080P,
+        };
+        p.fps_ladder = {
+            FrameRates::FPS_60,
+            FrameRates::FPS_30,
+        };
+
+        p.target_bitrate_kbps = 60000;  // 60 Mbps (higher for 4:4:4)
+        p.min_bitrate_kbps    = 10000;  // 10 Mbps
+        p.max_bitrate_kbps    = 120000; // 120 Mbps
+
+        p.jitter_buffer_ms = 8;
+        p.max_fec_ratio    = 0.20f;
+        p.min_fec_ratio    = 0.05f;
+
+        // Heavily prioritize quality
+        p.fps_weight     = 0.2f;
+        p.quality_weight = 1.0f;
+        p.latency_weight = 0.3f;
+
+        p.recovery_speed     = 0.3f;    // Very conservative recovery
+        p.preferred_codec    = PreferredCodec::HEVC;
+        p.chroma             = ChromaMode::YUV444;
+        break;
+
+    // -----------------------------------------------------------------
+    // CAD / ENGINEERING: Precision work, native resolution, AV1.
+    // For SolidWorks, AutoCAD, Fusion 360, 3D modeling.
+    //
+    // Target: native@60fps with AV1 (best compression for static scenes)
+    // CAD apps have lots of static frames — AV1 excels here
+    // 4:4:4 for line clarity and text readability
+    // -----------------------------------------------------------------
+    case GamingMode::CAD:
+        p.target_fps     = FrameRates::FPS_60;
+        p.min_fps        = FrameRates::FPS_30;
+        p.max_fps        = FrameRates::FPS_60;
+
+        p.target_resolution = native_res;
+        p.min_resolution = Resolutions::RES_1080P;
+
+        p.resolution_ladder = {
+            native_res,
+            Resolutions::RES_1440P,
+            Resolutions::RES_1080P,
+        };
+        p.fps_ladder = {
+            FrameRates::FPS_60,
+            FrameRates::FPS_30,
+        };
+
+        p.target_bitrate_kbps = 40000;  // 40 Mbps (AV1 is very efficient)
+        p.min_bitrate_kbps    = 5000;   // 5 Mbps
+        p.max_bitrate_kbps    = 80000;  // 80 Mbps
+
+        p.jitter_buffer_ms = 10;         // Can tolerate more buffering
+        p.max_fec_ratio    = 0.25f;
+        p.min_fec_ratio    = 0.05f;
+
+        // Heavily prioritize quality and resolution sharpness
+        p.fps_weight     = 0.1f;
+        p.quality_weight = 1.0f;
+        p.latency_weight = 0.4f;
+
+        p.recovery_speed     = 0.3f;
+        p.preferred_codec    = PreferredCodec::AV1;
+        p.chroma             = ChromaMode::YUV444;
+        break;
+
+    // -----------------------------------------------------------------
+    // MOBILE SAVER: Optimized for phones on cellular or weak WiFi.
+    // Low bandwidth, small screen, battery-friendly.
+    //
+    // Target: 720p@60fps at low bitrate
+    // H.264 for widest compatibility and lowest decode power
+    // -----------------------------------------------------------------
+    case GamingMode::MobileSaver:
+        p.target_fps     = FrameRates::FPS_60;
+        p.min_fps        = FrameRates::FPS_30;
+        p.max_fps        = FrameRates::FPS_60;
+
+        p.target_resolution = Resolutions::RES_720P;
+        p.min_resolution = Resolutions::RES_720P;
+
+        p.resolution_ladder = {
+            Resolutions::RES_720P,
+        };
+        p.fps_ladder = {
+            FrameRates::FPS_60,
+            FrameRates::FPS_30,
+        };
+
+        p.target_bitrate_kbps = 10000;  // 10 Mbps
+        p.min_bitrate_kbps    = 2000;   // 2 Mbps
+        p.max_bitrate_kbps    = 20000;  // 20 Mbps
+
+        p.jitter_buffer_ms = 8;
+        p.max_fec_ratio    = 0.30f;     // Higher FEC — cellular has more loss
+        p.min_fec_ratio    = 0.10f;
+
+        // Balanced — save bandwidth wherever possible
+        p.fps_weight     = 0.5f;
+        p.quality_weight = 0.3f;
+        p.latency_weight = 0.6f;
+
+        p.recovery_speed     = 0.5f;
+        p.preferred_codec    = PreferredCodec::H264;
+        break;
+
+    // -----------------------------------------------------------------
+    // LAN: Maximum everything for same-network streaming.
+    // Assumes abundant bandwidth (100+ Mbps), minimal latency.
+    //
+    // Target: native@240fps at maximum bitrate
+    // Use H.264 for fastest encode — bandwidth is not the constraint
+    // -----------------------------------------------------------------
+    case GamingMode::LAN:
+        p.target_fps     = FrameRates::FPS_240;
+        p.min_fps        = FrameRates::FPS_120;
+        p.max_fps        = FrameRates::FPS_240;
+
+        p.target_resolution = native_res;
+        p.min_resolution = Resolutions::RES_1080P;
+
+        p.resolution_ladder = {
+            native_res,
+            Resolutions::RES_1440P,
+            Resolutions::RES_1080P,
+        };
+        p.fps_ladder = {
+            FrameRates::FPS_240,
+            FrameRates::FPS_165,
+            FrameRates::FPS_144,
+            FrameRates::FPS_120,
+        };
+
+        p.target_bitrate_kbps = 100000; // 100 Mbps
+        p.min_bitrate_kbps    = 20000;  // 20 Mbps
+        p.max_bitrate_kbps    = 200000; // 200 Mbps (LAN can handle it)
+
+        p.jitter_buffer_ms = 1;         // Near-zero
+        p.max_fec_ratio    = 0.05f;     // Minimal FEC — LAN is reliable
+        p.min_fec_ratio    = 0.01f;
+
+        // Everything maxed
+        p.fps_weight     = 0.8f;
+        p.quality_weight = 0.8f;
+        p.latency_weight = 1.0f;
+
+        p.recovery_speed     = 1.0f;    // Recover instantly
+        p.preferred_codec    = PreferredCodec::H264;
         break;
     }
 

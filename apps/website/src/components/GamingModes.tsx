@@ -40,9 +40,9 @@ const modes: GamingMode[] = [
     ),
     specs: [
       { label: 'MAX FPS', value: '240' },
-      { label: 'RESOLUTION', value: '1080p' },
-      { label: 'JITTER', value: '1 ms' },
-      { label: 'BITRATE', value: '50 Mbps' },
+      { label: 'RESOLUTION', value: 'Up to 1080p' },
+      { label: 'CODEC', value: 'H.264' },
+      { label: 'BITRATE', value: '20–40 Mbps' },
       { label: 'PRIORITY', value: 'FPS > Quality' },
     ],
     ideal: 'Competitive gaming, real-time collaboration, live coding',
@@ -73,9 +73,9 @@ const modes: GamingMode[] = [
     ),
     specs: [
       { label: 'TARGET FPS', value: '120' },
-      { label: 'RESOLUTION', value: '1440p' },
-      { label: 'JITTER', value: '4 ms' },
-      { label: 'BITRATE', value: '80 Mbps' },
+      { label: 'RESOLUTION', value: 'Up to 1440p' },
+      { label: 'CODEC', value: 'HEVC' },
+      { label: 'BITRATE', value: '15–30 Mbps' },
       { label: 'PRIORITY', value: 'Adaptive' },
     ],
     ideal: 'General desktop use, game development, web browsing',
@@ -111,17 +111,25 @@ const modes: GamingMode[] = [
     ),
     specs: [
       { label: 'MAX FPS', value: '60' },
-      { label: 'RESOLUTION', value: '4K' },
-      { label: 'JITTER', value: '8 ms' },
-      { label: 'BITRATE', value: '150 Mbps' },
+      { label: 'RESOLUTION', value: 'Up to 4K' },
+      { label: 'CODEC', value: 'HEVC / AV1' },
+      { label: 'BITRATE', value: '40–80 Mbps' },
       { label: 'PRIORITY', value: 'Quality > FPS' },
     ],
     ideal: 'Creative work, video editing, 3D rendering, CAD',
   },
 ];
 
+const additionalProfiles = [
+  { name: 'Creative', desc: 'Native resolution, 4:4:4 chroma, color-accurate' },
+  { name: 'CAD / Engineering', desc: 'AV1 codec, precision work, text clarity' },
+  { name: 'Mobile Saver', desc: '720p, low bandwidth, battery-friendly' },
+  { name: 'LAN', desc: 'Up to 240fps, 200 Mbps, same-network streaming' },
+];
+
 export default function GamingModes() {
   return (
+    <div>
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
       {modes.map((mode) => (
         <div
@@ -191,6 +199,20 @@ export default function GamingModes() {
           </div>
         </div>
       ))}
+    </div>
+
+    {/* Additional profiles teaser */}
+    <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+      {additionalProfiles.map((p) => (
+        <div
+          key={p.name}
+          className="gradient-border p-4 text-center"
+        >
+          <h4 className="text-sm font-semibold text-white mb-1">{p.name}</h4>
+          <p className="text-[11px] text-cs-gray-400 leading-relaxed">{p.desc}</p>
+        </div>
+      ))}
+    </div>
     </div>
   );
 }

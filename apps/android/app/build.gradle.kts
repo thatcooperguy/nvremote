@@ -22,6 +22,19 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            // CI provides these via environment variables; local builds fall back to debug signing
+            val ksFile = System.getenv("ANDROID_KEYSTORE_FILE")
+            if (ksFile != null && file(ksFile).exists()) {
+                storeFile = file(ksFile)
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: ""
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: "nvremote"
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: ""
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -30,6 +43,13 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Use release signing if keystore is available (CI), otherwise debug signing
+            val ksFile = System.getenv("ANDROID_KEYSTORE_FILE")
+            signingConfig = if (ksFile != null && file(ksFile).exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
         debug {
             isMinifyEnabled = false

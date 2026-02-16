@@ -977,6 +977,24 @@ jobs:
           echo "Gradle wrapper version:"
           ./gradlew --version
 
+      - name: Generate signing keystore
+        run: |
+          KEYSTORE_PATH="${{ runner.temp }}/nvremote-release.jks"
+          KEYSTORE_PASS="NvRemoteAlpha2026"
+          keytool -genkeypair \
+            -alias nvremote \
+            -keyalg RSA -keysize 2048 \
+            -validity 10000 \
+            -keystore "$KEYSTORE_PATH" \
+            -storepass "$KEYSTORE_PASS" \
+            -keypass "$KEYSTORE_PASS" \
+            -dname "CN=NVRemote Alpha, OU=Dev, O=NVRemote, L=US, ST=CA, C=US"
+          echo "ANDROID_KEYSTORE_FILE=$KEYSTORE_PATH" >> $GITHUB_ENV
+          echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PASS" >> $GITHUB_ENV
+          echo "ANDROID_KEY_ALIAS=nvremote" >> $GITHUB_ENV
+          echo "ANDROID_KEY_PASSWORD=$KEYSTORE_PASS" >> $GITHUB_ENV
+          echo "Generated release keystore at $KEYSTORE_PATH"
+
       - name: Build release APK
         working-directory: apps/android
         env:

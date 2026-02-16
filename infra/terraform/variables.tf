@@ -69,3 +69,32 @@ variable "wireguard_port" {
   type        = number
   default     = 51820
 }
+
+# ---------------------------------------------------------------------------
+# TURN Relay
+# ---------------------------------------------------------------------------
+
+variable "turn_machine_type" {
+  description = "GCE machine type for the TURN relay server"
+  type        = string
+  default     = "e2-medium"
+}
+
+variable "turn_secret" {
+  description = "Shared secret for HMAC-based TURN credential generation"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "turn_realm" {
+  description = "TURN server realm"
+  type        = string
+  default     = "nvremote.com"
+}
+
+variable "enable_turn" {
+  description = "Whether to deploy the TURN relay server"
+  type        = bool
+  default     = false
+}

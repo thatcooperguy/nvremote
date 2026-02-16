@@ -120,6 +120,15 @@ class WebRtcManager @Inject constructor(
     // ── Session lifecycle ──────────────────────────────────────────────
 
     /**
+     * TURN server configuration received from the API.
+     */
+    data class TurnServer(
+        val urls: String,
+        val username: String,
+        val credential: String,
+    )
+
+    /**
      * Start a streaming session. Connects signaling, creates a PeerConnection,
      * and handles the SDP/ICE exchange.
      */
@@ -128,15 +137,27 @@ class WebRtcManager @Inject constructor(
         sessionId: String,
         accessToken: String,
         stunServers: List<String> = DEFAULT_STUN_SERVERS,
+        turnServers: List<TurnServer> = emptyList(),
     ) {
         if (!initialized) initialize()
 
         _connectionState.value = WebRtcConnectionState.CONNECTING
         _error.value = null
 
-        // Create PeerConnection with STUN/TURN servers
+        // Create PeerConnection with STUN servers
         val iceServers = stunServers.map { url ->
             IceServer.builder(url).createIceServer()
+        }.toMutableList()
+
+        // Add TURN servers with credentials for NAT traversal fallback
+        for (turn in turnServers) {
+            iceServers.add(
+                IceServer.builder(turn.urls)
+                    .setUsername(turn.username)
+                    .setPassword(turn.credential)
+                    .createIceServer(),
+            )
+            Log.d(TAG, "Added TURN server: ${turn.urls}")
         }
 
         val config = PeerConnection.RTCConfiguration(iceServers).apply {

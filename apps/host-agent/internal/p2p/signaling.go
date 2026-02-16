@@ -12,18 +12,26 @@ import (
 	"github.com/nvidia/nvremote/host-agent/internal/streamer"
 )
 
+// TurnServerConfig represents a TURN server with ephemeral credentials.
+// Credentials are HMAC-SHA1 based with an embedded expiry timestamp.
+type TurnServerConfig struct {
+	URLs       string `json:"urls"`
+	Username   string `json:"username"`
+	Credential string `json:"credential"`
+}
+
 // SessionOffer represents a new session offer received from the control plane.
 // It contains the negotiation parameters sent by the client.
 type SessionOffer struct {
-	SessionID  string   `json:"session_id"`
-	UserID     string   `json:"user_id"`
-	Codecs     []string `json:"codecs"`
-	MaxBitrate int      `json:"max_bitrate"`
-	TargetFPS  int      `json:"target_fps"`
-	Resolution string   `json:"resolution"` // e.g., "1920x1080"
-	GamingMode string   `json:"gaming_mode"`
-	StunServers []string `json:"stun_servers"`
-	TurnServers []string `json:"turn_servers"`
+	SessionID   string             `json:"session_id"`
+	UserID      string             `json:"user_id"`
+	Codecs      []string           `json:"codecs"`
+	MaxBitrate  int                `json:"max_bitrate"`
+	TargetFPS   int                `json:"target_fps"`
+	Resolution  string             `json:"resolution"` // e.g., "1920x1080"
+	GamingMode  string             `json:"gaming_mode"`
+	StunServers []string           `json:"stun_servers"`
+	TurnServers []TurnServerConfig `json:"turn_servers"`
 }
 
 // SessionAnswer is the response sent back to the control plane after processing
@@ -37,13 +45,14 @@ type SessionAnswer struct {
 
 // SessionState tracks the current state of an active or pending session.
 type SessionState struct {
-	SessionID       string
-	Offer           SessionOffer
-	LocalCandidates []IceCandidate
+	SessionID        string
+	Offer            SessionOffer
+	LocalCandidates  []IceCandidate
 	RemoteCandidates []IceCandidate
-	SelectedPeer    *streamer.PeerInfo
-	State           string // "preparing", "gathering", "connecting", "active", "closed"
-	CreatedAt       time.Time
+	SelectedPeer     *streamer.PeerInfo
+	State            string // "preparing", "gathering", "connecting", "active", "closed"
+	ConnectionType   string // "p2p" or "relay"
+	CreatedAt        time.Time
 }
 
 // SignalingHandler orchestrates the P2P session negotiation flow. It receives
@@ -86,6 +95,7 @@ func (h *SignalingHandler) HandleSessionOffer(conn *websocket.Conn, offer Sessio
 		"userId", offer.UserID,
 		"codecs", offer.Codecs,
 		"resolution", offer.Resolution,
+		"turnServers", len(offer.TurnServers),
 	)
 
 	// If there is an existing session, stop it first.

@@ -3,6 +3,7 @@ import {
   Get,
   Query,
   UseGuards,
+  Inject,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -13,6 +14,7 @@ import {
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { AdminService } from './admin.service';
+import { IceConfigService } from '../common/gateway.service';
 import {
   PlatformStatsDto,
   AdminSessionListDto,
@@ -29,7 +31,10 @@ import {
 @UseGuards(JwtAuthGuard, AdminGuard)
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly iceConfig: IceConfigService,
+  ) {}
 
   /**
    * Get platform-wide statistics for the admin dashboard.
@@ -93,5 +98,24 @@ export class AdminController {
   @ApiOkResponse({ type: ErrorSummaryDto })
   async getErrorSummary(): Promise<ErrorSummaryDto> {
     return this.adminService.getErrorSummary();
+  }
+
+  /**
+   * Get infrastructure status (TURN server, STUN servers).
+   */
+  @Get('infra')
+  @ApiOperation({ summary: 'Get infrastructure status (admin only)' })
+  async getInfraStatus() {
+    return {
+      stunServers: this.iceConfig.getStunServers(),
+      turnEnabled: this.iceConfig.isTurnEnabled(),
+      turnServers: this.iceConfig.isTurnEnabled()
+        ? this.iceConfig.getTurnServers('health-check').map((t) => ({
+            urls: t.urls,
+            // Don't expose credentials in the admin dashboard
+            hasCredentials: !!t.username && !!t.credential,
+          }))
+        : [],
+    };
   }
 }

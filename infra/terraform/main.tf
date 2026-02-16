@@ -74,6 +74,26 @@ module "gateway" {
 }
 
 # -----------------------------------------------------------------------------
+# TURN Relay Module (conditional — only when enable_turn is true)
+# -----------------------------------------------------------------------------
+module "turn" {
+  source = "./modules/turn"
+  count  = var.enable_turn ? 1 : 0
+
+  project_name   = var.project_name
+  project_id     = var.project_id
+  environment    = var.environment
+  region         = var.region
+  zone           = var.zone
+  machine_type   = var.turn_machine_type
+  network        = module.networking.network_self_link
+  subnetwork     = module.networking.public_subnet_self_link
+  turn_secret    = var.turn_secret
+  turn_realm     = var.turn_realm
+  ssh_public_key = var.ssh_public_key
+}
+
+# -----------------------------------------------------------------------------
 # DNS Module (conditional — only when domain_name is set)
 # -----------------------------------------------------------------------------
 module "dns" {

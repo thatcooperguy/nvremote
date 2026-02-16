@@ -246,15 +246,18 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
       });
 
       // 3. Wait for session:accepted event and gather ICE candidates
-      //    The main process handles the session:accepted event and makes the
-      //    STUN servers available. For now, we use default STUN servers and
-      //    let the P2P module handle the exchange.
-      const defaultStunServers = [
+      //    Use STUN servers from session info, falling back to defaults.
+      //    TURN servers with ephemeral credentials are passed through for
+      //    NAT traversal fallback.
+      const stunServers = sessionInfo.stunServers ?? [
         'stun:stun.l.google.com:19302',
         'stun:stun1.l.google.com:19302',
       ];
 
-      const gatherResult = await window.nvrs.p2p.gatherCandidates(defaultStunServers);
+      const gatherResult = await window.nvrs.p2p.gatherCandidates(
+        stunServers,
+        sessionInfo.turnServers,
+      );
       if (!gatherResult.success) {
         throw new Error(gatherResult.error || 'ICE candidate gathering failed.');
       }

@@ -93,7 +93,7 @@ export class SessionsService {
 
     // -- Notify host agent --------------------------------------------------
     const stunServers = this.iceConfig.getStunServers();
-    const turnServers = this.iceConfig.getTurnServers();
+    const turnServers = this.iceConfig.getTurnServers(session.id);
 
     const hostNotified = this.signaling.notifyHostOfSession(dto.hostId, {
       sessionId: session.id,

@@ -18,8 +18,10 @@
 #pragma once
 
 #include "cs/p2p/stun_client.h"
+#include "cs/p2p/turn_client.h"
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 #include <functional>
@@ -48,6 +50,11 @@ public:
     /// Construct with a list of STUN server hostnames (port defaults to 3478).
     /// Example: {"stun.l.google.com", "stun1.l.google.com"}
     explicit IceAgent(const std::vector<std::string>& stun_servers);
+
+    /// Construct with STUN servers and optional TURN config for relay fallback.
+    IceAgent(const std::vector<std::string>& stun_servers,
+             const std::vector<TurnConfig>& turn_servers);
+
     ~IceAgent();
 
     // Non-copyable
@@ -82,7 +89,12 @@ public:
                                            const IceCandidate&)> cb);
 
     /// Register a callback fired when all connectivity checks fail.
+    /// If TURN is configured, the agent will attempt relay allocation before
+    /// invoking this callback.
     void setOnFailed(std::function<void()> cb);
+
+    /// Returns true if the connection is using a TURN relay.
+    bool isRelayed() const;
 
     /// Stop the agent: cancel any in-progress checks and close sockets.
     void stop();
@@ -96,9 +108,17 @@ private:
                                     uint16_t localPref,
                                     uint16_t component);
 
+    /// Attempt TURN relay allocation after P2P checks fail.
+    void attemptTurnFallback();
+
     // STUN server list (host:port pairs; port defaults to 3478)
     std::vector<std::string> stun_servers_;
     static constexpr uint16_t DEFAULT_STUN_PORT = 3478;
+
+    // TURN server configuration for relay fallback
+    std::vector<TurnConfig> turn_configs_;
+    std::unique_ptr<TurnClient> turn_client_;
+    std::atomic<bool> relayed_{false};
 
     // Gathered local candidates and their associated sockets.
     // local_sockets_[i] is the UDP socket bound for local_candidates_[i].

@@ -751,7 +751,8 @@ jobs:
         working-directory: apps/client-desktop
         run: |
           npm run build
-          USE_SYSTEM_FPM=true npx electron-builder --linux AppImage --arm64
+          USE_SYSTEM_FPM=true npx electron-builder --linux AppImage --arm64 \
+            -c.linux.artifactName='NVRemote-${version}-arm64.${ext}'
           echo ""
           echo "=== Release directory contents ==="
           find release -type f -exec ls -lh {} \;
@@ -762,7 +763,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: client-linux-arm64
-          path: apps/client-desktop/release/NVRemote-*arm64*.AppImage
+          path: apps/client-desktop/release/NVRemote-*-arm64.AppImage
           if-no-files-found: warn
           retention-days: 5
 

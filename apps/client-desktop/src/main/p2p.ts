@@ -24,6 +24,8 @@ export interface SessionInfo {
   hostId: string;
   codec: string;
   gamingMode: 'competitive' | 'balanced' | 'cinematic';
+  stunServers?: string[];
+  turnServers?: Array<{ urls: string | string[]; username?: string; credential?: string }>;
 }
 
 export interface SessionAcceptedInfo {
@@ -192,6 +194,7 @@ export function requestSession(
         hostId,
         codec: info.codec,
         gamingMode: options.gamingMode,
+        stunServers: info.stunServers,
       });
     };
 

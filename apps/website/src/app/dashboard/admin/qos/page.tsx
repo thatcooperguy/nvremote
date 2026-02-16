@@ -38,7 +38,7 @@ const barColors = [
 function DistributionChart({ data, title, icon: Icon }: {
   data: Record<string, number>;
   title: string;
-  icon: React.ComponentType<{ size: number; className?: string }>;
+  icon: React.ComponentType<{ size?: number | string; className?: string }>;
 }) {
   const entries = Object.entries(data).sort((a, b) => b[1] - a[1]);
   const total = entries.reduce((sum, [, v]) => sum + v, 0);

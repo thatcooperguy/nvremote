@@ -43,13 +43,12 @@ export class SessionTimeoutService {
 
     try {
       // End sessions that have been idle too long
-      // We use updatedAt as a proxy for "last activity" — the QoS stats
-      // updates and signaling events update the session metadata (and thus
-      // updatedAt) during active streaming.
+      // We use startedAt as a proxy for "last activity" — sessions without
+      // a heartbeat mechanism are timed out based on when they started.
       const idleResult = await this.prisma.session.updateMany({
         where: {
           status: SessionStatus.ACTIVE,
-          updatedAt: { lt: idleCutoff },
+          startedAt: { lt: idleCutoff },
         },
         data: {
           status: SessionStatus.ENDED,
@@ -86,7 +85,7 @@ export class SessionTimeoutService {
       const pendingResult = await this.prisma.session.updateMany({
         where: {
           status: SessionStatus.PENDING,
-          createdAt: { lt: pendingCutoff },
+          startedAt: { lt: pendingCutoff },
         },
         data: {
           status: SessionStatus.ENDED,

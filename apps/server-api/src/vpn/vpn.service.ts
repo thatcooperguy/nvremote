@@ -79,18 +79,18 @@ export class VpnService {
       this.peerAllocations.set(dto.publicKey, assignedIp);
     }
 
-    // Store VPN info on the host record
+    // Store VPN info on the host record using the nvstreamerPorts JSON field
     await this.prisma.host.update({
       where: { id: hostId },
       data: {
-        metadata: {
+        nvstreamerPorts: {
           vpnPublicKey: dto.publicKey,
           vpnIp: assignedIp,
           vpnEndpoint: dto.endpoint ?? null,
           vpnRegisteredAt: new Date().toISOString(),
         },
       },
-    }).catch((err) => {
+    }).catch((err: Error) => {
       this.logger.warn(`Failed to update host VPN metadata: ${err.message}`);
     });
 
@@ -143,9 +143,9 @@ export class VpnService {
       });
 
       if (session?.host) {
-        const hostMeta = session.host.metadata as Record<string, unknown> | null;
-        if (hostMeta?.vpnIp) {
-          response.hostVpnIp = hostMeta.vpnIp as string;
+        const hostPorts = session.host.nvstreamerPorts as Record<string, unknown> | null;
+        if (hostPorts?.vpnIp) {
+          response.hostVpnIp = hostPorts.vpnIp as string;
           // Route only to the specific host instead of the entire subnet
           response.allowedIps = [`${response.hostVpnIp}/32`];
         }

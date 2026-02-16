@@ -3,7 +3,6 @@ import {
   Get,
   Query,
   UseGuards,
-  Inject,
 } from '@nestjs/common';
 import {
   ApiTags,

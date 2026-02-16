@@ -32,6 +32,7 @@ import type { SessionOptions } from './p2p';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let store: any = null;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getStore(): Promise<any> {
   if (store) return store;
   // electron-store v8+ is ESM-only. Dynamic import is required.

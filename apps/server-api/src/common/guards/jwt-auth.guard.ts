@@ -27,10 +27,10 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return super.canActivate(context) as boolean | Promise<boolean>;
   }
 
-  handleRequest<TUser = any>(
+  handleRequest<TUser = unknown>(
     err: Error | null,
     user: TUser | false,
-    _info: any,
+    _info: unknown,
   ): TUser {
     if (err || !user) {
       throw err || new UnauthorizedException('Invalid or expired token');

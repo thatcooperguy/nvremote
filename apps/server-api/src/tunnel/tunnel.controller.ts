@@ -9,6 +9,7 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -41,7 +42,7 @@ export class TunnelController {
   @ApiOperation({ summary: 'Create a zero-trust tunnel for a session' })
   @ApiCreatedResponse({ type: TunnelResponseDto })
   async createTunnel(
-    @Req() req: any,
+    @Req() req: Request & { user: { sub: string } },
     @Body() dto: CreateTunnelDto,
   ): Promise<TunnelResponseDto> {
     return this.tunnelService.createTunnel(req.user.sub, dto);
@@ -54,7 +55,7 @@ export class TunnelController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Destroy a zero-trust tunnel' })
   async destroyTunnel(
-    @Req() req: any,
+    @Req() req: Request & { user: { sub: string } },
     @Param('tunnelId') tunnelId: string,
   ): Promise<{ success: boolean }> {
     return this.tunnelService.destroyTunnel(req.user.sub, tunnelId);

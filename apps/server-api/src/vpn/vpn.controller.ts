@@ -6,6 +6,7 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -38,7 +39,7 @@ export class VpnController {
   @ApiOperation({ summary: 'Register host as WireGuard VPN peer' })
   @ApiCreatedResponse({ type: PeerRegistrationResponseDto })
   async registerPeer(
-    @Req() req: any,
+    @Req() req: Request & { user: { sub: string; hostId?: string } },
     @Body() dto: RegisterPeerDto,
   ): Promise<PeerRegistrationResponseDto> {
     // The host agent authenticates with its API token; the hostId is
@@ -56,7 +57,7 @@ export class VpnController {
   @ApiOperation({ summary: 'Get VPN tunnel configuration for client' })
   @ApiOkResponse({ type: VpnConfigResponseDto })
   async getConfig(
-    @Req() req: any,
+    @Req() req: Request & { user: { sub: string } },
     @Body() dto: VpnConfigRequestDto,
   ): Promise<VpnConfigResponseDto> {
     const userId = req.user?.sub;

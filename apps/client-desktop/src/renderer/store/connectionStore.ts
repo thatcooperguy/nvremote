@@ -265,10 +265,7 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
         'stun:stun1.l.google.com:19302',
       ];
 
-      const gatherResult = await window.nvrs.p2p.gatherCandidates(
-        stunServers,
-        sessionInfo.turnServers,
-      );
+      const gatherResult = await window.nvrs.p2p.gatherCandidates(stunServers);
       if (!gatherResult.success) {
         throw new Error(gatherResult.error || 'ICE candidate gathering failed.');
       }

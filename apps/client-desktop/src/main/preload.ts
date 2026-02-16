@@ -129,6 +129,8 @@ interface SessionInfo {
   hostId: string;
   codec: string;
   gamingMode: 'competitive' | 'balanced' | 'cinematic';
+  stunServers?: string[];
+  turnServers?: Array<{ urls: string | string[]; username?: string; credential?: string }>;
 }
 
 const p2pApi = {

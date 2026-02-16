@@ -325,7 +325,6 @@ export class WebRtcRelayService implements OnModuleInit, OnModuleDestroy {
   private cleanup(): void {
     const now = Date.now();
     const OFFER_TTL = 30_000; // 30 seconds
-    const ICE_TTL = 300_000; // 5 minutes
 
     // Clean stale pending offers
     for (const [id, offer] of this.pendingOffers) {

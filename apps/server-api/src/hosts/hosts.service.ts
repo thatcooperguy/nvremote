@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { HostStatus } from '@prisma/client';
+import { HostStatus, Host } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../common/prisma.service';
 import {
@@ -288,7 +288,7 @@ export class HostsService {
     );
   }
 
-  private toResponse(host: any): HostResponseDto {
+  private toResponse(host: Host): HostResponseDto {
     return {
       id: host.id,
       orgId: host.orgId,

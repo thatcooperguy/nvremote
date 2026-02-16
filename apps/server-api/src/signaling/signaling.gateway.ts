@@ -403,7 +403,7 @@ export class SignalingGatewayWs
         userId,
         hostId: host.id,
         status: SessionStatus.PENDING,
-        metadata: (payload.metadata ?? undefined) as any,
+        metadata: (payload.metadata ?? undefined) as Record<string, unknown> | undefined,
       },
     });
 
@@ -766,8 +766,8 @@ export class SignalingGatewayWs
 
     // Relay to the host agent
     this.server.to(`host:${session.hostId}`).emit('capability:client', {
-      sessionId: session.id,
       ...payload,
+      sessionId: session.id,
     });
 
     this.logger.log(
@@ -815,8 +815,8 @@ export class SignalingGatewayWs
 
     // Relay to the client
     this.server.to(`user:${session.userId}`).emit('capability:host', {
-      sessionId: session.id,
       ...payload,
+      sessionId: session.id,
     });
 
     // Once both capabilities are received, send an ack to both parties
@@ -894,8 +894,8 @@ export class SignalingGatewayWs
 
     // Also forward to the client so the UI can show real-time stats
     this.server.to(`user:${session.userId}`).emit('qos:stats', {
-      sessionId: session.id,
       ...payload,
+      sessionId: session.id,
     });
 
     return { success: true };

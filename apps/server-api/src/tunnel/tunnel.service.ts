@@ -157,9 +157,8 @@ export class TunnelService {
     };
     this.activeTunnels.set(tunnelId, tunnel);
 
-    // Get host VPN IP if available
-    const hostMeta = session.host?.metadata as Record<string, unknown> | null;
-    const hostVpnIp = hostMeta?.vpnIp as string | undefined;
+    // Host VPN IP is not stored on the Host model; set to undefined
+    const hostVpnIp: string | undefined = undefined;
 
     // Audit log
     this.logAudit({

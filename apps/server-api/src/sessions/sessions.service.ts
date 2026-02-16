@@ -5,7 +5,7 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
-import { SessionStatus, HostStatus } from '@prisma/client';
+import { SessionStatus, HostStatus, Session } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service';
 import { IceConfigService } from '../common/gateway.service';
 import { SignalingGatewayWs } from '../signaling/signaling.gateway';
@@ -197,7 +197,7 @@ export class SessionsService {
   // Helpers
   // -----------------------------------------------------------------------
 
-  private toResponse(session: any): SessionResponseDto {
+  private toResponse(session: Session): SessionResponseDto {
     return {
       id: session.id,
       userId: session.userId,

@@ -172,8 +172,48 @@ class WebRtcManager @Inject constructor(
             signalingClient.connect(signalingUrl, sessionId, accessToken)
                 .collect { event ->
                     handleSignalingEvent(event)
+
+                    // Send client capabilities once connected
+                    if (event is SignalingEvent.Connected) {
+                        sendClientCapabilities(sessionId)
+                    }
                 }
         }
+    }
+
+    /**
+     * Send the Android client's device capabilities to the signaling server
+     * for the capability negotiation protocol (Phase 4).
+     */
+    @Suppress("DEPRECATION")
+    private fun sendClientCapabilities(sessionId: String) {
+        val displayMetrics = context.resources.displayMetrics
+        val refreshRate = 60
+
+        val decoders = mutableListOf("h264", "hevc")
+        if (android.os.Build.VERSION.SDK_INT >= 34) {
+            decoders.add("av1")
+        }
+
+        val connectivityManager = context.getSystemService(
+            android.content.Context.CONNECTIVITY_SERVICE,
+        ) as? android.net.ConnectivityManager
+        val networkType = when (connectivityManager?.activeNetworkInfo?.type) {
+            android.net.ConnectivityManager.TYPE_WIFI -> "wifi"
+            android.net.ConnectivityManager.TYPE_ETHERNET -> "ethernet"
+            else -> "cellular"
+        }
+
+        signalingClient.sendClientCapabilities(
+            sessionId = sessionId,
+            displayWidth = displayMetrics.widthPixels,
+            displayHeight = displayMetrics.heightPixels,
+            refreshRate = refreshRate,
+            decoders = decoders,
+            networkType = networkType,
+        )
+
+        Log.d(TAG, "Sent client capabilities: ${displayMetrics.widthPixels}x${displayMetrics.heightPixels}, decoders=$decoders, network=$networkType")
     }
 
     /**

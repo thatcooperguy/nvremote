@@ -168,6 +168,38 @@ class SignalingClient @Inject constructor() {
     }
 
     /**
+     * Send client capabilities to the signaling server for capability negotiation.
+     */
+    fun sendClientCapabilities(
+        sessionId: String,
+        displayWidth: Int,
+        displayHeight: Int,
+        refreshRate: Int,
+        decoders: List<String>,
+        networkType: String,
+    ) {
+        socket?.emit("capability:client", JSONObject().apply {
+            put("sessionId", sessionId)
+            put("display", JSONObject().apply {
+                put("width", displayWidth)
+                put("height", displayHeight)
+                put("refreshRate", refreshRate)
+                put("hdr", false)
+            })
+            put("decoders", org.json.JSONArray(decoders))
+            put("network", JSONObject().apply {
+                put("type", networkType)
+            })
+            put("platform", "android")
+            put("input", JSONObject().apply {
+                put("touch", true)
+                put("gamepad", false)
+                put("keyboard", false)
+            })
+        })
+    }
+
+    /**
      * Disconnect from signaling server.
      */
     fun disconnect() {

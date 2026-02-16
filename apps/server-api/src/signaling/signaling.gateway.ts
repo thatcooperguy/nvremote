@@ -74,6 +74,48 @@ interface SessionReconnectPayload {
   sessionId: string;
 }
 
+// -- Capability negotiation --------------------------------------------------
+
+interface ClientCapabilityPayload {
+  sessionId: string;
+  display: {
+    width: number;
+    height: number;
+    refreshRate: number;
+    hdr?: boolean;
+  };
+  decoders: string[];
+  maxDecode?: Record<string, string>;
+  network?: {
+    type?: string;
+    downlink?: number;
+    rtt?: number;
+  };
+  platform: string;
+  input?: {
+    touch?: boolean;
+    gamepad?: boolean;
+    keyboard?: boolean;
+  };
+}
+
+interface HostCapabilityPayload {
+  sessionId: string;
+  gpu: {
+    name: string;
+    vram?: number;
+    nvencGen?: string;
+  };
+  encoders: string[];
+  maxEncode?: Record<string, string>;
+  captureApi?: string;
+  displays?: Array<{
+    width: number;
+    height: number;
+    refreshRate: number;
+  }>;
+}
+
 // ---------------------------------------------------------------------------
 // Data forwarded to the host agent when a new streaming session is created.
 // ---------------------------------------------------------------------------
@@ -615,6 +657,123 @@ export class SignalingGatewayWs
     this.logger.log(
       `Reconnect requested for session ${session.id} by ${from}`,
     );
+
+    return { success: true };
+  }
+
+  // -----------------------------------------------------------------------
+  // Capability negotiation
+  // -----------------------------------------------------------------------
+
+  /**
+   * Client sends its capabilities (display, decoders, network, input).
+   * The server stores them on the session and relays to the host.
+   */
+  @SubscribeMessage('capability:client')
+  async handleClientCapability(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: ClientCapabilityPayload,
+  ): Promise<{ success: boolean }> {
+    const session = await this.prisma.session.findUnique({
+      where: { id: payload.sessionId },
+    });
+
+    if (!session) throw new WsException('Session not found');
+
+    const isUser = client.data.userId === session.userId;
+    if (!isUser) throw new WsException('Not the session client');
+
+    // Store client capabilities in session metadata
+    const existingMeta = (session.metadata as Record<string, unknown>) ?? {};
+    await this.prisma.session.update({
+      where: { id: session.id },
+      data: {
+        metadata: {
+          ...existingMeta,
+          clientCapabilities: {
+            display: payload.display,
+            decoders: payload.decoders,
+            maxDecode: payload.maxDecode,
+            network: payload.network,
+            platform: payload.platform,
+            input: payload.input,
+          },
+        },
+      },
+    });
+
+    // Relay to the host agent
+    this.server.to(`host:${session.hostId}`).emit('capability:client', {
+      sessionId: session.id,
+      ...payload,
+    });
+
+    this.logger.log(
+      `Client capabilities received for session ${session.id} (platform: ${payload.platform})`,
+    );
+
+    return { success: true };
+  }
+
+  /**
+   * Host sends its capabilities (GPU, encoders, capture API, displays).
+   * The server stores them on the session and relays to the client.
+   */
+  @SubscribeMessage('capability:host')
+  async handleHostCapability(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: HostCapabilityPayload,
+  ): Promise<{ success: boolean }> {
+    const session = await this.prisma.session.findUnique({
+      where: { id: payload.sessionId },
+    });
+
+    if (!session) throw new WsException('Session not found');
+
+    const isHost = client.data.hostId === session.hostId;
+    if (!isHost) throw new WsException('Not the session host');
+
+    // Store host capabilities in session metadata
+    const existingMeta = (session.metadata as Record<string, unknown>) ?? {};
+    await this.prisma.session.update({
+      where: { id: session.id },
+      data: {
+        metadata: {
+          ...existingMeta,
+          hostCapabilities: {
+            gpu: payload.gpu,
+            encoders: payload.encoders,
+            maxEncode: payload.maxEncode,
+            captureApi: payload.captureApi,
+            displays: payload.displays,
+          },
+        },
+      },
+    });
+
+    // Relay to the client
+    this.server.to(`user:${session.userId}`).emit('capability:host', {
+      sessionId: session.id,
+      ...payload,
+    });
+
+    // Once both capabilities are received, send an ack to both parties
+    const updatedSession = await this.prisma.session.findUnique({
+      where: { id: session.id },
+    });
+    const meta = (updatedSession?.metadata as Record<string, unknown>) ?? {};
+    if (meta.clientCapabilities && meta.hostCapabilities) {
+      const ack = {
+        sessionId: session.id,
+        negotiated: true,
+      };
+      this.server.to(`user:${session.userId}`).emit('capability:ack', ack);
+      this.server.to(`host:${session.hostId}`).emit('capability:ack', ack);
+
+      this.logger.log(
+        `Capability negotiation complete for session ${session.id}`,
+      );
+    }
 
     return { success: true };
   }

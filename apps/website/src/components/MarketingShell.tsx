@@ -6,9 +6,12 @@ import Footer from '@/components/Footer';
 
 export default function MarketingShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isDashboard = pathname.startsWith('/dashboard');
+  const isAppShell =
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/auth');
 
-  if (isDashboard) {
+  if (isAppShell) {
     return <>{children}</>;
   }
 

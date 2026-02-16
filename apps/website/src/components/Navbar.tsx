@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Github } from 'lucide-react';
+import { Menu, X, Github, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { isAuthenticated } from '@/lib/auth';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -67,6 +68,11 @@ export default function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  useEffect(() => {
+    setLoggedIn(isAuthenticated());
+  }, [pathname]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -136,6 +142,15 @@ export default function Navbar() {
                 <span className="hidden lg:inline">Star on GitHub</span>
                 <span className="lg:hidden">GitHub</span>
               </a>
+
+              {/* Sign In / Dashboard button */}
+              <Link
+                href={loggedIn ? '/dashboard' : '/login'}
+                className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-cs-green text-white text-sm font-medium hover:bg-cs-green-600 transition-all duration-200 shadow-sm"
+              >
+                <User size={16} />
+                {loggedIn ? 'Dashboard' : 'Sign In'}
+              </Link>
             </div>
 
             {/* Mobile menu button */}

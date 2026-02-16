@@ -5,17 +5,19 @@ import {
   Body,
   UseGuards,
   Req,
+  Res,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { ConfigService } from '@nestjs/config';
 import {
   ApiTags,
   ApiOperation,
   ApiBearerAuth,
   ApiOkResponse,
 } from '@nestjs/swagger';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import {
   RefreshTokenDto,
@@ -31,7 +33,17 @@ import { Public } from '../common/decorators/public.decorator';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  private readonly frontendUrl: string;
+
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {
+    // Determine the frontend URL for OAuth redirects.
+    // CORS_ORIGIN contains comma-separated allowed origins; use the first one.
+    const corsOrigin = this.configService.get<string>('CORS_ORIGIN', 'https://nvremote.com');
+    this.frontendUrl = corsOrigin.split(',')[0].trim();
+  }
 
   /**
    * Initiate Google OAuth2 login flow.
@@ -45,7 +57,10 @@ export class AuthController {
   }
 
   /**
-   * Google OAuth2 callback. On success, returns JWT tokens and user profile.
+   * Google OAuth2 callback.
+   * On success, redirects to the frontend with tokens as a URL fragment.
+   * The fragment (#) is never sent to the server, keeping tokens client-side only.
+   * Falls back to JSON response for non-browser clients (e.g., Electron, mobile).
    */
   @Get('google/callback')
   @Public()
@@ -54,9 +69,24 @@ export class AuthController {
   @ApiOkResponse({ type: AuthCallbackResultDto })
   async googleCallback(
     @Req() req: Request,
-  ): Promise<AuthCallbackResultDto> {
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthCallbackResultDto | void> {
     const profile = req.user as GoogleProfile;
-    return this.authService.validateGoogleUser(profile);
+    const result = await this.authService.validateGoogleUser(profile);
+
+    // If the request has an Accept header preferring JSON (API/mobile clients),
+    // return the tokens directly. Otherwise redirect to the website.
+    const acceptHeader = req.headers.accept || '';
+    if (acceptHeader.includes('application/json')) {
+      return result;
+    }
+
+    // Encode tokens in the URL fragment for the frontend callback page.
+    // Using fragments (#) instead of query params ensures tokens are never
+    // sent to the server in subsequent requests or logged in server access logs.
+    const tokenPayload = Buffer.from(JSON.stringify(result)).toString('base64url');
+    const redirectUrl = `${this.frontendUrl}/auth/callback#data=${tokenPayload}`;
+    res.redirect(302, redirectUrl);
   }
 
   /**

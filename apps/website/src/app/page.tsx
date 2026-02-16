@@ -7,8 +7,8 @@ import {
   Shield,
   Monitor,
   Settings2,
-  Terminal,
-  Cloud,
+  Building2,
+  Gauge,
   Download,
   ArrowRight,
   Github,
@@ -206,7 +206,7 @@ export default function HomePage() {
               transition={{ duration: 0.6, delay: 0.15 }}
               className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 tracking-tight mb-4"
             >
-              Cloud Gaming, Unlocked.
+              GPU Streaming, Unleashed.
             </motion.p>
 
             {/* Subheading */}
@@ -216,7 +216,8 @@ export default function HomePage() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="text-base sm:text-lg text-gray-500 max-w-2xl mx-auto mb-12 leading-relaxed"
             >
-              One hub. Multiple apps. Secure, low-latency, anywhere.
+              Stream your NVIDIA-powered desktop to any device. Low latency,
+              enterprise-grade, built for every GPU workload.
             </motion.p>
 
             {/* CTA Buttons */}
@@ -263,9 +264,9 @@ export default function HomePage() {
             >
               <div className="inline-flex items-center glass rounded-2xl px-2 sm:px-4 py-4 sm:py-5 shadow-glow-sm">
                 <div className="flex items-center divide-x divide-gray-200">
-                  <HeroStat value="< 15ms" label="Latency" />
-                  <HeroStat value="4K@60" label="HDR" />
-                  <HeroStat value="240" label="FPS" />
+                  <HeroStat value="Up to 4K" label="Resolution" />
+                  <HeroStat value="Up to 240" label="FPS" />
+                  <HeroStat value="H.264/HEVC/AV1" label="Codecs" />
                   <HeroStat value="P2P" label="Encrypted" />
                 </div>
               </div>
@@ -308,7 +309,7 @@ export default function HomePage() {
             <FeatureItem
               icon={<Zap size={24} />}
               title="Low Latency"
-              description="Sub-15ms end-to-end with NvFBC capture and NVENC hardware encoding"
+              description="Hardware-accelerated NvFBC capture and NVENC encoding for responsive streaming"
               delay={0}
             />
             <FeatureItem
@@ -320,7 +321,7 @@ export default function HomePage() {
             <FeatureItem
               icon={<Monitor size={24} />}
               title="Multi-Platform"
-              description="Windows, macOS, Linux, and Android clients"
+              description="Windows, macOS, Android, and Chrome browser clients"
               delay={0.2}
             />
             <FeatureItem
@@ -330,15 +331,15 @@ export default function HomePage() {
               delay={0.3}
             />
             <FeatureItem
-              icon={<Terminal size={24} />}
-              title="Dev Tools"
-              description="Network diagnostics, jitter analysis, and performance profiling"
+              icon={<Building2 size={24} />}
+              title="Enterprise Ready"
+              description="Organization management, role-based access, audit logging, and admin dashboard"
               delay={0.4}
             />
             <FeatureItem
-              icon={<Cloud size={24} />}
-              title="Cloud Native"
-              description="Deploy anywhere: bare metal, cloud VMs, or edge nodes"
+              icon={<Gauge size={24} />}
+              title="Adaptive QoS"
+              description="Smart streaming engine adapts codec, resolution, and bitrate to real-time conditions"
               delay={0.5}
             />
           </div>
@@ -428,7 +429,7 @@ export default function HomePage() {
               {/* Host */}
               <ArchNode
                 label="Host"
-                sublabel="Gaming PC"
+                sublabel="NVIDIA GPU"
                 icon={<Zap size={24} />}
               />
             </div>
@@ -472,8 +473,8 @@ export default function HomePage() {
             />
             <StepCard
               number={3}
-              title="Play"
-              description="The client decodes, renders, and feeds your input back to the host in real-time. Zero compromise."
+              title="Use"
+              description="The client decodes, renders, and feeds your input back to the host in real-time. Full GPU power, anywhere."
               delay={0.3}
             />
           </div>
@@ -508,8 +509,8 @@ export default function HomePage() {
               Get Started in <span className="text-gradient">Seconds</span>
             </h2>
             <p className="text-gray-500 max-w-lg mx-auto leading-relaxed">
-              Download the Host for your gaming PC and the Client for any device
-              you want to stream to.
+              Download the Host for your NVIDIA-powered PC and the Client for
+              any device you want to stream to.
             </p>
           </motion.div>
 
@@ -534,8 +535,8 @@ export default function HomePage() {
                   NVRemote Host
                 </h3>
                 <p className="text-sm text-gray-500 leading-relaxed mb-6">
-                  Install on the PC with your NVIDIA GPU. Captures your screen and
-                  streams to connected clients.
+                  Install on any NVIDIA-powered PC, workstation, or server.
+                  Captures your GPU-accelerated desktop and streams to clients.
                 </p>
 
                 {/* Platform icons */}
@@ -582,7 +583,7 @@ export default function HomePage() {
                 </h3>
                 <p className="text-sm text-gray-500 leading-relaxed mb-6">
                   Install on any device you want to stream to. Connects to your
-                  host for a seamless gaming experience.
+                  host for a seamless, low-latency experience.
                 </p>
 
                 {/* Platform icons */}
@@ -596,6 +597,10 @@ export default function HomePage() {
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200">
                     <Smartphone size={14} className="text-gray-500" />
                     <span className="text-xs text-gray-500">Android</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200">
+                    <Monitor size={14} className="text-gray-500" />
+                    <span className="text-xs text-gray-500">Chrome</span>
                   </div>
                   <span className="text-[10px] text-gray-400 uppercase tracking-wider">
                     macOS soon
@@ -656,7 +661,7 @@ export default function HomePage() {
                 <span className="text-gradient">Stream?</span>
               </h2>
               <p className="text-gray-500 max-w-md mx-auto mb-10 leading-relaxed">
-                Start streaming your games with zero compromise.
+                Start streaming your GPU-powered desktop to any device.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link

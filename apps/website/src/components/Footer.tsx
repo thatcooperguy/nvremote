@@ -8,7 +8,7 @@ const productLinks = [
   { label: 'Documentation', href: '/docs' },
   { label: 'Apps', href: '/apps' },
   { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Gaming Modes', href: '/docs#gaming-modes' },
+  { label: 'Streaming Profiles', href: '/docs#streaming-profiles' },
 ];
 
 const communityLinks = [
@@ -33,9 +33,9 @@ const communityLinks = [
 const technologyItems = [
   'NVENC',
   'NvFBC',
-  'DTLS',
-  'Opus',
-  'ICE/STUN',
+  'WebRTC / DTLS',
+  'H.264 / HEVC / AV1',
+  'ICE / STUN / TURN',
 ];
 
 function FooterLogo() {
@@ -94,9 +94,9 @@ export default function Footer() {
           <div className="sm:col-span-2 lg:col-span-1">
             <FooterLogo />
             <p className="text-sm text-gray-400 max-w-xs leading-relaxed mb-6">
-              Cloud gaming, unlocked. Stream your games with sub-15ms latency,
-              4K HDR support, and P2P encrypted connections powered by NVIDIA
-              hardware acceleration.
+              Enterprise-grade GPU streaming. Stream your NVIDIA-powered desktop
+              to any device with low latency, adaptive quality, and P2P encrypted
+              connections.
             </p>
 
             {/* Star on GitHub link */}

@@ -5,7 +5,7 @@ import Button from '@/components/Button';
 export const metadata: Metadata = {
   title: 'Documentation — NVRemote',
   description:
-    'Get started with NVRemote. Learn how to install, configure, and optimize your game streaming setup.',
+    'Get started with NVRemote. Learn how to install, configure, and optimize your GPU streaming setup.',
 };
 
 /* -------------------------------------------------------------------------- */
@@ -144,7 +144,7 @@ const tocItems = [
   { href: '#install-host', label: 'Install Host' },
   { href: '#install-client', label: 'Install Client' },
   { href: '#connect', label: 'Connect' },
-  { href: '#gaming-modes', label: 'Gaming Modes' },
+  { href: '#streaming-profiles', label: 'Streaming Profiles' },
   { href: '#configuration', label: 'Configuration' },
   { href: '#troubleshooting', label: 'Troubleshooting' },
 ];
@@ -277,9 +277,9 @@ export default function DocsPage() {
               <SectionAnchor id="install-host">Install Host</SectionAnchor>
 
               <p className="text-gray-700 mb-6 leading-relaxed">
-                The NVRemote Host runs on the PC with your NVIDIA GPU and
-                games installed. It captures your screen using NvFBC, encodes
-                with NVENC, and streams directly to connected clients.
+                The NVRemote Host runs on any NVIDIA-powered PC, workstation,
+                or server. It captures your screen using NvFBC, encodes with
+                NVENC, and streams directly to connected clients.
               </p>
 
               <div className="space-y-4 mb-6">
@@ -369,9 +369,9 @@ export default function DocsPage() {
                   current load.
                 </StepItem>
 
-                <StepItem number={2} title="Select a gaming mode">
-                  Choose Competitive, Balanced, or Cinematic depending on what
-                  you&apos;re playing. You can switch modes mid-session.
+                <StepItem number={2} title="Select a streaming profile">
+                  Choose Competitive, Balanced, or Cinematic depending on your
+                  workload. You can switch profiles mid-session.
                 </StepItem>
 
                 <StepItem number={3} title="Click Connect">
@@ -393,22 +393,22 @@ export default function DocsPage() {
               <div className="section-divider my-12" />
 
               {/* ---- Gaming Modes ---- */}
-              <SectionAnchor id="gaming-modes">Gaming Modes</SectionAnchor>
+              <SectionAnchor id="streaming-profiles">Streaming Profiles</SectionAnchor>
 
               <p className="text-gray-700 mb-8 leading-relaxed">
-                NVRemote offers three streaming modes, each optimized for
-                different types of games and network conditions. You can switch
-                between modes at any time during a session.
+                NVRemote offers three streaming profiles, each optimized for
+                different workloads and network conditions. You can switch
+                between profiles at any time during a session.
               </p>
 
               <GamingModes />
 
               <div className="mt-8">
                 <InfoBox type="tip">
-                  Start with <strong>Balanced</strong> mode and switch to
-                  Competitive only for fast-paced multiplayer games where input
-                  latency is critical. Use Cinematic for story-driven games where
-                  you want the best visuals.
+                  Start with <strong>Balanced</strong> for most workloads. Switch to
+                  Competitive for fast-paced tasks where input latency is critical.
+                  Use Cinematic for creative work where visual quality is the
+                  priority.
                 </InfoBox>
               </div>
 

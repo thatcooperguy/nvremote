@@ -12,6 +12,9 @@ import {
   Settings,
   LogOut,
   Activity,
+  ShieldCheck,
+  Server,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +24,12 @@ const sidebarLinks = [
   { href: '/dashboard/sessions', label: 'Sessions', icon: Activity },
   { href: '/dashboard/network', label: 'Network', icon: Wifi },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+];
+
+const adminLinks = [
+  { href: '/dashboard/admin', label: 'Platform Health', icon: ShieldCheck },
+  { href: '/dashboard/admin/sessions', label: 'Session Explorer', icon: BarChart3 },
+  { href: '/dashboard/admin/hosts', label: 'Host Management', icon: Server },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -70,11 +79,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {sidebarLinks.map((link) => {
             const Icon = link.icon;
             const isActive = pathname === link.href ||
-              (link.href !== '/dashboard' && pathname.startsWith(link.href));
+              (link.href !== '/dashboard' && pathname.startsWith(link.href) && !pathname.startsWith('/dashboard/admin'));
             return (
               <Link
                 key={link.href}
@@ -91,6 +100,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </Link>
             );
           })}
+
+          {/* Admin Section */}
+          <div className="pt-4 mt-4 border-t border-gray-100">
+            <p className="px-3 pb-2 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+              Admin
+            </p>
+            {adminLinks.map((link) => {
+              const Icon = link.icon;
+              const isActive = pathname === link.href ||
+                (link.href !== '/dashboard/admin' && pathname.startsWith(link.href));
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-cs-green/10 text-cs-green-700'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  )}
+                >
+                  <Icon size={18} className={isActive ? 'text-cs-green' : ''} />
+                  {link.label}
+                </Link>
+              );
+            })}
+          </div>
         </nav>
 
         {/* User section */}

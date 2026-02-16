@@ -45,7 +45,7 @@ const modes: GamingMode[] = [
       { label: 'BITRATE', value: '50 Mbps' },
       { label: 'PRIORITY', value: 'FPS > Quality' },
     ],
-    ideal: 'FPS, MOBA, Fighting games',
+    ideal: 'Competitive gaming, real-time collaboration, live coding',
   },
   {
     name: 'Balanced',
@@ -78,7 +78,7 @@ const modes: GamingMode[] = [
       { label: 'BITRATE', value: '80 Mbps' },
       { label: 'PRIORITY', value: 'Adaptive' },
     ],
-    ideal: 'RPG, Action-Adventure, Racing',
+    ideal: 'General desktop use, game development, web browsing',
     recommended: true,
   },
   {
@@ -116,7 +116,7 @@ const modes: GamingMode[] = [
       { label: 'BITRATE', value: '150 Mbps' },
       { label: 'PRIORITY', value: 'Quality > FPS' },
     ],
-    ideal: 'Single-player, Story-driven, Simulation',
+    ideal: 'Creative work, video editing, 3D rendering, CAD',
   },
 ];
 

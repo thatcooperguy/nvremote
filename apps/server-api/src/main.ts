@@ -44,9 +44,9 @@ async function bootstrap(): Promise<void> {
 
   // Swagger / OpenAPI
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('NVStreamer Control Plane API')
-    .setDescription('Backend API for NVIDIA Remote Stream')
-    .setVersion('0.1.0')
+    .setTitle('NVRemote Control Plane API')
+    .setDescription('Enterprise-grade GPU streaming platform API')
+    .setVersion('0.4.0-alpha')
     .addBearerAuth()
     .build();
 

@@ -1,6 +1,7 @@
 package com.nvremote.app.data.signaling
 
 import android.util.Log
+import com.nvremote.app.BuildConfig
 import io.socket.client.IO
 import io.socket.client.Socket
 import kotlinx.coroutines.channels.awaitClose
@@ -58,7 +59,7 @@ class SignalingClient @Inject constructor() {
 
             socket?.apply {
                 on(Socket.EVENT_CONNECT) {
-                    Log.d(TAG, "Connected to signaling server")
+                    if (BuildConfig.DEBUG) Log.d(TAG, "Connected to signaling server")
                     _connectionState.value = ConnectionState.CONNECTED
                     trySend(SignalingEvent.Connected)
 
@@ -70,7 +71,7 @@ class SignalingClient @Inject constructor() {
 
                 on(Socket.EVENT_DISCONNECT) { args ->
                     val reason = args.firstOrNull()?.toString() ?: "unknown"
-                    Log.d(TAG, "Disconnected: $reason")
+                    if (BuildConfig.DEBUG) Log.d(TAG, "Disconnected: $reason")
                     _connectionState.value = ConnectionState.DISCONNECTED
                     trySend(SignalingEvent.Disconnected(reason))
                 }
@@ -83,7 +84,7 @@ class SignalingClient @Inject constructor() {
                 }
 
                 on("session:ready") { args ->
-                    Log.d(TAG, "Session ready")
+                    if (BuildConfig.DEBUG) Log.d(TAG, "Session ready")
                     trySend(SignalingEvent.SessionReady)
                 }
 
@@ -91,7 +92,7 @@ class SignalingClient @Inject constructor() {
                     val data = args.firstOrNull() as? JSONObject ?: return@on
                     val sdp = data.optString("sdp", "")
                     val type = data.optString("type", "offer")
-                    Log.d(TAG, "Received SDP offer")
+                    if (BuildConfig.DEBUG) Log.d(TAG, "Received SDP offer")
                     trySend(SignalingEvent.SdpOffer(sdp = sdp, type = type))
                 }
 
@@ -100,7 +101,7 @@ class SignalingClient @Inject constructor() {
                     val candidate = data.optString("candidate", "")
                     val sdpMid = data.optString("sdpMid", "")
                     val sdpMLineIndex = data.optInt("sdpMLineIndex", 0)
-                    Log.d(TAG, "Received ICE candidate")
+                    if (BuildConfig.DEBUG) Log.d(TAG, "Received ICE candidate")
                     trySend(
                         SignalingEvent.IceCandidate(
                             candidate = candidate,
@@ -113,7 +114,7 @@ class SignalingClient @Inject constructor() {
                 on("session:state") { args ->
                     val data = args.firstOrNull() as? JSONObject ?: return@on
                     val state = data.optString("state", "")
-                    Log.d(TAG, "Session state: $state")
+                    if (BuildConfig.DEBUG) Log.d(TAG, "Session state: $state")
                     trySend(SignalingEvent.SessionStateChanged(state))
                 }
 

@@ -114,7 +114,6 @@ export function connectSignaling(accessToken: string): Promise<void> {
 
     signalingSocket.on('connect', () => {
       clearTimeout(connectTimeout);
-      console.log('[P2P] Connected to signaling server');
       resolve();
     });
 
@@ -173,12 +172,6 @@ export function requestSession(
       clearTimeout(timeout);
       currentSessionId = info.sessionId;
 
-      console.log('[P2P] Session accepted:', {
-        sessionId: info.sessionId,
-        codec: info.codec,
-        stunServers: info.stunServers.length,
-      });
-
       // Notify the stored callback
       if (onSessionAcceptedCallback) {
         onSessionAcceptedCallback(info);
@@ -217,7 +210,6 @@ export function requestSession(
       targetFps: options.targetFps,
     });
 
-    console.log('[P2P] Session requested for host:', hostId);
   });
 }
 
@@ -230,8 +222,6 @@ export async function gatherAndSendCandidates(
 ): Promise<IceCandidate[]> {
   const viewer = getViewer();
   const candidates = await viewer.gatherIceCandidates(stunServers);
-
-  console.log(`[P2P] Gathered ${candidates.length} local ICE candidates`);
 
   // Send each candidate through the signaling channel
   for (const candidate of candidates) {
@@ -271,8 +261,6 @@ export function sendIceComplete(): void {
   signalingSocket.emit('ice:complete', {
     sessionId: currentSessionId,
   });
-
-  console.log('[P2P] Sent ice:complete');
 }
 
 /**
@@ -285,7 +273,7 @@ export async function establishP2PConnection(
   const viewer = getViewer();
   const result = await viewer.connectP2P({ dtlsFingerprint });
 
-  console.log('[P2P] Connection established:', result.connectionType);
+  console.log('[NVRemote P2P] Connection established:', result.connectionType);
 
   // Notify the signaling server
   if (signalingSocket?.connected && currentSessionId) {
@@ -328,8 +316,6 @@ export function disconnectP2P(): void {
   }
 
   currentSessionId = null;
-
-  console.log('[P2P] Disconnected P2P connection');
 
   // Forward to renderer
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -384,8 +370,6 @@ function setupSignalingHandlers(socket: Socket): void {
   socket.on('ice:candidate', (data: { sessionId: string; candidate: IceCandidate }) => {
     if (data.sessionId !== currentSessionId) return;
 
-    console.log('[P2P] Received remote ICE candidate:', data.candidate.type, data.candidate.ip);
-
     // Pass to native addon
     const viewer = getViewer();
     viewer.addRemoteCandidate(data.candidate);
@@ -404,7 +388,6 @@ function setupSignalingHandlers(socket: Socket): void {
   // Remote ICE gathering complete
   socket.on('ice:complete', (data: { sessionId: string }) => {
     if (data.sessionId !== currentSessionId) return;
-    console.log('[P2P] Remote ICE gathering complete');
 
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('p2p:remote-ice-complete');
@@ -415,7 +398,7 @@ function setupSignalingHandlers(socket: Socket): void {
   socket.on('session:ended', (data: { sessionId: string; reason?: string }) => {
     if (data.sessionId !== currentSessionId) return;
 
-    console.log('[P2P] Session ended:', data.reason || 'no reason given');
+    console.log('[NVRemote P2P] Session ended:', data.reason || 'no reason given');
 
     const viewer = getViewer();
     viewer.disconnectP2P();
@@ -458,8 +441,6 @@ function setupSignalingHandlers(socket: Socket): void {
 
   // Reconnected to signaling
   socket.on('reconnect', () => {
-    console.log('[P2P] Signaling reconnected');
-
     // If we had an active session, try to rejoin
     if (currentSessionId) {
       socket.emit('session:rejoin', { sessionId: currentSessionId });

@@ -61,13 +61,10 @@ export function connectSocket(): void {
 
 function setupEventHandlers(sock: Socket): void {
   sock.on('connect', () => {
-    console.log('Socket connected');
     reconnectAttempts = 0;
   });
 
   sock.on('disconnect', (reason) => {
-    console.log('Socket disconnected:', reason);
-
     if (reason === 'io server disconnect') {
       // Server forcefully disconnected, likely auth issue
       toast.warning('Real-time connection lost. Attempting to reconnect...');
@@ -83,8 +80,7 @@ function setupEventHandlers(sock: Socket): void {
     }
   });
 
-  sock.on('reconnect', (attemptNumber) => {
-    console.log(`Socket reconnected after ${attemptNumber} attempts`);
+  sock.on('reconnect', () => {
     toast.success('Real-time connection restored');
     reconnectAttempts = 0;
   });

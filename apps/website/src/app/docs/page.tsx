@@ -286,7 +286,7 @@ export default function DocsPage() {
                 <StepItem number={1} title="Download the installer">
                   Get the latest{' '}
                   <code className="text-cs-green bg-cs-green/10 px-1.5 py-0.5 rounded text-xs">
-                    NVRemoteHost-v0.1.0-win64.exe
+                    NVRemoteHost-v0.4.0-alpha-win64.zip
                   </code>{' '}
                   from the{' '}
                   <a
@@ -334,7 +334,7 @@ export default function DocsPage() {
                 <StepItem number={1} title="Download the client">
                   Get{' '}
                   <code className="text-cs-green bg-cs-green/10 px-1.5 py-0.5 rounded text-xs">
-                    NVRemoteClient-v0.1.0-win64.exe
+                    NVRemote-Setup.exe
                   </code>{' '}
                   from the{' '}
                   <a

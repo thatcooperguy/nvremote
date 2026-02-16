@@ -287,7 +287,9 @@ final class SignalingClient: @unchecked Sendable {
             onMessage?(.error(msg))
 
         default:
+            #if DEBUG
             print("[SignalingClient] Unknown message type: \(type)")
+            #endif
         }
     }
 

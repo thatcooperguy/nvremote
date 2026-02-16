@@ -182,12 +182,8 @@ export default function WebStreamPage() {
       });
       dataChannelRef.current = dc;
 
-      dc.onopen = () => {
-        console.log('[NVRemote] Input DataChannel open');
-      };
-      dc.onclose = () => {
-        console.log('[NVRemote] Input DataChannel closed');
-      };
+      dc.onopen = () => {};
+      dc.onclose = () => {};
 
       // Handle incoming tracks
       pc.ontrack = (event) => {

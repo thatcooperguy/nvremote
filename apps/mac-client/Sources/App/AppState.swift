@@ -91,13 +91,19 @@ final class AppState: ObservableObject {
 
         case .dtlsFingerprint(let sessionId, let fingerprint):
             // Store for DTLS handshake
+            #if DEBUG
             print("[AppState] Received DTLS fingerprint for session \(sessionId): \(fingerprint)")
+            #endif
 
         case .sessionStarted(let sessionId):
+            #if DEBUG
             print("[AppState] Session started: \(sessionId)")
+            #endif
 
         case .sessionEnded(_, let reason):
+            #if DEBUG
             print("[AppState] Session ended: \(reason)")
+            #endif
             disconnect()
 
         case .hostStateChanged(let hostId, let online):
@@ -178,7 +184,9 @@ final class AppState: ObservableObject {
 
             if !p2pResult.success {
                 // Fall back to direct connection using the host's IP
+                #if DEBUG
                 print("[AppState] P2P failed, falling back to direct connection")
+                #endif
             }
 
             // 6. Build session config

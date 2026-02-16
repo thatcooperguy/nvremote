@@ -2,6 +2,7 @@ package com.nvremote.app.data.webrtc
 
 import android.content.Context
 import android.util.Log
+import com.nvremote.app.BuildConfig
 import com.nvremote.app.data.model.StreamStats
 import com.nvremote.app.data.signaling.SignalingClient
 import com.nvremote.app.data.signaling.SignalingEvent
@@ -114,7 +115,7 @@ class WebRtcManager @Inject constructor(
             .createPeerConnectionFactory()
 
         initialized = true
-        Log.d(TAG, "WebRTC initialized with hardware codec support")
+        if (BuildConfig.DEBUG) Log.d(TAG, "WebRTC initialized with hardware codec support")
     }
 
     // ── Session lifecycle ──────────────────────────────────────────────
@@ -157,7 +158,7 @@ class WebRtcManager @Inject constructor(
                     .setPassword(turn.credential)
                     .createIceServer(),
             )
-            Log.d(TAG, "Added TURN server: ${turn.urls}")
+            if (BuildConfig.DEBUG) Log.d(TAG, "Added TURN server: ${turn.urls}")
         }
 
         val config = PeerConnection.RTCConfiguration(iceServers).apply {
@@ -238,7 +239,7 @@ class WebRtcManager @Inject constructor(
             networkType = networkType,
         )
 
-        Log.d(TAG, "Sent client capabilities: ${displayMetrics.widthPixels}x${displayMetrics.heightPixels}, decoders=$decoders, network=$networkType")
+        if (BuildConfig.DEBUG) Log.d(TAG, "Sent client capabilities: ${displayMetrics.widthPixels}x${displayMetrics.heightPixels}, decoders=$decoders, network=$networkType")
     }
 
     /**
@@ -246,7 +247,7 @@ class WebRtcManager @Inject constructor(
      * The profile change is relayed to the host agent which applies it to the QoS engine.
      */
     fun requestProfileChange(sessionId: String, profile: String) {
-        Log.d(TAG, "Requesting profile change: $profile for session $sessionId")
+        if (BuildConfig.DEBUG) Log.d(TAG, "Requesting profile change: $profile for session $sessionId")
         signalingClient.requestProfileChange(sessionId, profile)
     }
 
@@ -254,7 +255,7 @@ class WebRtcManager @Inject constructor(
      * End the current session and release all resources.
      */
     fun endSession() {
-        Log.d(TAG, "Ending session")
+        if (BuildConfig.DEBUG) Log.d(TAG, "Ending session")
 
         signalingJob?.cancel()
         signalingJob = null
@@ -291,15 +292,15 @@ class WebRtcManager @Inject constructor(
     private fun handleSignalingEvent(event: SignalingEvent) {
         when (event) {
             is SignalingEvent.Connected -> {
-                Log.d(TAG, "Signaling connected")
+                if (BuildConfig.DEBUG) Log.d(TAG, "Signaling connected")
             }
 
             is SignalingEvent.SessionReady -> {
-                Log.d(TAG, "Session ready — waiting for SDP offer from host")
+                if (BuildConfig.DEBUG) Log.d(TAG, "Session ready — waiting for SDP offer from host")
             }
 
             is SignalingEvent.SdpOffer -> {
-                Log.d(TAG, "Received SDP offer, setting remote description")
+                if (BuildConfig.DEBUG) Log.d(TAG, "Received SDP offer, setting remote description")
                 val sdp = SessionDescription(SessionDescription.Type.OFFER, event.sdp)
                 peerConnection?.setRemoteDescription(object : SdpObserverAdapter("setRemote") {
                     override fun onSetSuccess() {
@@ -310,7 +311,7 @@ class WebRtcManager @Inject constructor(
             }
 
             is SignalingEvent.IceCandidate -> {
-                Log.d(TAG, "Received remote ICE candidate")
+                if (BuildConfig.DEBUG) Log.d(TAG, "Received remote ICE candidate")
                 val candidate = IceCandidate(
                     event.sdpMid,
                     event.sdpMLineIndex,
@@ -320,7 +321,7 @@ class WebRtcManager @Inject constructor(
             }
 
             is SignalingEvent.SessionStateChanged -> {
-                Log.d(TAG, "Session state changed: ${event.state}")
+                if (BuildConfig.DEBUG) Log.d(TAG, "Session state changed: ${event.state}")
             }
 
             is SignalingEvent.HostDisconnected -> {
@@ -336,7 +337,7 @@ class WebRtcManager @Inject constructor(
             }
 
             is SignalingEvent.Disconnected -> {
-                Log.d(TAG, "Signaling disconnected: ${event.reason}")
+                if (BuildConfig.DEBUG) Log.d(TAG, "Signaling disconnected: ${event.reason}")
                 if (_connectionState.value == WebRtcConnectionState.STREAMING) {
                     // Lost signaling while streaming — the P2P connection may still be alive
                     Log.w(TAG, "Lost signaling during stream, P2P may still be active")
@@ -362,7 +363,7 @@ class WebRtcManager @Inject constructor(
                 )
                 // Send answer to host via signaling
                 signalingClient.sendAnswer(sdp.description)
-                Log.d(TAG, "Sent SDP answer to host")
+                if (BuildConfig.DEBUG) Log.d(TAG, "Sent SDP answer to host")
             }
         }, constraints)
     }
@@ -371,11 +372,11 @@ class WebRtcManager @Inject constructor(
 
     private fun createPeerConnectionObserver() = object : PeerConnection.Observer {
         override fun onSignalingChange(state: SignalingState) {
-            Log.d(TAG, "Signaling state: $state")
+            if (BuildConfig.DEBUG) Log.d(TAG, "Signaling state: $state")
         }
 
         override fun onIceConnectionChange(state: IceConnectionState) {
-            Log.d(TAG, "ICE connection state: $state")
+            if (BuildConfig.DEBUG) Log.d(TAG, "ICE connection state: $state")
             when (state) {
                 IceConnectionState.CONNECTED, IceConnectionState.COMPLETED -> {
                     _connectionState.value = WebRtcConnectionState.STREAMING
@@ -396,16 +397,16 @@ class WebRtcManager @Inject constructor(
         }
 
         override fun onIceConnectionReceivingChange(receiving: Boolean) {
-            Log.d(TAG, "ICE receiving: $receiving")
+            if (BuildConfig.DEBUG) Log.d(TAG, "ICE receiving: $receiving")
         }
 
         override fun onIceGatheringChange(state: IceGatheringState) {
-            Log.d(TAG, "ICE gathering state: $state")
+            if (BuildConfig.DEBUG) Log.d(TAG, "ICE gathering state: $state")
         }
 
         override fun onIceCandidate(candidate: IceCandidate) {
             // Send our ICE candidates to the host via signaling
-            Log.d(TAG, "Sending local ICE candidate")
+            if (BuildConfig.DEBUG) Log.d(TAG, "Sending local ICE candidate")
             signalingClient.sendIceCandidate(
                 candidate.sdp,
                 candidate.sdpMid,
@@ -414,40 +415,40 @@ class WebRtcManager @Inject constructor(
         }
 
         override fun onIceCandidatesRemoved(candidates: Array<out IceCandidate>) {
-            Log.d(TAG, "ICE candidates removed: ${candidates.size}")
+            if (BuildConfig.DEBUG) Log.d(TAG, "ICE candidates removed: ${candidates.size}")
         }
 
         override fun onAddStream(stream: MediaStream) {
-            Log.d(TAG, "Remote stream added: ${stream.videoTracks.size} video, ${stream.audioTracks.size} audio")
+            if (BuildConfig.DEBUG) Log.d(TAG, "Remote stream added: ${stream.videoTracks.size} video, ${stream.audioTracks.size} audio")
             if (stream.videoTracks.isNotEmpty()) {
                 val videoTrack = stream.videoTracks[0]
                 videoTrack.setEnabled(true)
                 _remoteVideoTrack.value = videoTrack
-                Log.d(TAG, "Remote video track attached")
+                if (BuildConfig.DEBUG) Log.d(TAG, "Remote video track attached")
             }
         }
 
         override fun onRemoveStream(stream: MediaStream) {
-            Log.d(TAG, "Remote stream removed")
+            if (BuildConfig.DEBUG) Log.d(TAG, "Remote stream removed")
             _remoteVideoTrack.value = null
         }
 
         override fun onDataChannel(channel: DataChannel) {
-            Log.d(TAG, "Data channel received: ${channel.label()}")
+            if (BuildConfig.DEBUG) Log.d(TAG, "Data channel received: ${channel.label()}")
             // Could be used for input forwarding in the future
         }
 
         override fun onRenegotiationNeeded() {
-            Log.d(TAG, "Renegotiation needed")
+            if (BuildConfig.DEBUG) Log.d(TAG, "Renegotiation needed")
         }
 
         override fun onAddTrack(receiver: RtpReceiver, streams: Array<out MediaStream>) {
-            Log.d(TAG, "Track added: ${receiver.track()?.kind()}")
+            if (BuildConfig.DEBUG) Log.d(TAG, "Track added: ${receiver.track()?.kind()}")
             val track = receiver.track()
             if (track is VideoTrack) {
                 track.setEnabled(true)
                 _remoteVideoTrack.value = track
-                Log.d(TAG, "Remote video track received via onAddTrack")
+                if (BuildConfig.DEBUG) Log.d(TAG, "Remote video track received via onAddTrack")
             }
         }
     }
@@ -536,11 +537,11 @@ enum class WebRtcConnectionState {
 
 private open class SdpObserverAdapter(private val label: String) : SdpObserver {
     override fun onCreateSuccess(sdp: SessionDescription) {
-        Log.d("SdpObserver", "$label onCreateSuccess")
+        if (BuildConfig.DEBUG) Log.d("SdpObserver", "$label onCreateSuccess")
     }
 
     override fun onSetSuccess() {
-        Log.d("SdpObserver", "$label onSetSuccess")
+        if (BuildConfig.DEBUG) Log.d("SdpObserver", "$label onSetSuccess")
     }
 
     override fun onCreateFailure(error: String) {

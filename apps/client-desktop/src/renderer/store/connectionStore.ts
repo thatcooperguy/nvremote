@@ -273,10 +273,10 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
       set({ status: 'connecting' });
 
       // 4. Establish the P2P connection
-      //    The DTLS fingerprint would come from the session:accepted event in production.
-      //    For now, use a placeholder that the native addon can validate.
+      //    The DTLS fingerprint is provided by the host in the session:accepted response
+      //    and is used to verify the host's identity during the DTLS handshake.
       const connectResult = await window.nvrs.p2p.connect({
-        dtlsFingerprint: 'placeholder-dtls-fingerprint',
+        dtlsFingerprint: sessionInfo.dtlsFingerprint ?? '',
       });
 
       if (!connectResult.success) {

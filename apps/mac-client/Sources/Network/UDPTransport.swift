@@ -115,7 +115,9 @@ final class UDPTransport: @unchecked Sendable {
                 self.updateState(.disconnected(nil))
             case .waiting(let error):
                 // Network path temporarily unavailable
+                #if DEBUG
                 print("[UDPTransport] waiting: \(error)")
+                #endif
             default:
                 break
             }

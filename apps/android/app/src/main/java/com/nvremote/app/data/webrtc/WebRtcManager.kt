@@ -181,11 +181,15 @@ class WebRtcManager @Inject constructor(
         // Receive-only: add transceivers for video and audio
         peerConnection?.addTransceiver(
             org.webrtc.MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO,
-            PeerConnection.RtpTransceiverInit(PeerConnection.RtpTransceiverDirection.RECV_ONLY),
+            org.webrtc.RtpTransceiver.RtpTransceiverInit(
+                org.webrtc.RtpTransceiver.RtpTransceiverDirection.RECV_ONLY,
+            ),
         )
         peerConnection?.addTransceiver(
             org.webrtc.MediaStreamTrack.MediaType.MEDIA_TYPE_AUDIO,
-            PeerConnection.RtpTransceiverInit(PeerConnection.RtpTransceiverDirection.RECV_ONLY),
+            org.webrtc.RtpTransceiver.RtpTransceiverInit(
+                org.webrtc.RtpTransceiver.RtpTransceiverDirection.RECV_ONLY,
+            ),
         )
 
         // Connect signaling and handle events

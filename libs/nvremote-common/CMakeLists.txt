@@ -15,6 +15,7 @@ set(CS_COMMON_SOURCES
     src/transport/dtls_context.cpp
     src/p2p/stun_client.cpp
     src/p2p/ice_agent.cpp
+    src/p2p/turn_client.cpp
 )
 
 # Header files (for IDE integration / install targets)
@@ -24,6 +25,7 @@ set(CS_COMMON_HEADERS
     include/cs/transport/dtls_context.h
     include/cs/p2p/stun_client.h
     include/cs/p2p/ice_agent.h
+    include/cs/p2p/turn_client.h
     include/cs/qos/feedback_packet.h
     include/cs/qos/gaming_modes.h
 )

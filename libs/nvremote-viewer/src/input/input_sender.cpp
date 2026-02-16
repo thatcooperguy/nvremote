@@ -169,7 +169,7 @@ bool InputSender::sendInput(const InputEvent& event) {
 
     // Send the packet immediately via UDP sendto
     ssize_t sent = ::sendto(
-        static_cast<SOCKET>(socket_fd_),
+        socket_fd_,
         reinterpret_cast<const char*>(packet.data()),
         static_cast<int>(packet.size()),
         0,

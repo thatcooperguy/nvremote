@@ -67,10 +67,11 @@ fun StreamScreen(
         val url = session?.signalingUrl ?: return@LaunchedEffect
         val sid = session.sessionId
         if (url.isNotBlank() && webRtcState == WebRtcConnectionState.IDLE) {
+            val token = viewModel.getAccessToken()
             webRtcManager.startSession(
                 signalingUrl = url,
                 sessionId = sid,
-                accessToken = "", // TODO: pass from AuthRepository
+                accessToken = token,
                 stunServers = session.stunServers,
             )
         }

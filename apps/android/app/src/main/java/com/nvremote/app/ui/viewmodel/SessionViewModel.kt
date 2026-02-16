@@ -9,6 +9,7 @@ import com.nvremote.app.data.model.SessionState
 import com.nvremote.app.data.model.StreamConfig
 import com.nvremote.app.data.model.StreamStats
 import com.nvremote.app.data.model.toStreamConfig
+import com.nvremote.app.data.repository.AuthRepository
 import com.nvremote.app.data.repository.HostRepository
 import com.nvremote.app.data.repository.SessionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,6 +22,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SessionViewModel @Inject constructor(
+    private val authRepository: AuthRepository,
     private val hostRepository: HostRepository,
     private val sessionRepository: SessionRepository,
 ) : ViewModel() {
@@ -112,6 +114,14 @@ class SessionViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    /**
+     * Retrieve the current JWT access token for WebRTC signaling authentication.
+     * Automatically refreshes the token if it's expired or about to expire.
+     */
+    suspend fun getAccessToken(): String {
+        return authRepository.getAccessToken() ?: ""
     }
 
     private fun startSessionPolling(sessionId: String) {

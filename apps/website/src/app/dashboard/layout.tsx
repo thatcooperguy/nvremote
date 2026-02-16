@@ -15,6 +15,9 @@ import {
   ShieldCheck,
   Server,
   BarChart3,
+  Smartphone,
+  AlertOctagon,
+  Gauge,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -30,6 +33,9 @@ const adminLinks = [
   { href: '/dashboard/admin', label: 'Platform Health', icon: ShieldCheck },
   { href: '/dashboard/admin/sessions', label: 'Session Explorer', icon: BarChart3 },
   { href: '/dashboard/admin/hosts', label: 'Host Management', icon: Server },
+  { href: '/dashboard/admin/qos', label: 'QoS Analytics', icon: Gauge },
+  { href: '/dashboard/admin/clients', label: 'Client Insights', icon: Smartphone },
+  { href: '/dashboard/admin/errors', label: 'Error Dashboard', icon: AlertOctagon },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

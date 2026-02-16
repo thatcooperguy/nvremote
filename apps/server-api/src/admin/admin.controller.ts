@@ -19,6 +19,9 @@ import {
   AdminSessionQueryDto,
   AdminHostDto,
   AdminHostQueryDto,
+  QosAnalyticsDto,
+  ClientInsightsDto,
+  ErrorSummaryDto,
 } from './dto/admin.dto';
 
 @ApiTags('admin')
@@ -60,5 +63,35 @@ export class AdminController {
     @Query() query: AdminHostQueryDto,
   ): Promise<AdminHostDto[]> {
     return this.adminService.getAdminHosts(query);
+  }
+
+  /**
+   * Get QoS analytics across sessions.
+   */
+  @Get('qos')
+  @ApiOperation({ summary: 'Get QoS analytics (admin only)' })
+  @ApiOkResponse({ type: QosAnalyticsDto })
+  async getQosAnalytics(): Promise<QosAnalyticsDto> {
+    return this.adminService.getQosAnalytics();
+  }
+
+  /**
+   * Get client/device insights.
+   */
+  @Get('clients')
+  @ApiOperation({ summary: 'Get client insights (admin only)' })
+  @ApiOkResponse({ type: ClientInsightsDto })
+  async getClientInsights(): Promise<ClientInsightsDto> {
+    return this.adminService.getClientInsights();
+  }
+
+  /**
+   * Get error summary and recent failures.
+   */
+  @Get('errors')
+  @ApiOperation({ summary: 'Get error summary (admin only)' })
+  @ApiOkResponse({ type: ErrorSummaryDto })
+  async getErrorSummary(): Promise<ErrorSummaryDto> {
+    return this.adminService.getErrorSummary();
   }
 }

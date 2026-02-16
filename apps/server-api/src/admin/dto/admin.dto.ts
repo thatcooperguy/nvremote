@@ -209,3 +209,104 @@ export class AdminHostDto {
   @ApiProperty({ description: 'Total sessions this host has served' })
   totalSessions!: number;
 }
+
+// ---------------------------------------------------------------------------
+// QoS Analytics
+// ---------------------------------------------------------------------------
+
+export class QosAnalyticsDto {
+  @ApiProperty({ description: 'Codec distribution across recent sessions' })
+  codecDistribution!: Record<string, number>;
+
+  @ApiProperty({ description: 'Resolution distribution across recent sessions' })
+  resolutionDistribution!: Record<string, number>;
+
+  @ApiProperty({ description: 'Profile distribution across recent sessions' })
+  profileDistribution!: Record<string, number>;
+
+  @ApiProperty({ description: 'Connection type distribution' })
+  connectionTypeDistribution!: Record<string, number>;
+
+  @ApiProperty({ description: 'Average bitrate across active sessions (kbps)' })
+  avgBitrateKbps!: number;
+
+  @ApiProperty({ description: 'Average packet loss across active sessions (%)' })
+  avgPacketLossPercent!: number;
+
+  @ApiProperty({ description: 'Average RTT across active sessions (ms)' })
+  avgRttMs!: number;
+
+  @ApiProperty({ description: 'Average jitter across active sessions (ms)' })
+  avgJitterMs!: number;
+
+  @ApiProperty({ description: 'Total sessions analyzed' })
+  totalSessionsAnalyzed!: number;
+}
+
+// ---------------------------------------------------------------------------
+// Client Insights
+// ---------------------------------------------------------------------------
+
+export class ClientInsightsDto {
+  @ApiProperty({ description: 'Platform distribution (Android, Windows, etc.)' })
+  platformDistribution!: Record<string, number>;
+
+  @ApiProperty({ description: 'Failure rate by platform (%)' })
+  failureRateByPlatform!: Record<string, number>;
+
+  @ApiProperty({ description: 'Decoder support matrix' })
+  decoderSupport!: Record<string, number>;
+
+  @ApiProperty({ description: 'Average session duration by platform (seconds)' })
+  avgSessionDurationByPlatform!: Record<string, number>;
+
+  @ApiProperty({ description: 'Total unique clients' })
+  totalClients!: number;
+}
+
+// ---------------------------------------------------------------------------
+// Error Dashboard
+// ---------------------------------------------------------------------------
+
+export class ErrorEntryDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  sessionId!: string;
+
+  @ApiPropertyOptional()
+  hostName?: string | null;
+
+  @ApiPropertyOptional()
+  gpuInfo?: string | null;
+
+  @ApiProperty()
+  errorType!: string;
+
+  @ApiPropertyOptional()
+  errorMessage?: string | null;
+
+  @ApiProperty()
+  occurredAt!: Date;
+
+  @ApiPropertyOptional()
+  platform?: string | null;
+
+  @ApiPropertyOptional()
+  codec?: string | null;
+}
+
+export class ErrorSummaryDto {
+  @ApiProperty({ description: 'Total errors in the time window' })
+  totalErrors!: number;
+
+  @ApiProperty({ description: 'Errors grouped by type' })
+  errorsByType!: Record<string, number>;
+
+  @ApiProperty({ description: 'Errors grouped by GPU model' })
+  errorsByGpu!: Record<string, number>;
+
+  @ApiProperty({ description: 'Recent errors' })
+  recentErrors!: ErrorEntryDto[];
+}

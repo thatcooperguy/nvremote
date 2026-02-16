@@ -8,6 +8,10 @@ import {
   AdminSessionQueryDto,
   AdminHostDto,
   AdminHostQueryDto,
+  QosAnalyticsDto,
+  ClientInsightsDto,
+  ErrorSummaryDto,
+  ErrorEntryDto,
 } from './dto/admin.dto';
 
 @Injectable()
@@ -231,6 +235,234 @@ export class AdminService {
       ).length,
       totalSessions: h.sessions.length,
     }));
+  }
+
+  // -----------------------------------------------------------------------
+  // Helpers
+  // -----------------------------------------------------------------------
+
+  // -----------------------------------------------------------------------
+  // QoS Analytics
+  // -----------------------------------------------------------------------
+
+  async getQosAnalytics(): Promise<QosAnalyticsDto> {
+    const last7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const sessions = await this.prisma.session.findMany({
+      where: { startedAt: { gte: last7d } },
+      select: { metadata: true, status: true },
+    });
+
+    const codecDist: Record<string, number> = {};
+    const resDist: Record<string, number> = {};
+    const profileDist: Record<string, number> = {};
+    const connDist: Record<string, number> = {};
+
+    let totalBitrate = 0;
+    let totalLoss = 0;
+    let totalRtt = 0;
+    let totalJitter = 0;
+    let statsCount = 0;
+
+    for (const s of sessions) {
+      const meta = s.metadata as Record<string, unknown> | null;
+      if (!meta) continue;
+
+      // Connection type
+      const connType = (meta.connectionType as string) || 'unknown';
+      connDist[connType] = (connDist[connType] || 0) + 1;
+
+      // QoS stats from session metadata (written by qos:stats handler)
+      const qos = meta.qosStats as Record<string, unknown> | undefined;
+      if (qos) {
+        const codec = (qos.codec as string) || 'unknown';
+        codecDist[codec] = (codecDist[codec] || 0) + 1;
+
+        const w = qos.width as number | undefined;
+        const h = qos.height as number | undefined;
+        if (w && h) {
+          const res = `${w}x${h}`;
+          resDist[res] = (resDist[res] || 0) + 1;
+        }
+
+        const profile = (qos.profile as string) || 'unknown';
+        profileDist[profile] = (profileDist[profile] || 0) + 1;
+
+        if (typeof qos.bitrateKbps === 'number') {
+          totalBitrate += qos.bitrateKbps as number;
+          statsCount++;
+        }
+        if (typeof qos.packetLossPercent === 'number') {
+          totalLoss += qos.packetLossPercent as number;
+        }
+        if (typeof qos.rttMs === 'number') {
+          totalRtt += qos.rttMs as number;
+        }
+        if (typeof qos.jitterMs === 'number') {
+          totalJitter += qos.jitterMs as number;
+        }
+      }
+
+      // Fallback: extract codec/profile from capabilities if no QoS stats
+      if (!qos) {
+        const caps = meta.hostCapabilities as Record<string, unknown> | undefined;
+        if (caps?.encoders) {
+          const encoders = caps.encoders as string[];
+          if (encoders.length > 0) {
+            const codec = encoders[0];
+            codecDist[codec] = (codecDist[codec] || 0) + 1;
+          }
+        }
+
+        const profile = (meta.streamingProfile as string) || 'unknown';
+        profileDist[profile] = (profileDist[profile] || 0) + 1;
+      }
+    }
+
+    return {
+      codecDistribution: codecDist,
+      resolutionDistribution: resDist,
+      profileDistribution: profileDist,
+      connectionTypeDistribution: connDist,
+      avgBitrateKbps: statsCount > 0 ? Math.round(totalBitrate / statsCount) : 0,
+      avgPacketLossPercent: statsCount > 0 ? Math.round((totalLoss / statsCount) * 100) / 100 : 0,
+      avgRttMs: statsCount > 0 ? Math.round(totalRtt / statsCount) : 0,
+      avgJitterMs: statsCount > 0 ? Math.round((totalJitter / statsCount) * 100) / 100 : 0,
+      totalSessionsAnalyzed: sessions.length,
+    };
+  }
+
+  // -----------------------------------------------------------------------
+  // Client Insights
+  // -----------------------------------------------------------------------
+
+  async getClientInsights(): Promise<ClientInsightsDto> {
+    const last30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const sessions = await this.prisma.session.findMany({
+      where: { startedAt: { gte: last30d } },
+      select: {
+        metadata: true,
+        status: true,
+        startedAt: true,
+        endedAt: true,
+        userId: true,
+      },
+    });
+
+    const platformDist: Record<string, number> = {};
+    const platformFailed: Record<string, number> = {};
+    const platformTotal: Record<string, number> = {};
+    const decoderDist: Record<string, number> = {};
+    const platformDuration: Record<string, number[]> = {};
+    const uniqueUsers = new Set<string>();
+
+    for (const s of sessions) {
+      const meta = s.metadata as Record<string, unknown> | null;
+      const clientCaps = meta?.clientCapabilities as Record<string, unknown> | undefined;
+      const platform = (clientCaps?.platform as string) || 'unknown';
+
+      platformDist[platform] = (platformDist[platform] || 0) + 1;
+      platformTotal[platform] = (platformTotal[platform] || 0) + 1;
+      uniqueUsers.add(s.userId);
+
+      if (s.status === SessionStatus.FAILED) {
+        platformFailed[platform] = (platformFailed[platform] || 0) + 1;
+      }
+
+      // Decoder support
+      const decoders = (clientCaps?.decoders as string[]) || [];
+      for (const d of decoders) {
+        decoderDist[d] = (decoderDist[d] || 0) + 1;
+      }
+
+      // Session duration
+      if (s.endedAt && s.startedAt) {
+        const durationSec = (new Date(s.endedAt).getTime() - new Date(s.startedAt).getTime()) / 1000;
+        if (!platformDuration[platform]) platformDuration[platform] = [];
+        platformDuration[platform].push(durationSec);
+      }
+    }
+
+    // Calculate failure rates
+    const failureRateByPlatform: Record<string, number> = {};
+    for (const [platform, total] of Object.entries(platformTotal)) {
+      const failed = platformFailed[platform] || 0;
+      failureRateByPlatform[platform] = total > 0 ? Math.round((failed / total) * 10000) / 100 : 0;
+    }
+
+    // Calculate average duration
+    const avgSessionDurationByPlatform: Record<string, number> = {};
+    for (const [platform, durations] of Object.entries(platformDuration)) {
+      const avg = durations.reduce((a, b) => a + b, 0) / durations.length;
+      avgSessionDurationByPlatform[platform] = Math.round(avg);
+    }
+
+    return {
+      platformDistribution: platformDist,
+      failureRateByPlatform,
+      decoderSupport: decoderDist,
+      avgSessionDurationByPlatform,
+      totalClients: uniqueUsers.size,
+    };
+  }
+
+  // -----------------------------------------------------------------------
+  // Error Dashboard
+  // -----------------------------------------------------------------------
+
+  async getErrorSummary(): Promise<ErrorSummaryDto> {
+    const last7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const failedSessions = await this.prisma.session.findMany({
+      where: {
+        status: SessionStatus.FAILED,
+        startedAt: { gte: last7d },
+      },
+      include: {
+        host: { select: { name: true, gpuInfo: true } },
+      },
+      orderBy: { startedAt: 'desc' },
+      take: 100,
+    });
+
+    const errorsByType: Record<string, number> = {};
+    const errorsByGpu: Record<string, number> = {};
+    const recentErrors: ErrorEntryDto[] = [];
+
+    for (const s of failedSessions) {
+      const meta = s.metadata as Record<string, unknown> | null;
+      const errorType = (meta?.disconnectReason as string) || (meta?.errorType as string) || 'unknown';
+      const errorMessage = (meta?.errorMessage as string) || null;
+      const clientCaps = meta?.clientCapabilities as Record<string, unknown> | undefined;
+      const qosStats = meta?.qosStats as Record<string, unknown> | undefined;
+
+      errorsByType[errorType] = (errorsByType[errorType] || 0) + 1;
+
+      const gpu = s.host?.gpuInfo || 'unknown';
+      errorsByGpu[gpu] = (errorsByGpu[gpu] || 0) + 1;
+
+      if (recentErrors.length < 20) {
+        recentErrors.push({
+          id: s.id,
+          sessionId: s.id,
+          hostName: s.host?.name || null,
+          gpuInfo: s.host?.gpuInfo || null,
+          errorType,
+          errorMessage,
+          occurredAt: s.startedAt,
+          platform: (clientCaps?.platform as string) || null,
+          codec: (qosStats?.codec as string) || null,
+        });
+      }
+    }
+
+    return {
+      totalErrors: failedSessions.length,
+      errorsByType,
+      errorsByGpu,
+      recentErrors,
+    };
   }
 
   // -----------------------------------------------------------------------

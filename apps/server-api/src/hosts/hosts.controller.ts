@@ -6,7 +6,7 @@ import {
   Delete,
   Param,
   Body,
-  UseGuards,
+  Headers,
   ParseUUIDPipe,
   Query,
 } from '@nestjs/common';
@@ -17,8 +17,8 @@ import {
   ApiOkResponse,
   ApiCreatedResponse,
   ApiQuery,
+  ApiHeader,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtPayload } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { HostsService } from './hosts.service';
@@ -38,7 +38,7 @@ export class HostsController {
 
   /**
    * Host agent calls this to register itself using a bootstrap token.
-   * No JWT required -- the bootstrap token serves as the credential.
+   * No JWT required — the bootstrap token serves as the credential.
    */
   @Post('hosts/register')
   @Public()
@@ -50,52 +50,59 @@ export class HostsController {
 
   /**
    * List all registered hosts in the given organisation.
+   * SECURITY: Verifies the requesting user is a member of the org.
    */
   @Get('hosts')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "List hosts in user's org" })
   @ApiQuery({ name: 'orgId', required: true })
   @ApiOkResponse({ type: [HostResponseDto] })
   async list(
     @Query('orgId', ParseUUIDPipe) orgId: string,
+    @CurrentUser() user: JwtPayload,
   ): Promise<HostResponseDto[]> {
-    return this.hostsService.getHostsForOrg(orgId);
+    return this.hostsService.getHostsForOrg(orgId, user.sub);
   }
 
   /**
    * Get a single host by ID.
+   * SECURITY: Verifies the requesting user is a member of the host's org.
    */
   @Get('hosts/:id')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get host by ID' })
   @ApiOkResponse({ type: HostResponseDto })
   async getById(
     @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtPayload,
   ): Promise<HostResponseDto> {
-    return this.hostsService.getHost(id);
+    return this.hostsService.getHost(id, user.sub);
   }
 
   /**
    * Host agent heartbeat.
+   * SECURITY: Authenticated via X-Host-API-Token header (issued during registration).
+   * This uses @Public() to bypass JWT (host agents don't have user JWTs),
+   * but the service validates the host-specific API token.
    */
   @Post('hosts/:id/heartbeat')
   @Public()
   @ApiOperation({ summary: 'Host agent heartbeat' })
+  @ApiHeader({ name: 'X-Host-API-Token', required: true, description: 'Host API token from registration' })
   @ApiOkResponse({ type: HostResponseDto })
   async heartbeat(
     @Param('id', ParseUUIDPipe) id: string,
+    @Headers('x-host-api-token') apiToken: string,
     @Body() dto: HeartbeatDto,
   ): Promise<HostResponseDto> {
-    return this.hostsService.heartbeat(id, dto);
+    return this.hostsService.heartbeat(id, apiToken, dto);
   }
 
   /**
    * Update host metadata (name, status, etc.).
+   * SECURITY: Verifies user is a member of the host's org (checked in service).
    */
   @Patch('hosts/:id')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update host metadata' })
   @ApiOkResponse({ type: HostResponseDto })
@@ -109,9 +116,9 @@ export class HostsController {
 
   /**
    * Deregister (delete) a host.
+   * SECURITY: Requires org ADMIN role (checked in service).
    */
   @Delete('hosts/:id')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Deregister a host' })
   async deregister(
@@ -123,9 +130,9 @@ export class HostsController {
 
   /**
    * Admin generates a bootstrap token for the organisation.
+   * SECURITY: Requires org ADMIN role (checked in service).
    */
   @Post('orgs/:orgId/hosts/bootstrap-token')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Generate a bootstrap token for host registration' })
   @ApiCreatedResponse({ type: BootstrapTokenResponseDto })

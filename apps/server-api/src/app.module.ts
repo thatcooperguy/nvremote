@@ -6,6 +6,7 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaService } from './common/prisma.service';
 import { SessionTimeoutService } from './common/session-timeout.service';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { AuthModule } from './auth/auth.module';
 import { OrgsModule } from './orgs/orgs.module';
 import { HostsModule } from './hosts/hosts.module';
@@ -73,6 +74,15 @@ import { TunnelModule } from './tunnel/tunnel.module';
   providers: [
     PrismaService,
     SessionTimeoutService,
+
+    // SECURITY: Global JWT authentication — ALL endpoints require a valid JWT
+    // unless explicitly marked with @Public(). This is "default-closed" security:
+    // any new endpoint is automatically protected. Use @Public() decorator only
+    // for truly public routes (OAuth callbacks, host registration, health checks).
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
 
     // Apply rate limiting globally to all HTTP endpoints
     {

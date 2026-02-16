@@ -36,13 +36,14 @@ enum SessionStatus {
 // ---------------------------------------------------------------------------
 
 model User {
-  id        String   @id @default(uuid()) @db.Uuid
-  email     String   @unique
-  name      String?
-  avatarUrl String?
-  googleId  String?  @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  name         String?
+  avatarUrl    String?
+  googleId     String?  @unique
+  isSuperAdmin Boolean  @default(false) // Platform owner — only set via DB migration or seed
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   orgMemberships OrgMember[]
   sessions       Session[]
@@ -61,6 +62,13 @@ model Org {
   name      String
   slug      String   @unique
   createdAt DateTime @default(now())
+
+  // Enterprise SSO / AD integration (Phase: future)
+  authProvider   String? // "google" | "saml" | "azure-ad" | "okta" — null means Google OAuth only
+  samlEntityId   String? // SAML IdP entity ID for this org
+  samlSsoUrl     String? // SAML IdP SSO URL
+  samlCert       String? // SAML IdP X.509 certificate (PEM)
+  allowedDomains String? // Comma-separated email domains that auto-join this org (e.g. "acme.com,acme.org")
 
   members   OrgMember[]
   hosts     Host[]
@@ -102,6 +110,7 @@ model Host {
   nvstreamerPorts   Json?
   bootstrapToken    String?
   bootstrapTokenExpiresAt DateTime?
+  apiToken          String?  @unique // Persistent API token for host agent auth (heartbeats, etc.)
   lastSeenAt        DateTime?
   createdAt         DateTime   @default(now())
 

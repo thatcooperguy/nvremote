@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Loader2,
   Building2,
+  Lock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { authFetch, getStoredUser, logout, type AuthUser } from '@/lib/auth';
@@ -373,6 +374,44 @@ export default function SettingsPage() {
           </div>
         </motion.div>
       )}
+
+      {/* Security */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.19 }}
+        className="gradient-border p-5 sm:p-6"
+      >
+        <h2 className="text-base font-semibold text-gray-900 mb-5">Security</h2>
+        <div className="flex items-center justify-between">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0">
+              <Lock className="w-5 h-5 text-gray-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-gray-900">
+                  Two-Factor Authentication
+                </p>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-500 border border-gray-200">
+                  Not enabled
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                Add an extra layer of security with TOTP-based two-factor
+                authentication
+              </p>
+            </div>
+          </div>
+          <button
+            disabled
+            className="shrink-0 inline-flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-400 text-sm font-medium rounded-lg cursor-not-allowed opacity-60"
+          >
+            <Shield className="w-4 h-4" />
+            Enable 2FA (Coming Soon)
+          </button>
+        </div>
+      </motion.div>
 
       {/* Streaming preferences */}
       <motion.div

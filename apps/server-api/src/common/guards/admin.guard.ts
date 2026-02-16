@@ -12,11 +12,25 @@ interface AuthenticatedUser {
 }
 
 /**
- * Guard that restricts access to platform administrators.
+ * Guard that restricts access to platform super-administrators ONLY.
  *
- * A platform admin is any user who holds the ADMIN role in at
- * least one organisation. This is used for the admin dashboard
- * endpoints which provide platform-wide visibility.
+ * A super-admin is a user with `isSuperAdmin = true` in the database.
+ * This flag is ONLY set via direct DB update or migration — it cannot
+ * be self-assigned through any API endpoint.
+ *
+ * SECURITY FIX: Previously, any user who held ADMIN in any org was
+ * treated as a platform admin, which meant anyone who created an org
+ * could see ALL customers' data. Now only the platform owner(s) with
+ * the isSuperAdmin flag can access platform-wide dashboards.
+ *
+ * Protected endpoints:
+ *   - GET /admin/stats — platform-wide statistics
+ *   - GET /admin/sessions — all sessions across all orgs
+ *   - GET /admin/hosts — all hosts across all orgs
+ *   - GET /admin/qos — QoS analytics
+ *   - GET /admin/clients — client insights
+ *   - GET /admin/errors — error dashboard
+ *   - GET /admin/infra — infrastructure status (STUN/TURN)
  */
 @Injectable()
 export class AdminGuard implements CanActivate {
@@ -30,15 +44,15 @@ export class AdminGuard implements CanActivate {
       throw new ForbiddenException('Authentication required');
     }
 
-    const adminMembership = await this.prisma.orgMember.findFirst({
-      where: {
-        userId: user.id,
-        role: 'ADMIN',
-      },
+    const dbUser = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { isSuperAdmin: true },
     });
 
-    if (!adminMembership) {
-      throw new ForbiddenException('Admin access required');
+    if (!dbUser?.isSuperAdmin) {
+      throw new ForbiddenException(
+        'Platform admin access required. This area is restricted to platform operators.',
+      );
     }
 
     return true;

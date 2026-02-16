@@ -4,7 +4,6 @@ import {
   Post,
   Param,
   Body,
-  UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
@@ -15,7 +14,6 @@ import {
   ApiOkResponse,
   ApiCreatedResponse,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtPayload } from '../common/decorators/current-user.decorator';
 import { SessionsService } from './sessions.service';
 import { WebRtcRelayService } from './webrtc-relay.service';
@@ -31,9 +29,10 @@ import {
   IceCandidatesResponseDto,
 } from './dto/webrtc-signaling.dto';
 
+// JWT auth is applied globally via APP_GUARD — no need for @UseGuards(JwtAuthGuard)
+// All endpoints here require a valid JWT (no @Public() decorator)
 @ApiTags('sessions')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('sessions')
 export class SessionsController {
   constructor(

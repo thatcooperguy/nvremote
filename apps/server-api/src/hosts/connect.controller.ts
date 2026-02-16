@@ -3,7 +3,6 @@ import {
   Post,
   Param,
   Body,
-  UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
 import {
@@ -23,7 +22,6 @@ import {
   ArrayMinSize,
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import {
   CurrentUser,
   JwtPayload,
@@ -99,9 +97,9 @@ export class ConnectDto {
  * connection is negotiated asynchronously through ICE candidates relayed
  * over the signaling channel.
  */
+// JWT auth is applied globally via APP_GUARD
 @ApiTags('hosts')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('hosts')
 export class ConnectController {
   constructor(private readonly sessionsService: SessionsService) {}

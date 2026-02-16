@@ -216,8 +216,9 @@ export default function HomePage() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="text-base sm:text-lg text-gray-500 max-w-2xl mx-auto mb-12 leading-relaxed"
             >
-              Stream your NVIDIA-powered desktop to any device. Adaptive quality,
-              enterprise-grade, built for every GPU workload.
+              Stream any NVIDIA GPU — desktops, workstations, Jetson, and DGX
+              Spark — to any device. Adaptive quality, enterprise-grade, built
+              for every workload.
             </motion.p>
 
             {/* CTA Buttons */}
@@ -267,6 +268,7 @@ export default function HomePage() {
                   <HeroStat value="Up to 4K" label="Resolution" />
                   <HeroStat value="Up to 240" label="FPS" />
                   <HeroStat value="H.264/HEVC/AV1" label="Codecs" />
+                  <HeroStat value="x86 + ARM64" label="Platforms" />
                   <HeroStat value="P2P" label="Encrypted" />
                 </div>
               </div>
@@ -309,7 +311,7 @@ export default function HomePage() {
             <FeatureItem
               icon={<Zap size={24} />}
               title="Hardware Accelerated"
-              description="NvFBC capture and NVENC encoding deliver responsive, GPU-powered streaming"
+              description="NvFBC + DRM/KMS capture, NVENC + Multimedia API encoding — from desktop RTX to embedded Jetson to DGX Spark supercomputers"
               delay={0}
             />
             <FeatureItem
@@ -321,7 +323,7 @@ export default function HomePage() {
             <FeatureItem
               icon={<Monitor size={24} />}
               title="Multi-Platform"
-              description="Windows, macOS, Android, and Chrome browser clients"
+              description="Windows, macOS, Android, Chrome, and Linux ARM64 (Jetson, Orin, DGX Spark) clients"
               delay={0.2}
             />
             <FeatureItem
@@ -333,7 +335,7 @@ export default function HomePage() {
             <FeatureItem
               icon={<Building2 size={24} />}
               title="Enterprise Ready"
-              description="Organization management, role-based access, audit logging, and admin dashboard"
+              description="Organization management, role-based access, audit logging, admin dashboard, and edge AI & embedded deployment"
               delay={0.4}
             />
             <FeatureItem

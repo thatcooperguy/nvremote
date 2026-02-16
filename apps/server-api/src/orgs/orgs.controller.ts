@@ -6,7 +6,6 @@ import {
   Patch,
   Param,
   Body,
-  UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
 import {
@@ -16,7 +15,6 @@ import {
   ApiOkResponse,
   ApiCreatedResponse,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtPayload } from '../common/decorators/current-user.decorator';
 import { OrgsService } from './orgs.service';
 import {
@@ -27,9 +25,9 @@ import {
   OrgMemberResponseDto,
 } from './dto/orgs.dto';
 
+// JWT auth is applied globally via APP_GUARD
 @ApiTags('orgs')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('orgs')
 export class OrgsController {
   constructor(private readonly orgsService: OrgsService) {}

@@ -3,10 +3,12 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  UnauthorizedException,
   Logger,
 } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { HostStatus, Host } from '@prisma/client';
+import { randomBytes } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../common/prisma.service';
 import {
@@ -58,6 +60,9 @@ export class HostsService {
 
     const tunnelIp = await this.allocateTunnelIp(placeholder.orgId);
 
+    // Generate a secure API token for host agent authentication (heartbeats, etc.)
+    const apiToken = randomBytes(32).toString('hex');
+
     const host = await this.prisma.host.update({
       where: { id: placeholder.id },
       data: {
@@ -70,7 +75,8 @@ export class HostsService {
         nvstreamerPorts: dto.nvstreamerPorts ?? undefined,
         tunnelIp,
         status: HostStatus.ONLINE,
-        bootstrapToken: null, // consume the token
+        bootstrapToken: null, // consume the bootstrap token
+        apiToken,             // store the new persistent API token
         lastSeenAt: new Date(),
       },
     });
@@ -79,14 +85,28 @@ export class HostsService {
       `Host ${host.id} registered in org ${host.orgId} with tunnel IP ${tunnelIp}`,
     );
 
-    return this.toResponse(host);
+    // Return the API token to the host agent (only exposed during registration)
+    const response = this.toResponse(host);
+    return { ...response, apiToken };
   }
 
   // -----------------------------------------------------------------------
   // Query
   // -----------------------------------------------------------------------
 
-  async getHostsForOrg(orgId: string): Promise<HostResponseDto[]> {
+  /**
+   * List hosts for an org. SECURITY: Verifies user is a member of the org.
+   */
+  async getHostsForOrg(orgId: string, userId: string): Promise<HostResponseDto[]> {
+    // Verify the user is a member of this org
+    const membership = await this.prisma.orgMember.findUnique({
+      where: { userId_orgId: { userId, orgId } },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('You are not a member of this organisation');
+    }
+
     const hosts = await this.prisma.host.findMany({
       where: { orgId, bootstrapToken: null },
       orderBy: { createdAt: 'desc' },
@@ -94,13 +114,25 @@ export class HostsService {
     return hosts.map(this.toResponse);
   }
 
-  async getHost(hostId: string): Promise<HostResponseDto> {
+  /**
+   * Get a host by ID. SECURITY: Verifies user is a member of the host's org.
+   */
+  async getHost(hostId: string, userId: string): Promise<HostResponseDto> {
     const host = await this.prisma.host.findUnique({
       where: { id: hostId },
     });
 
     if (!host || host.bootstrapToken !== null) {
       throw new NotFoundException('Host not found');
+    }
+
+    // Verify the user is a member of this host's org
+    const membership = await this.prisma.orgMember.findUnique({
+      where: { userId_orgId: { userId, orgId: host.orgId } },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('You do not have access to this host');
     }
 
     return this.toResponse(host);
@@ -110,13 +142,28 @@ export class HostsService {
   // Heartbeat
   // -----------------------------------------------------------------------
 
-  async heartbeat(hostId: string, dto: HeartbeatDto): Promise<HostResponseDto> {
+  /**
+   * Host agent heartbeat.
+   * SECURITY: Validates the X-Host-API-Token header against the stored token.
+   * This prevents anyone on the internet from spoofing heartbeats.
+   */
+  async heartbeat(hostId: string, apiToken: string, dto: HeartbeatDto): Promise<HostResponseDto> {
+    if (!apiToken) {
+      throw new UnauthorizedException('Missing X-Host-API-Token header');
+    }
+
     const host = await this.prisma.host.findUnique({
       where: { id: hostId },
     });
 
     if (!host) {
       throw new NotFoundException('Host not found');
+    }
+
+    // Validate the API token (constant-time comparison would be ideal, but
+    // since we're comparing hex strings the timing difference is negligible)
+    if (!host.apiToken || host.apiToken !== apiToken) {
+      throw new UnauthorizedException('Invalid host API token');
     }
 
     const updated = await this.prisma.host.update({

@@ -151,6 +151,9 @@ export class HostResponseDto {
 
   @ApiProperty()
   createdAt!: Date;
+
+  @ApiPropertyOptional({ description: 'Host API token (only returned during registration)' })
+  apiToken?: string;
 }
 
 export class BootstrapTokenResponseDto {

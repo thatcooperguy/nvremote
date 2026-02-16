@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Monitor,
@@ -14,6 +14,8 @@ import {
   AlertTriangle,
   ExternalLink,
   Check,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { cn } from '@/lib/utils';
@@ -91,10 +93,28 @@ const sectionFade = {
 };
 
 /* -------------------------------------------------------------------------- */
+/*  Availability Check                                                         */
+/* -------------------------------------------------------------------------- */
+
+type DownloadAvailability = 'available' | 'unavailable' | 'checking';
+
+async function checkFileAvailability(
+  url: string
+): Promise<DownloadAvailability> {
+  try {
+    const res = await fetch(url, { method: 'HEAD', mode: 'cors' });
+    return res.ok ? 'available' : 'unavailable';
+  } catch {
+    return 'unavailable';
+  }
+}
+
+/* -------------------------------------------------------------------------- */
 /*  Data Types                                                                 */
 /* -------------------------------------------------------------------------- */
 
 interface DownloadItem {
+  id: string;
   platform: string;
   ext: string;
   icon: React.ReactNode;
@@ -112,6 +132,7 @@ interface DownloadItem {
 
 const hostDownloads: DownloadItem[] = [
   {
+    id: 'windows-host',
     platform: 'Windows Host',
     ext: '.zip',
     icon: <Monitor className="w-6 h-6" />,
@@ -121,6 +142,7 @@ const hostDownloads: DownloadItem[] = [
     href: `${BASE_URL}/NVRemoteHost-${VERSION}-win64.zip`,
   },
   {
+    id: 'linux-host-x64',
     platform: 'Linux Host (x86_64)',
     ext: '.tar.gz',
     icon: <Laptop className="w-6 h-6" />,
@@ -130,6 +152,7 @@ const hostDownloads: DownloadItem[] = [
     href: `${BASE_URL}/NVRemoteHost-${VERSION}-linux-amd64.tar.gz`,
   },
   {
+    id: 'linux-host-arm64',
     platform: 'Linux Host (ARM64)',
     ext: '.tar.gz',
     icon: <Laptop className="w-6 h-6" />,
@@ -139,6 +162,7 @@ const hostDownloads: DownloadItem[] = [
     href: `${BASE_URL}/NVRemoteHost-${VERSION}-linux-arm64.tar.gz`,
   },
   {
+    id: 'macos-host',
     platform: 'macOS Host',
     ext: '.pkg',
     icon: <AppleIcon className="w-6 h-6" />,
@@ -157,6 +181,7 @@ const hostDownloads: DownloadItem[] = [
 
 const clientDownloads: DownloadItem[] = [
   {
+    id: 'windows-client',
     platform: 'Windows Client',
     ext: '.exe',
     icon: <Monitor className="w-6 h-6" />,
@@ -166,6 +191,7 @@ const clientDownloads: DownloadItem[] = [
     href: `${BASE_URL}/NVRemote-${VERSION.replace('v', '')}-Setup.exe`,
   },
   {
+    id: 'macos-client',
     platform: 'macOS Client',
     ext: '.dmg',
     icon: <AppleIcon className="w-6 h-6" />,
@@ -175,6 +201,7 @@ const clientDownloads: DownloadItem[] = [
     href: `${BASE_URL}/NVRemote-${VERSION.replace('v', '')}-universal.dmg`,
   },
   {
+    id: 'linux-client-x64',
     platform: 'Linux Client (x86_64)',
     ext: '.AppImage',
     icon: <Laptop className="w-6 h-6" />,
@@ -184,6 +211,7 @@ const clientDownloads: DownloadItem[] = [
     href: `${BASE_URL}/NVRemote-${VERSION.replace('v', '')}-x86_64.AppImage`,
   },
   {
+    id: 'linux-client-arm64',
     platform: 'Linux Client (ARM64)',
     ext: '.AppImage',
     icon: <Laptop className="w-6 h-6" />,
@@ -193,6 +221,7 @@ const clientDownloads: DownloadItem[] = [
     href: `${BASE_URL}/NVRemote-${VERSION.replace('v', '')}-arm64.AppImage`,
   },
   {
+    id: 'android-client',
     platform: 'Android Client',
     ext: '.apk',
     icon: <Smartphone className="w-6 h-6" />,
@@ -202,6 +231,7 @@ const clientDownloads: DownloadItem[] = [
     href: `${BASE_URL}/NVRemote-${VERSION}.apk`,
   },
   {
+    id: 'web-client',
     platform: 'Web Client',
     ext: '',
     icon: <Globe className="w-6 h-6" />,
@@ -221,14 +251,18 @@ const clientDownloads: DownloadItem[] = [
 function DownloadCardFull({
   item,
   index,
+  availability,
 }: {
   item: DownloadItem;
   index: number;
+  availability: DownloadAvailability;
 }) {
   const [copied, setCopied] = useState(false);
+  const isAvailable = availability === 'available' && !item.comingSoon && !item.disabled;
+  const isChecking = availability === 'checking';
 
   const handleCopyLink = () => {
-    if (item.disabled) return;
+    if (!isAvailable) return;
     navigator.clipboard.writeText(item.href).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -244,7 +278,7 @@ function DownloadCardFull({
       viewport={{ once: true, margin: '-40px' }}
       className={cn(
         'gradient-border gradient-border-hover group relative overflow-hidden p-6 flex flex-col h-full transition-all duration-500',
-        item.disabled
+        item.disabled || item.comingSoon
           ? 'opacity-50 pointer-events-none'
           : 'hover:-translate-y-1 hover:shadow-card-hover'
       )}
@@ -279,14 +313,32 @@ function DownloadCardFull({
         </div>
       </div>
 
-      {/* Version + Alpha badges */}
-      <div className="flex items-center gap-2 mb-5">
+      {/* Version + Alpha + Status badges */}
+      <div className="flex flex-wrap items-center gap-2 mb-5">
         <span className="px-2.5 py-1 rounded-md bg-cs-green/[0.08] border border-cs-green/15 text-xs font-mono font-medium text-cs-green">
           {item.version}
         </span>
         <span className="px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-xs font-medium text-amber-600">
           Alpha
         </span>
+        {!item.comingSoon && isAvailable && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cs-green/10 border border-cs-green/20 text-[10px] font-semibold text-cs-green">
+            <Check className="w-3 h-3" />
+            Available
+          </span>
+        )}
+        {!item.comingSoon && availability === 'unavailable' && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-100 border border-gray-200 text-[10px] font-semibold text-gray-500">
+            <AlertCircle className="w-3 h-3" />
+            Build pending
+          </span>
+        )}
+        {isChecking && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-50 border border-gray-200 text-[10px] font-semibold text-gray-400">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            Checking
+          </span>
+        )}
       </div>
 
       {/* File size */}
@@ -310,7 +362,7 @@ function DownloadCardFull({
             <Globe className="w-4 h-4" />
             Coming Soon
           </button>
-        ) : (
+        ) : isAvailable ? (
           <Button
             href={item.href}
             variant="primary"
@@ -320,11 +372,28 @@ function DownloadCardFull({
             <FileText className="w-4 h-4" />
             Download
           </Button>
+        ) : (
+          <button
+            disabled
+            className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold rounded-xl bg-gray-50 border border-gray-200 text-gray-400 cursor-not-allowed"
+          >
+            {isChecking ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Checking...
+              </>
+            ) : (
+              <>
+                <AlertCircle className="w-4 h-4" />
+                Build Pending
+              </>
+            )}
+          </button>
         )}
       </div>
 
       {/* Copy Link button */}
-      {!item.comingSoon && (
+      {!item.comingSoon && isAvailable && (
         <button
           onClick={handleCopyLink}
           className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-gray-200 text-gray-600 hover:text-gray-900 hover:border-cs-green/30 hover:bg-cs-green/5 transition-all duration-200"
@@ -343,6 +412,19 @@ function DownloadCardFull({
         </button>
       )}
 
+      {/* Build from source note for unavailable */}
+      {!item.comingSoon && !isAvailable && !isChecking && (
+        <a
+          href={GITHUB_RELEASES}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-gray-200 text-gray-600 hover:text-gray-900 hover:border-cs-green/30 hover:bg-cs-green/5 transition-all duration-200"
+        >
+          <ExternalLink className="w-4 h-4" />
+          View on GitHub
+        </a>
+      )}
+
       {/* SHA256 hash */}
       {item.sha256 && (
         <div className="mt-4 pt-4 border-t border-gray-200/60">
@@ -354,7 +436,7 @@ function DownloadCardFull({
       )}
 
       {/* Release Notes link */}
-      {!item.comingSoon && (
+      {!item.comingSoon && isAvailable && (
         <a
           href="https://github.com/thatcooperguy/nvstreamer/releases"
           target="_blank"
@@ -374,6 +456,36 @@ function DownloadCardFull({
 /* -------------------------------------------------------------------------- */
 
 export default function DownloadsPage() {
+  const allDownloads = [...hostDownloads, ...clientDownloads];
+  const [availability, setAvailability] = useState<
+    Record<string, DownloadAvailability>
+  >(() => {
+    const init: Record<string, DownloadAvailability> = {};
+    for (const item of allDownloads) {
+      init[item.id] = item.comingSoon || item.disabled ? 'unavailable' : 'checking';
+    }
+    return init;
+  });
+
+  const checkAvailability = useCallback(async () => {
+    const results: Record<string, DownloadAvailability> = {};
+    await Promise.all(
+      allDownloads.map(async (item) => {
+        if (item.comingSoon || item.disabled) {
+          results[item.id] = 'unavailable';
+          return;
+        }
+        results[item.id] = await checkFileAvailability(item.href);
+      })
+    );
+    setAvailability(results);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    checkAvailability();
+  }, [checkAvailability]);
+
   return (
     <>
       {/* ================================================================ */}
@@ -408,6 +520,46 @@ export default function DownloadsPage() {
       </section>
 
       {/* ================================================================ */}
+      {/*  ALPHA NOTICE BANNER                                             */}
+      {/* ================================================================ */}
+      {Object.values(availability).every(
+        (v) => v === 'unavailable' || v === 'checking'
+      ) &&
+        !Object.values(availability).some((v) => v === 'checking') && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="section-padding -mb-8"
+          >
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-start gap-4 px-6 py-4 rounded-xl bg-amber-50/80 border border-amber-200">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-bold text-amber-700 mb-1">
+                    Alpha Release &mdash; Binaries Not Yet Published
+                  </h3>
+                  <p className="text-sm text-amber-700/80 leading-relaxed">
+                    NVRemote is in active development. Release binaries will be
+                    available after the next tagged release. In the meantime, you
+                    can{' '}
+                    <a
+                      href={GITHUB_RELEASES}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:text-amber-900 font-medium"
+                    >
+                      build from source on GitHub
+                    </a>
+                    .
+                  </p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+      {/* ================================================================ */}
       {/*  HOST DOWNLOADS                                                  */}
       {/* ================================================================ */}
       <section className="section-padding py-16 sm:py-20 relative">
@@ -438,7 +590,7 @@ export default function DownloadsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {hostDownloads.map((item, i) => (
-              <DownloadCardFull key={item.platform} item={item} index={i} />
+              <DownloadCardFull key={item.id} item={item} index={i} availability={availability[item.id] || 'checking'} />
             ))}
           </div>
         </div>
@@ -498,7 +650,7 @@ export default function DownloadsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {clientDownloads.map((item, i) => (
-              <DownloadCardFull key={item.platform} item={item} index={i} />
+              <DownloadCardFull key={item.id} item={item} index={i} availability={availability[item.id] || 'checking'} />
             ))}
           </div>
 

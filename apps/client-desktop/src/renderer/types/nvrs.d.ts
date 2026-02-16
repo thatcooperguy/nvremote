@@ -186,6 +186,11 @@ interface NvrsApi {
   tray: {
     updateDisconnect: (enabled: boolean) => void;
   };
+
+  platform: {
+    os: 'win32' | 'darwin' | 'linux';
+    nativeStreamingSupported: boolean;
+  };
 }
 
 // ---------------------------------------------------------------------------

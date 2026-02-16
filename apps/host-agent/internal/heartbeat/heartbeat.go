@@ -49,9 +49,10 @@ type HeartbeatPayload struct {
 // This function blocks until ctx is done.
 func StartHeartbeat(ctx context.Context, cfg *config.Config, hostID string, streamerMgr *streamer.Manager, sigHandler *p2p.SignalingHandler) {
 	// Start the WebSocket signaling connection in the background.
+	// Use the API token from registration (falls back to bootstrap if unavailable).
 	go func() {
 		wsURL := buildWebSocketURL(cfg.ControlPlaneURL, hostID)
-		token := cfg.BootstrapToken
+		token := cfg.AuthToken()
 		if err := ConnectSignaling(ctx, wsURL, hostID, token, sigHandler); err != nil {
 			slog.Error("WebSocket signaling connection ended", "error", err)
 		}
@@ -146,7 +147,7 @@ func sendHeartbeat(ctx context.Context, client *http.Client, cfg *config.Config,
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+cfg.BootstrapToken)
+	req.Header.Set("Authorization", "Bearer "+cfg.AuthToken())
 
 	resp, err := client.Do(req)
 	if err != nil {

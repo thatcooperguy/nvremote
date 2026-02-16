@@ -96,6 +96,10 @@ func (h *SignalingHandler) HandleSessionOffer(conn *websocket.Conn, offer Sessio
 		if err := h.streamerManager.StopSession(h.currentSession.SessionID); err != nil {
 			slog.Warn("failed to stop existing session", "error", err)
 		}
+		// Release UDP sockets held by the previous ICE agent.
+		if h.iceAgent != nil {
+			h.iceAgent.Close()
+		}
 	}
 
 	// Create new session state.
@@ -280,6 +284,12 @@ func (h *SignalingHandler) HandleSessionEnd(sessionID string) error {
 
 	if err := h.streamerManager.StopSession(sessionID); err != nil {
 		slog.Warn("failed to stop streamer session", "error", err)
+	}
+
+	// Release UDP sockets held by the ICE agent for this session.
+	if h.iceAgent != nil {
+		h.iceAgent.Close()
+		h.iceAgent = nil
 	}
 
 	h.currentSession.State = "closed"

@@ -71,9 +71,12 @@ type IceCandidate struct {
 
 // IceAgent gathers ICE candidates by enumerating local network interfaces and
 // performing STUN binding requests to discover server-reflexive candidates.
+// It keeps allocated UDP sockets open so the OS doesn't reclaim the ports
+// before connectivity checks can use them.
 type IceAgent struct {
 	stunServers []string
 	candidates  []IceCandidate
+	sockets     []*net.UDPConn // Keep sockets alive to hold ports
 }
 
 // NewIceAgent creates a new ICE agent with the given STUN server addresses.
@@ -84,11 +87,25 @@ func NewIceAgent(stunServers []string) *IceAgent {
 	}
 }
 
+// Close releases all UDP sockets held by the ICE agent. Call this when the
+// session ends and the ports are no longer needed.
+func (a *IceAgent) Close() {
+	for _, conn := range a.sockets {
+		if conn != nil {
+			conn.Close()
+		}
+	}
+	a.sockets = nil
+	slog.Debug("ICE agent: released all held UDP sockets")
+}
+
 // GatherCandidates discovers all available ICE candidates: local (host) candidates
 // from network interfaces and server-reflexive candidates via STUN binding.
 // Returns candidates sorted by priority (highest first).
+// The agent keeps the allocated UDP sockets open — call Close() when done.
 func (a *IceAgent) GatherCandidates() ([]IceCandidate, error) {
 	a.candidates = nil
+	a.sockets = nil
 
 	// Gather host candidates from local network interfaces.
 	hostCandidates := a.getLocalCandidates()
@@ -157,11 +174,13 @@ func (a *IceAgent) getLocalCandidates() []IceCandidate {
 			}
 
 			// Allocate a local UDP port for this candidate.
-			localPort, err := allocateUDPPort(ip.String())
+			// The socket is kept open so the OS doesn't reclaim the port.
+			conn, localPort, err := allocateUDPPort(ip.String())
 			if err != nil {
 				slog.Debug("failed to allocate UDP port", "ip", ip.String(), "error", err)
 				continue
 			}
+			a.sockets = append(a.sockets, conn)
 
 			foundationIndex++
 			candidate := IceCandidate{
@@ -507,21 +526,20 @@ func computePriority(candidateType string, index int) uint32 {
 	return (typePreference << 24) + (localPreference << 8) + (256 - componentID)
 }
 
-// allocateUDPPort binds a UDP socket on the given IP and returns the allocated port.
-// The socket is immediately closed; the port is used as the candidate port.
-// In a real implementation, the socket would be kept open for connectivity checks.
-func allocateUDPPort(ip string) (int, error) {
+// allocateUDPPort binds a UDP socket on the given IP and returns both the
+// connection (kept open to hold the port) and the allocated port number.
+// The caller is responsible for closing the connection when done.
+func allocateUDPPort(ip string) (*net.UDPConn, int, error) {
 	addr, err := net.ResolveUDPAddr("udp4", ip+":0")
 	if err != nil {
-		return 0, fmt.Errorf("resolving UDP address: %w", err)
+		return nil, 0, fmt.Errorf("resolving UDP address: %w", err)
 	}
 
 	conn, err := net.ListenUDP("udp4", addr)
 	if err != nil {
-		return 0, fmt.Errorf("binding UDP socket: %w", err)
+		return nil, 0, fmt.Errorf("binding UDP socket: %w", err)
 	}
-	defer conn.Close()
 
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	return localAddr.Port, nil
+	return conn, localAddr.Port, nil
 }

@@ -173,6 +173,16 @@ func runAgent(ctx context.Context, cfg *config.Config) error {
 		slog.Info("loaded existing registration", "hostId", reg.HostID)
 	}
 
+	// Promote the API token from registration to the config so all subsequent
+	// API calls (heartbeat, WebSocket signaling) use the long-lived api_token
+	// instead of the one-time bootstrap_token.
+	if reg.APIToken != "" {
+		cfg.APIToken = reg.APIToken
+		slog.Debug("using api_token from registration for subsequent API calls")
+	} else {
+		slog.Warn("registration did not include api_token, falling back to bootstrap_token")
+	}
+
 	// Step 3: Start nvremote-host in standby mode.
 	// Unlike the old flow, there is no WireGuard tunnel to set up.
 	// P2P connectivity is established per-session via ICE signaling.

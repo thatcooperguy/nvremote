@@ -50,6 +50,11 @@ type Config struct {
 	// LogLevel controls the logging verbosity (debug, info, warn, error).
 	LogLevel string `mapstructure:"log_level" yaml:"log_level"`
 
+	// APIToken is the long-lived token received from the control plane after
+	// registration. It replaces the bootstrap_token for all subsequent API calls.
+	// This is set at runtime (not from config file) after registration completes.
+	APIToken string `mapstructure:"-" yaml:"-"`
+
 	// --- Deprecated fields (kept for backward compatibility during migration) ---
 
 	// NvstreamerPath is the file path to the nvstreamer.exe binary.
@@ -161,6 +166,16 @@ func Load(configPath string) (*Config, error) {
 	}
 
 	return &cfg, nil
+}
+
+// AuthToken returns the best available auth token: the API token from registration
+// if available, otherwise the bootstrap token. After registration, api_token
+// should always be used — the bootstrap token is a one-time credential.
+func (c *Config) AuthToken() string {
+	if c.APIToken != "" {
+		return c.APIToken
+	}
+	return c.BootstrapToken
 }
 
 // Validate checks that all required configuration fields are present and well-formed.

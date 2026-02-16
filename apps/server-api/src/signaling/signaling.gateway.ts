@@ -177,10 +177,48 @@ export class SignalingGatewayWs
   /** Map hostId -> socketId for quick lookup */
   private hostSockets = new Map<string, string>();
 
+  /**
+   * Callback for web client SDP answer relay.
+   * Set by WebRtcRelayService on init to avoid circular dependency.
+   */
+  private onWebRtcAnswer?: (sessionId: string, sdp: string, type: string) => void;
+
+  /**
+   * Callback for web client ICE candidate relay (host → web client).
+   * Set by WebRtcRelayService on init.
+   */
+  private onWebRtcHostCandidate?: (
+    sessionId: string,
+    candidate: { candidate: string; sdpMid: string | null; sdpMLineIndex: number | null },
+  ) => void;
+
+  /**
+   * Callback for web client ICE gathering complete.
+   */
+  private onWebRtcHostGatheringComplete?: (sessionId: string) => void;
+
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
   ) {}
+
+  /**
+   * Register callbacks for web client WebRTC relay.
+   * Called by WebRtcRelayService to avoid circular dependency.
+   */
+  registerWebRtcRelayCallbacks(callbacks: {
+    onAnswer: (sessionId: string, sdp: string, type: string) => void;
+    onHostCandidate: (
+      sessionId: string,
+      candidate: { candidate: string; sdpMid: string | null; sdpMLineIndex: number | null },
+    ) => void;
+    onHostGatheringComplete: (sessionId: string) => void;
+  }): void {
+    this.onWebRtcAnswer = callbacks.onAnswer;
+    this.onWebRtcHostCandidate = callbacks.onHostCandidate;
+    this.onWebRtcHostGatheringComplete = callbacks.onHostGatheringComplete;
+    this.logger.log('WebRTC relay callbacks registered');
+  }
 
   // -----------------------------------------------------------------------
   // Connection lifecycle
@@ -910,6 +948,80 @@ export class SignalingGatewayWs
   }
 
   // -----------------------------------------------------------------------
+  // Web client WebRTC relay: host → server → web client (via REST polling)
+  // -----------------------------------------------------------------------
+
+  /**
+   * Host sends an SDP answer in response to a web client's offer.
+   * Relayed to WebRtcRelayService which resolves the pending REST request.
+   */
+  @SubscribeMessage('webrtc:answer')
+  async handleWebRtcAnswer(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { sessionId: string; sdp: string; type: string },
+  ): Promise<{ success: boolean }> {
+    const hostId = client.data.hostId;
+    if (!hostId) throw new WsException('Only host agents can send SDP answers');
+
+    if (this.onWebRtcAnswer) {
+      this.onWebRtcAnswer(payload.sessionId, payload.sdp, payload.type);
+    }
+
+    this.logger.log(
+      `Host ${hostId} sent SDP answer for session ${payload.sessionId}`,
+    );
+
+    return { success: true };
+  }
+
+  /**
+   * Host sends an ICE candidate for a web client session.
+   */
+  @SubscribeMessage('webrtc:host-ice-candidate')
+  async handleWebRtcHostIceCandidate(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: {
+      sessionId: string;
+      candidate: {
+        candidate: string;
+        sdpMid: string | null;
+        sdpMLineIndex: number | null;
+      };
+    },
+  ): Promise<{ success: boolean }> {
+    const hostId = client.data.hostId;
+    if (!hostId) throw new WsException('Only host agents can send ICE candidates');
+
+    if (this.onWebRtcHostCandidate) {
+      this.onWebRtcHostCandidate(payload.sessionId, payload.candidate);
+    }
+
+    return { success: true };
+  }
+
+  /**
+   * Host signals ICE gathering complete for a web client session.
+   */
+  @SubscribeMessage('webrtc:host-ice-complete')
+  async handleWebRtcHostIceComplete(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { sessionId: string },
+  ): Promise<{ success: boolean }> {
+    const hostId = client.data.hostId;
+    if (!hostId) throw new WsException('Only host agents can signal ICE complete');
+
+    if (this.onWebRtcHostGatheringComplete) {
+      this.onWebRtcHostGatheringComplete(payload.sessionId);
+    }
+
+    this.logger.debug(
+      `Host ${hostId} ICE gathering complete for session ${payload.sessionId}`,
+    );
+
+    return { success: true };
+  }
+
+  // -----------------------------------------------------------------------
   // Public methods (called by SessionsService)
   // -----------------------------------------------------------------------
 
@@ -951,5 +1063,44 @@ export class SignalingGatewayWs
     this.logger.log(
       `Notified host ${hostId} that session ${sessionId} ended`,
     );
+  }
+
+  // -----------------------------------------------------------------------
+  // Web client WebRTC relay (REST → Socket.IO bridge)
+  // -----------------------------------------------------------------------
+
+  /**
+   * Relay an SDP offer from a web client to the host agent.
+   * Called by WebRtcRelayService when the web client POSTs an offer.
+   */
+  relayWebClientOffer(
+    hostId: string,
+    data: { sessionId: string; sdp: string; type: string },
+  ): void {
+    this.server.to(`host:${hostId}`).emit('webrtc:offer', data);
+    this.logger.log(
+      `Relayed web client SDP offer to host ${hostId} for session ${data.sessionId}`,
+    );
+  }
+
+  /**
+   * Relay an ICE candidate from a web client to the host agent.
+   * Called by WebRtcRelayService.
+   */
+  relayWebClientIceCandidate(
+    hostId: string,
+    data: {
+      sessionId: string;
+      candidate: {
+        candidate: string;
+        sdpMid: string | null;
+        sdpMLineIndex: number | null;
+      };
+    },
+  ): void {
+    this.server.to(`host:${hostId}`).emit('webrtc:ice-candidate', {
+      ...data,
+      from: 'web-client',
+    });
   }
 }

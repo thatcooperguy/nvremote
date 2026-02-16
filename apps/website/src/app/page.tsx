@@ -216,7 +216,7 @@ export default function HomePage() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="text-base sm:text-lg text-gray-500 max-w-2xl mx-auto mb-12 leading-relaxed"
             >
-              Stream your NVIDIA-powered desktop to any device. Low latency,
+              Stream your NVIDIA-powered desktop to any device. Adaptive quality,
               enterprise-grade, built for every GPU workload.
             </motion.p>
 
@@ -308,8 +308,8 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <FeatureItem
               icon={<Zap size={24} />}
-              title="Low Latency"
-              description="Hardware-accelerated NvFBC capture and NVENC encoding for responsive streaming"
+              title="Hardware Accelerated"
+              description="NvFBC capture and NVENC encoding deliver responsive, GPU-powered streaming"
               delay={0}
             />
             <FeatureItem
@@ -583,7 +583,7 @@ export default function HomePage() {
                 </h3>
                 <p className="text-sm text-gray-500 leading-relaxed mb-6">
                   Install on any device you want to stream to. Connects to your
-                  host for a seamless, low-latency experience.
+                  host for a seamless, high-quality experience.
                 </p>
 
                 {/* Platform icons */}

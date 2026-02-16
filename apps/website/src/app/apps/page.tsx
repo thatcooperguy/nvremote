@@ -76,7 +76,7 @@ const apps: AppEntry[] = [
     name: 'Remote Play',
     status: 'In Development',
     description:
-      'Stream your GPU-powered desktop to any device with low-latency P2P connections.',
+      'Stream your GPU-powered desktop to any device with adaptive-quality P2P connections.',
     icon: <Gamepad2 className="w-6 h-6" />,
   },
   {

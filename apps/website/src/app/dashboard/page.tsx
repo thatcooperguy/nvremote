@@ -220,7 +220,7 @@ export default function DashboardPage() {
           <StepItem
             step={3}
             title="Start Streaming"
-            description="Open the client, sign in, and connect to your host. Your GPU-accelerated desktop will stream with low latency."
+            description="Open the client, sign in, and connect to your host. Your GPU-accelerated desktop will stream with adaptive quality."
             completed={!!stats && stats.totalSessions > 0}
           />
         </div>

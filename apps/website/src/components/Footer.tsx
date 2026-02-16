@@ -95,8 +95,8 @@ export default function Footer() {
             <FooterLogo />
             <p className="text-sm text-gray-400 max-w-xs leading-relaxed mb-6">
               Enterprise-grade GPU streaming. Stream your NVIDIA-powered desktop
-              to any device with low latency, adaptive quality, and P2P encrypted
-              connections.
+              to any device with adaptive quality, hardware encoding, and P2P
+              encrypted connections.
             </p>
 
             {/* Star on GitHub link */}

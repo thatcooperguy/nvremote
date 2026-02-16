@@ -10,13 +10,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'NVREMOTE — Cloud Gaming, Unlocked.',
+  title: 'NVREMOTE — GPU Streaming, Unleashed.',
   description:
-    'One hub. Multiple apps. Secure, low-latency cloud gaming anywhere. Stream with sub-15ms latency, 4K@60 HDR, and P2P encrypted connections powered by NvFBC + NVENC.',
+    'One hub. Multiple apps. Stream your NVIDIA-powered desktop to any device with adaptive quality, up to 4K resolution, up to 240 FPS, and P2P encrypted connections powered by NvFBC + NVENC.',
   keywords: [
-    'cloud gaming',
+    'GPU streaming',
     'game streaming',
-    'low latency',
+    'remote desktop',
     'NVIDIA',
     'NvFBC',
     'NVENC',
@@ -31,23 +31,23 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: 'https://nvremote.com',
     siteName: 'NVRemote',
-    title: 'NVREMOTE — Cloud Gaming, Unlocked.',
+    title: 'NVREMOTE — GPU Streaming, Unleashed.',
     description:
-      'One hub. Multiple apps. Secure, low-latency cloud gaming anywhere. Sub-15ms latency, 4K@60 HDR, 240 FPS, P2P encrypted.',
+      'One hub. Multiple apps. Stream your NVIDIA-powered desktop to any device. Up to 4K, up to 240 FPS, P2P encrypted.',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'NVRemote — Cloud Gaming, Unlocked.',
+        alt: 'NVRemote — GPU Streaming, Unleashed.',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'NVREMOTE — Cloud Gaming, Unlocked.',
+    title: 'NVREMOTE — GPU Streaming, Unleashed.',
     description:
-      'One hub. Multiple apps. Secure, low-latency cloud gaming anywhere.',
+      'One hub. Multiple apps. Stream your NVIDIA-powered desktop to any device.',
     images: ['/og-image.png'],
   },
   robots: {

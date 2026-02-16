@@ -20,6 +20,11 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // Only include ARM ABIs (covers 99%+ of Android phones)
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
     }
 
     signingConfigs {
@@ -78,6 +83,10 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+        // Ensure native libs are stored uncompressed for proper loading
+        jniLibs {
+            useLegacyPackaging = true
         }
     }
 }

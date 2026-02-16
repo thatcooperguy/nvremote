@@ -12,6 +12,8 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Cache-bust arg to force fresh builds when content changes
+ARG CACHEBUST=1
 RUN npm run build
 
 # Production image

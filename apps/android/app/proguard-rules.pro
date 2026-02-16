@@ -58,9 +58,17 @@
 -keep class com.google.android.gms.** { *; }
 -dontwarn com.google.android.gms.**
 
-# WebRTC
+# WebRTC — keep all classes, native methods, and JNI bindings
 -keep class org.webrtc.** { *; }
 -dontwarn org.webrtc.**
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
+
+# Stream WebRTC wrapper library (io.getstream:stream-webrtc-android)
+-keep class io.getstream.webrtc.** { *; }
+-keep class io.getstream.** { *; }
+-dontwarn io.getstream.**
 
 # Coil
 -dontwarn coil.**

@@ -9,6 +9,7 @@ import { SessionsModule } from './sessions/sessions.module';
 import { SignalingModule } from './signaling/signaling.module';
 import { AuditModule } from './audit/audit.module';
 import { AdminModule } from './admin/admin.module';
+import { VpnModule } from './vpn/vpn.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { AdminModule } from './admin/admin.module';
     SignalingModule,
     AuditModule,
     AdminModule,
+    VpnModule,
   ],
   providers: [PrismaService],
   exports: [PrismaService],

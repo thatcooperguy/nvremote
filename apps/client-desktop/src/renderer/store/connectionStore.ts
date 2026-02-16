@@ -19,6 +19,14 @@ export type ConnectionStatus =
 
 export type GamingMode = 'competitive' | 'balanced' | 'cinematic';
 
+/**
+ * Connection mode — determines how the client connects to the host.
+ * - auto: P2P first, automatic TURN fallback (default)
+ * - vpn: NVRemote WireGuard VPN relay (user override)
+ * - custom-vpn: Route through user's existing VPN
+ */
+export type ConnectionMode = 'auto' | 'vpn' | 'custom-vpn';
+
 // ---------------------------------------------------------------------------
 // Stream stats type (mirroring the native viewer stats)
 // ---------------------------------------------------------------------------
@@ -48,6 +56,7 @@ interface ConnectionState {
   connectedHost: Host | null;
   codec: string | null;
   gamingMode: GamingMode;
+  connectionMode: ConnectionMode;
   connectionType: string | null; // 'p2p' or 'relay'
   error: string | null;
   stats: StreamStats | null;
@@ -57,6 +66,7 @@ interface ConnectionState {
   setStatus: (status: ConnectionStatus) => void;
   setError: (error: string | null) => void;
   setGamingMode: (mode: GamingMode) => void;
+  setConnectionMode: (mode: ConnectionMode) => void;
   updateStats: (stats: StreamStats) => void;
 }
 
@@ -178,6 +188,7 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
   connectedHost: null,
   codec: null,
   gamingMode: 'balanced',
+  connectionMode: 'auto',
   connectionType: null,
   error: null,
   stats: null,
@@ -409,6 +420,14 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
         console.error('[ConnectionStore] Failed to apply gaming mode:', err);
       });
     }
+  },
+  setConnectionMode: (mode: ConnectionMode) => {
+    const { status } = get();
+    if (status !== 'disconnected') {
+      console.warn('[ConnectionStore] Cannot change connection mode while connected');
+      return;
+    }
+    set({ connectionMode: mode });
   },
   updateStats: (stats: StreamStats) => set({ stats }),
 }));

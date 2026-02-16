@@ -49,6 +49,9 @@ mac:
         - universal
   artifactName: "NVRemote-${version}-universal.${ext}"
   category: public.app-category.games
+  # Allow shared native resources in universal builds (FFmpeg dylibs,
+  # N-API addons are arch-specific but bundled from a single CI build)
+  x64ArchFiles: "Contents/Resources/resources/**"
 
 dmg:
   title: "NVRemote ${version}"

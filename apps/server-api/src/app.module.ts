@@ -8,6 +8,7 @@ import { HostsModule } from './hosts/hosts.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { SignalingModule } from './signaling/signaling.module';
 import { AuditModule } from './audit/audit.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { AuditModule } from './audit/audit.module';
     SessionsModule,
     SignalingModule,
     AuditModule,
+    AdminModule,
   ],
   providers: [PrismaService],
   exports: [PrismaService],

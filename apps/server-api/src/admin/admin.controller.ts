@@ -1,0 +1,64 @@
+import {
+  Controller,
+  Get,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiOkResponse,
+} from '@nestjs/swagger';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { AdminGuard } from '../common/guards/admin.guard';
+import { AdminService } from './admin.service';
+import {
+  PlatformStatsDto,
+  AdminSessionListDto,
+  AdminSessionQueryDto,
+  AdminHostDto,
+  AdminHostQueryDto,
+} from './dto/admin.dto';
+
+@ApiTags('admin')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, AdminGuard)
+@Controller('admin')
+export class AdminController {
+  constructor(private readonly adminService: AdminService) {}
+
+  /**
+   * Get platform-wide statistics for the admin dashboard.
+   */
+  @Get('stats')
+  @ApiOperation({ summary: 'Get platform statistics (admin only)' })
+  @ApiOkResponse({ type: PlatformStatsDto })
+  async getStats(): Promise<PlatformStatsDto> {
+    return this.adminService.getPlatformStats();
+  }
+
+  /**
+   * List all sessions across the platform with filtering and pagination.
+   */
+  @Get('sessions')
+  @ApiOperation({ summary: 'List all sessions (admin only)' })
+  @ApiOkResponse({ type: AdminSessionListDto })
+  async getSessions(
+    @Query() query: AdminSessionQueryDto,
+  ): Promise<AdminSessionListDto> {
+    return this.adminService.getAdminSessions(query);
+  }
+
+  /**
+   * List all registered hosts across the platform.
+   */
+  @Get('hosts')
+  @ApiOperation({ summary: 'List all hosts (admin only)' })
+  @ApiOkResponse({ type: [AdminHostDto] })
+  async getHosts(
+    @Query() query: AdminHostQueryDto,
+  ): Promise<AdminHostDto[]> {
+    return this.adminService.getAdminHosts(query);
+  }
+}

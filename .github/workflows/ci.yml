@@ -33,6 +33,9 @@ jobs:
       - name: Type check website
         run: cd apps/website && npx tsc --noEmit
 
+      - name: Generate Prisma client
+        run: cd apps/server-api && npx prisma generate
+
       - name: Type check API
         run: cd apps/server-api && npx tsc --noEmit
 

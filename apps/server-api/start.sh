@@ -1,6 +1,5 @@
 #!/bin/sh
-# Start the API server immediately so Cloud Run health checks pass.
-# Run schema sync in the background — Prisma auto-connects on first query anyway.
+# Start the API server immediately.
+# Schema migrations are handled separately via CI/CD or manual runs.
 echo "Starting NVRemote API on PORT=${PORT:-8080}..."
-npx prisma db push --accept-data-loss &
 exec node dist/main.js

@@ -124,13 +124,21 @@ export class TunnelService {
     const expiresAt = new Date(Date.now() + ttl * 1000);
     const protocol = dto.protocol ?? 'wss';
 
-    // Create a scoped JWT for tunnel authentication
+    // Resolve the host's VPN IP from host.hostPorts metadata.
+    // The VPN service writes { vpnIp: "10.100.x.y" } on peer registration.
+    const hostPorts = session.host?.hostPorts as Record<string, unknown> | null;
+    const hostVpnIp = (hostPorts?.vpnIp as string) ?? undefined;
+
+    // Create a scoped JWT for tunnel authentication.
+    // The hostVpnIp is embedded so the gateway proxy can route directly
+    // without a control-plane round-trip.
     const tunnelToken = this.jwtService.sign(
       {
         sub: userId,
         tunnelId,
         sessionId: session.id,
         hostId: session.hostId,
+        hostVpnIp: hostVpnIp ?? '',
         scope: 'tunnel',
         protocol,
       },
@@ -156,9 +164,6 @@ export class TunnelService {
       protocol,
     };
     this.activeTunnels.set(tunnelId, tunnel);
-
-    // Host VPN IP is not stored on the Host model; set to undefined
-    const hostVpnIp: string | undefined = undefined;
 
     // Audit log
     this.logAudit({

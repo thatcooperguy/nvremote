@@ -7,8 +7,10 @@ import {
   nativeImage,
   shell,
   session,
+  dialog,
 } from 'electron';
 import path from 'path';
+import { autoUpdater } from 'electron-updater';
 import { loadViewer, getViewer, isViewerAvailable } from './viewer';
 import type { ViewerConfig, IceCandidate } from './viewer';
 import {
@@ -494,6 +496,71 @@ async function handleDisconnect(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Auto-updater (electron-updater → GitHub Releases)
+// ---------------------------------------------------------------------------
+
+function initAutoUpdater(): void {
+  if (isDev) return; // Skip in development
+
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on('update-available', (info) => {
+    console.log('Update available:', info.version);
+    mainWindow?.webContents.send('update:available', {
+      version: info.version,
+      releaseDate: info.releaseDate,
+    });
+
+    // Prompt user
+    dialog
+      .showMessageBox({
+        type: 'info',
+        title: 'Update Available',
+        message: `NVRemote v${info.version} is available. Download now?`,
+        buttons: ['Download', 'Later'],
+        defaultId: 0,
+      })
+      .then((result) => {
+        if (result.response === 0) {
+          autoUpdater.downloadUpdate();
+          mainWindow?.webContents.send('update:downloading');
+        }
+      });
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    console.log('Update downloaded:', info.version);
+    mainWindow?.webContents.send('update:ready', {
+      version: info.version,
+    });
+
+    dialog
+      .showMessageBox({
+        type: 'info',
+        title: 'Update Ready',
+        message: `NVRemote v${info.version} has been downloaded. Restart to apply?`,
+        buttons: ['Restart Now', 'Later'],
+        defaultId: 0,
+      })
+      .then((result) => {
+        if (result.response === 0) {
+          isQuitting = true;
+          autoUpdater.quitAndInstall();
+        }
+      });
+  });
+
+  autoUpdater.on('error', (err) => {
+    console.error('Auto-update error:', err);
+  });
+
+  // Check for updates 5 seconds after startup, then every 4 hours
+  setTimeout(() => autoUpdater.checkForUpdates(), 5000);
+  setInterval(() => autoUpdater.checkForUpdates(), 4 * 60 * 60 * 1000);
+}
+
+// ---------------------------------------------------------------------------
 // Application lifecycle
 // ---------------------------------------------------------------------------
 
@@ -521,6 +588,7 @@ if (!gotLock) {
     createWindow();
     createTray();
     setupIpcHandlers();
+    initAutoUpdater();
   });
 }
 

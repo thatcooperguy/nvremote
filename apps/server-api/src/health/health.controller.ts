@@ -70,7 +70,7 @@ export class HealthController {
     // Count online hosts
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
     const onlineHostCount = await this.prisma.host
-      .count({ where: { lastHeartbeatAt: { gte: fiveMinAgo } } })
+      .count({ where: { lastSeenAt: { gte: fiveMinAgo } } })
       .catch(() => 0);
 
     // Database health

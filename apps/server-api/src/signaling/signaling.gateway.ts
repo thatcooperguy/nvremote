@@ -580,10 +580,10 @@ export class SignalingGatewayWs
         metadata: {
           ...existingMeta,
           codec: payload.codec,
-          hostCapabilities: payload.capabilities,
+          hostCapabilities: payload.capabilities ?? null,
           hostCandidateCount: payload.candidates?.length ?? 0,
           answeredAt: new Date().toISOString(),
-        },
+        } as Record<string, unknown>,
       },
     });
 

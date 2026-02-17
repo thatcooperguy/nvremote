@@ -573,17 +573,18 @@ export class SignalingGatewayWs
 
     // Mark session as ACTIVE
     const existingMeta = (session.metadata as Record<string, unknown>) ?? {};
+    const updatedMeta = {
+      ...existingMeta,
+      codec: payload.codec,
+      hostCapabilities: payload.capabilities ?? null,
+      hostCandidateCount: payload.candidates?.length ?? 0,
+      answeredAt: new Date().toISOString(),
+    };
     await this.prisma.session.update({
       where: { id: session.id },
       data: {
         status: SessionStatus.ACTIVE,
-        metadata: {
-          ...existingMeta,
-          codec: payload.codec,
-          hostCapabilities: payload.capabilities ?? null,
-          hostCandidateCount: payload.candidates?.length ?? 0,
-          answeredAt: new Date().toISOString(),
-        } as Record<string, unknown>,
+        metadata: updatedMeta as Prisma.InputJsonValue,
       },
     });
 

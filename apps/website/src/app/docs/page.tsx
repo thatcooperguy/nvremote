@@ -146,6 +146,7 @@ const tocItems = [
   { href: '#connect', label: 'Connect' },
   { href: '#streaming-profiles', label: 'Streaming Profiles' },
   { href: '#configuration', label: 'Configuration' },
+  { href: '#api-reference', label: 'API Reference' },
   { href: '#troubleshooting', label: 'Troubleshooting' },
 ];
 
@@ -474,6 +475,170 @@ overlay:
   show_stats: true       # Show latency/FPS overlay
   position: top-left     # Overlay position`}
               </CodeBlock>
+
+              <div className="section-divider my-12" />
+
+              {/* ---- API Reference ---- */}
+              <SectionAnchor id="api-reference">API Reference</SectionAnchor>
+
+              <p className="text-gray-700 mb-6 leading-relaxed">
+                The NVRemote Control Plane API is available at{' '}
+                <code className="text-nv-green bg-nv-green/10 px-1.5 py-0.5 rounded text-xs">
+                  https://api.nvremote.com/api/v1
+                </code>
+                . All endpoints except authentication use Bearer JWT tokens.
+              </p>
+
+              <SubSection id="api-auth">Authentication</SubSection>
+
+              <div className="overflow-x-auto mb-6">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-2 pr-4 text-gray-500 font-medium">Method</th>
+                      <th className="text-left py-2 pr-4 text-gray-500 font-medium">Endpoint</th>
+                      <th className="text-left py-2 text-gray-500 font-medium">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-gray-600">
+                    <tr className="border-b border-gray-100">
+                      <td className="py-2 pr-4"><code className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">GET</code></td>
+                      <td className="py-2 pr-4 font-mono text-xs">/auth/google</td>
+                      <td className="py-2">Initiate Google OAuth login</td>
+                    </tr>
+                    <tr className="border-b border-gray-100">
+                      <td className="py-2 pr-4"><code className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded">POST</code></td>
+                      <td className="py-2 pr-4 font-mono text-xs">/auth/refresh</td>
+                      <td className="py-2">Exchange refresh token for new token pair</td>
+                    </tr>
+                    <tr className="border-b border-gray-100">
+                      <td className="py-2 pr-4"><code className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">GET</code></td>
+                      <td className="py-2 pr-4 font-mono text-xs">/auth/me</td>
+                      <td className="py-2">Get current user profile and preferences</td>
+                    </tr>
+                    <tr className="border-b border-gray-100">
+                      <td className="py-2 pr-4"><code className="text-xs bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded">PATCH</code></td>
+                      <td className="py-2 pr-4 font-mono text-xs">/auth/me</td>
+                      <td className="py-2">Update profile and streaming preferences</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <SubSection id="api-sessions">Sessions</SubSection>
+
+              <div className="overflow-x-auto mb-6">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-2 pr-4 text-gray-500 font-medium">Method</th>
+                      <th className="text-left py-2 pr-4 text-gray-500 font-medium">Endpoint</th>
+                      <th className="text-left py-2 text-gray-500 font-medium">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-gray-600">
+                    <tr className="border-b border-gray-100">
+                      <td className="py-2 pr-4"><code className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">GET</code></td>
+                      <td className="py-2 pr-4 font-mono text-xs">/sessions</td>
+                      <td className="py-2">List sessions for the current user</td>
+                    </tr>
+                    <tr className="border-b border-gray-100">
+                      <td className="py-2 pr-4"><code className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded">POST</code></td>
+                      <td className="py-2 pr-4 font-mono text-xs">/sessions</td>
+                      <td className="py-2">Create a new streaming session</td>
+                    </tr>
+                    <tr className="border-b border-gray-100">
+                      <td className="py-2 pr-4"><code className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">GET</code></td>
+                      <td className="py-2 pr-4 font-mono text-xs">/sessions/:id</td>
+                      <td className="py-2">Get session details with ICE config</td>
+                    </tr>
+                    <tr className="border-b border-gray-100">
+                      <td className="py-2 pr-4"><code className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded">POST</code></td>
+                      <td className="py-2 pr-4 font-mono text-xs">/sessions/:id/offer</td>
+                      <td className="py-2">Send SDP offer for WebRTC signaling</td>
+                    </tr>
+                    <tr className="border-b border-gray-100">
+                      <td className="py-2 pr-4"><code className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded">POST</code></td>
+                      <td className="py-2 pr-4 font-mono text-xs">/sessions/:id/end</td>
+                      <td className="py-2">End a streaming session</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <SubSection id="api-hosts">Hosts</SubSection>
+
+              <div className="overflow-x-auto mb-6">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-2 pr-4 text-gray-500 font-medium">Method</th>
+                      <th className="text-left py-2 pr-4 text-gray-500 font-medium">Endpoint</th>
+                      <th className="text-left py-2 text-gray-500 font-medium">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-gray-600">
+                    <tr className="border-b border-gray-100">
+                      <td className="py-2 pr-4"><code className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">GET</code></td>
+                      <td className="py-2 pr-4 font-mono text-xs">/hosts</td>
+                      <td className="py-2">List registered host machines</td>
+                    </tr>
+                    <tr className="border-b border-gray-100">
+                      <td className="py-2 pr-4"><code className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded">POST</code></td>
+                      <td className="py-2 pr-4 font-mono text-xs">/hosts/register</td>
+                      <td className="py-2">Register a new host (bootstrap token)</td>
+                    </tr>
+                    <tr className="border-b border-gray-100">
+                      <td className="py-2 pr-4"><code className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded">POST</code></td>
+                      <td className="py-2 pr-4 font-mono text-xs">/hosts/heartbeat</td>
+                      <td className="py-2">Send host heartbeat (X-Host-Token header)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <SubSection id="api-monitoring">Monitoring</SubSection>
+
+              <div className="overflow-x-auto mb-6">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-2 pr-4 text-gray-500 font-medium">Method</th>
+                      <th className="text-left py-2 pr-4 text-gray-500 font-medium">Endpoint</th>
+                      <th className="text-left py-2 text-gray-500 font-medium">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-gray-600">
+                    <tr className="border-b border-gray-100">
+                      <td className="py-2 pr-4"><code className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">GET</code></td>
+                      <td className="py-2 pr-4 font-mono text-xs">/health</td>
+                      <td className="py-2">Health check (returns 200 with uptime)</td>
+                    </tr>
+                    <tr className="border-b border-gray-100">
+                      <td className="py-2 pr-4"><code className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">GET</code></td>
+                      <td className="py-2 pr-4 font-mono text-xs">/metrics</td>
+                      <td className="py-2">Prometheus metrics (public)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <CodeBlock title="Example: List your sessions">
+{`curl -H "Authorization: Bearer <access_token>" \\
+  https://api.nvremote.com/api/v1/sessions`}
+              </CodeBlock>
+
+              <InfoBox type="tip">
+                Interactive API documentation is available at{' '}
+                <code className="text-nv-green bg-nv-green/10 px-1 py-0.5 rounded text-xs">
+                  /api/docs
+                </code>{' '}
+                when running the API locally with{' '}
+                <code className="text-nv-green bg-nv-green/10 px-1 py-0.5 rounded text-xs">
+                  ENABLE_SWAGGER=true
+                </code>
+                .
+              </InfoBox>
 
               <div className="section-divider my-12" />
 

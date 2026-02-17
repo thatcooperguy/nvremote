@@ -18,6 +18,14 @@ import {
   Mail,
   CheckCircle2,
   Loader2,
+  Gamepad2,
+  Palette,
+  Brain,
+  Clapperboard,
+  Cpu,
+  GraduationCap,
+  Globe,
+  Apple,
 } from 'lucide-react';
 
 /* -------------------------------------------------------------------------- */
@@ -155,6 +163,64 @@ function StepCard({
         {description}
       </p>
     </motion.div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Use Case Tag                                                               */
+/* -------------------------------------------------------------------------- */
+
+function UseCaseTag({
+  icon,
+  label,
+  detail,
+  delay = 0,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  detail: string;
+  delay?: number;
+}) {
+  return (
+    <motion.div
+      variants={fadeInUp}
+      initial="initial"
+      whileInView="animate"
+      viewport={{ once: true }}
+      transition={{ duration: 0.4, delay }}
+      className="flex items-center gap-3 px-5 py-4 rounded-xl bg-white border border-gray-200/80 hover:border-nv-green/30 hover:shadow-sm transition-all duration-300 group"
+    >
+      <div className="w-9 h-9 rounded-lg bg-nv-green/10 flex items-center justify-center text-nv-green-600 shrink-0 group-hover:bg-nv-green/15 transition-colors duration-300">
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <div className="text-sm font-semibold text-gray-900 tracking-tight">
+          {label}
+        </div>
+        <div className="text-xs text-gray-400 truncate">{detail}</div>
+      </div>
+    </motion.div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Platform Badge                                                             */
+/* -------------------------------------------------------------------------- */
+
+function PlatformBadge({
+  icon,
+  label,
+}: {
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center shadow-sm">
+        {icon}
+      </div>
+      <span className="text-xs font-medium text-gray-500">{label}</span>
+    </div>
   );
 }
 
@@ -371,25 +437,26 @@ export default function HomePage() {
                   <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                 </span>
                 <span className="relative z-10 flex items-center gap-2">
-                  <Zap size={18} />
-                  Get Started
+                  <Download size={18} />
+                  Download
                   <ArrowRight size={16} className="transition-transform duration-300 group-hover/btn:translate-x-1" />
                 </span>
               </Link>
               <Link
-                href="/downloads"
+                href="/docs"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl bg-transparent text-gray-700 border border-gray-300 hover:border-nv-green/50 hover:text-nv-green-600 hover:bg-nv-green/5 transition-all duration-300"
               >
-                <Download size={18} />
-                Download Host
+                Documentation
               </Link>
-              <Link
-                href="/downloads"
+              <a
+                href="https://github.com/thatcooperguy/nvremote"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl bg-transparent text-gray-700 border border-gray-300 hover:border-nv-green/50 hover:text-nv-green-600 hover:bg-nv-green/5 transition-all duration-300"
               >
-                <Monitor size={18} />
-                Download Client
-              </Link>
+                <Github size={18} />
+                GitHub
+              </a>
             </motion.div>
 
             {/* Stats bar */}
@@ -481,6 +548,67 @@ export default function HomePage() {
             />
           </div>
         </div>
+      </section>
+
+      {/* ================================================================== */}
+      {/*  USE CASES                                                         */}
+      {/* ================================================================== */}
+      <section className="section-padding py-24 sm:py-32 relative bg-white">
+        <div className="relative">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
+            <p className="text-xs text-nv-green-600 uppercase tracking-[0.2em] font-semibold mb-4">
+              Use Cases
+            </p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900 mb-5">
+              Built For <span className="text-gradient">Your Workload</span>
+            </h2>
+            <p className="text-gray-500 max-w-lg mx-auto leading-relaxed">
+              From competitive gaming to AI research, NVRemote delivers the
+              GPU power you need — wherever you are.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <UseCaseTag icon={<Gamepad2 size={18} />} label="Gaming" detail="AAA, Esports, Cloud Gaming" delay={0} />
+            <UseCaseTag icon={<Palette size={18} />} label="Creative" detail="Adobe Suite, Blender, Figma" delay={0.05} />
+            <UseCaseTag icon={<Cpu size={18} />} label="Game Dev" detail="Unreal, Unity, Godot" delay={0.1} />
+            <UseCaseTag icon={<Settings2 size={18} />} label="CAD / BIM" detail="SolidWorks, Revit, AutoCAD" delay={0.15} />
+            <UseCaseTag icon={<Brain size={18} />} label="AI / ML" detail="Jupyter, Training Dashboards" delay={0.2} />
+            <UseCaseTag icon={<Clapperboard size={18} />} label="Video" detail="DaVinci, Premiere, After Effects" delay={0.25} />
+            <UseCaseTag icon={<GraduationCap size={18} />} label="Education" detail="GPU Labs, Remote Training" delay={0.3} />
+            <UseCaseTag icon={<Zap size={18} />} label="Edge AI" detail="Jetson, Orin, DGX Spark" delay={0.35} />
+          </div>
+        </div>
+      </section>
+
+      {/* ================================================================== */}
+      {/*  PLATFORM STRIP                                                    */}
+      {/* ================================================================== */}
+      <section className="section-padding py-16 relative bg-nv-surface border-y border-gray-200/60">
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center"
+        >
+          <p className="text-xs text-gray-400 uppercase tracking-[0.2em] font-medium mb-8">
+            Stream from any NVIDIA host to any device
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10">
+            <PlatformBadge icon={<WindowsIcon className="text-blue-500" />} label="Windows" />
+            <PlatformBadge icon={<Apple size={20} className="text-gray-700" />} label="macOS" />
+            <PlatformBadge icon={<Smartphone size={20} className="text-green-600" />} label="Android" />
+            <PlatformBadge icon={<Globe size={20} className="text-indigo-500" />} label="Chrome" />
+            <PlatformBadge icon={<Cpu size={20} className="text-nv-green-600" />} label="Linux ARM" />
+          </div>
+        </motion.div>
       </section>
 
       {/* ================================================================== */}

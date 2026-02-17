@@ -1,0 +1,1163 @@
+###############################################################################
+# NVRemote -- Release Workflow
+#
+# Triggered on tag pushes matching v*.  Builds all platform artifacts and
+# creates a GitHub Release with the resulting binaries.
+#
+# Jobs:
+#   1.  build-native-libs             -- C++17 streaming core (Windows, MSVC + NVENC/FFmpeg)
+#   2.  build-host-agent              -- Go host agent (Windows)
+#   3.  build-host-agent-linux        -- Go host agent (Linux x86_64)
+#   4.  build-host-agent-linux-arm64  -- Go host agent (Linux ARM64 — Jetson/Orin/DGX Spark)
+#   5.  build-host-bundle             -- Zip nvremote-host.exe + NVRemoteAgent.exe (Windows)
+#   6.  build-host-bundle-linux       -- Tar.gz NVRemoteAgent (Linux x86_64)
+#   7.  build-host-bundle-linux-arm64 -- Tar.gz NVRemoteAgent (Linux ARM64)
+#   8.  build-client                  -- Electron desktop client (Windows NSIS installer)
+#   9.  build-client-linux            -- Electron desktop client (Linux x86_64 AppImage)
+#  10.  build-client-linux-arm64      -- Electron desktop client (Linux ARM64 AppImage)
+#  11.  build-client-macos            -- Electron desktop client (macOS DMG)
+#  12.  build-android                 -- Android APK (Kotlin/Compose)
+#  13.  create-release                -- Publish GitHub Release with all artifacts
+###############################################################################
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  NODE_VERSION: "20"
+  GO_VERSION: "1.22"
+
+jobs:
+  ###########################################################################
+  # Job 1: Build C++ native libraries
+  #   Produces: nvremote-host.exe  (GPU streaming host)
+  #             nvremote-viewer.node (N-API addon for Electron)
+  ###########################################################################
+  build-native-libs:
+    name: Build Native Libs (C++17)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup MSVC developer environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Setup Node.js (needed for viewer N-API headers)
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # -------------------------------------------------------------------
+      # vcpkg -- install OpenSSL
+      # -------------------------------------------------------------------
+      - name: Cache vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: C:\vcpkg\installed
+          key: vcpkg-x64-windows-openssl-${{ runner.os }}
+          restore-keys: |
+            vcpkg-x64-windows-openssl-
+
+      - name: Install vcpkg and OpenSSL
+        shell: pwsh
+        run: |
+          # Use the pre-installed vcpkg on the runner if available,
+          # otherwise clone and bootstrap
+          if (Test-Path "C:\vcpkg\vcpkg.exe") {
+            Write-Host "Using pre-installed vcpkg"
+          } else {
+            Write-Host "Cloning vcpkg..."
+            git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
+            C:\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+          }
+          C:\vcpkg\vcpkg.exe install openssl:x64-windows
+          C:\vcpkg\vcpkg.exe integrate install
+          Write-Host "vcpkg OpenSSL installed at C:\vcpkg\installed\x64-windows"
+          # Verify OpenSSL is present
+          if (-not (Test-Path "C:\vcpkg\installed\x64-windows\include\openssl\ssl.h")) {
+            Write-Error "OpenSSL headers not found after vcpkg install"
+            exit 1
+          }
+
+      # -------------------------------------------------------------------
+      # FFmpeg -- download pre-built shared+dev libraries from BtbN
+      # -------------------------------------------------------------------
+      - name: Cache FFmpeg download
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}\ffmpeg
+          key: ffmpeg-btbn-win64-shared-v7.1
+          restore-keys: |
+            ffmpeg-btbn-win64-shared-
+
+      - name: Download FFmpeg shared dev libraries
+        shell: pwsh
+        run: |
+          $ffmpegDir = "$env:RUNNER_TEMP\ffmpeg"
+          if (Test-Path "$ffmpegDir\bin\avcodec*.dll") {
+            Write-Host "FFmpeg already cached at $ffmpegDir"
+          } else {
+            $ffmpegUrl = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-win64-lgpl-shared-7.1.zip"
+            $zipPath = "$env:RUNNER_TEMP\ffmpeg.zip"
+            Write-Host "Downloading FFmpeg from $ffmpegUrl ..."
+            curl.exe -L -o $zipPath $ffmpegUrl --retry 3 --retry-delay 5
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "Failed to download FFmpeg"
+              exit 1
+            }
+            Write-Host "Extracting FFmpeg..."
+            Expand-Archive -Path $zipPath -DestinationPath "$env:RUNNER_TEMP\ffmpeg-extract" -Force
+            # The zip contains a single top-level directory; find and move it.
+            $innerDir = Get-ChildItem "$env:RUNNER_TEMP\ffmpeg-extract" -Directory | Select-Object -First 1
+            if ($null -eq $innerDir) {
+              Write-Error "No directory found inside FFmpeg archive"
+              exit 1
+            }
+            # Remove old target if it exists (partial cache)
+            if (Test-Path $ffmpegDir) { Remove-Item $ffmpegDir -Recurse -Force }
+            Move-Item $innerDir.FullName $ffmpegDir
+            Remove-Item $zipPath -ErrorAction SilentlyContinue
+            Remove-Item "$env:RUNNER_TEMP\ffmpeg-extract" -Recurse -ErrorAction SilentlyContinue
+          }
+          Write-Host "FFmpeg location: $ffmpegDir"
+          Write-Host "FFmpeg DLLs:"
+          Get-ChildItem "$ffmpegDir\bin" -Filter *.dll | ForEach-Object { Write-Host "  $($_.Name)" }
+          Write-Host "FFmpeg libs:"
+          Get-ChildItem "$ffmpegDir\lib" -Filter *.lib | ForEach-Object { Write-Host "  $($_.Name)" }
+
+      # -------------------------------------------------------------------
+      # Node.js headers -- needed for nvremote-viewer N-API compilation
+      # -------------------------------------------------------------------
+      - name: Download Node.js headers and node.lib
+        shell: pwsh
+        run: |
+          $nodeVersion = (node -v).TrimStart('v')
+          Write-Host "Node.js version: $nodeVersion"
+
+          # Download headers tarball
+          $headersUrl = "https://nodejs.org/dist/v$nodeVersion/node-v$nodeVersion-headers.tar.gz"
+          Write-Host "Downloading Node.js headers from $headersUrl ..."
+          $tarPath = "$env:RUNNER_TEMP\node-headers.tar.gz"
+          curl.exe -L -o $tarPath $headersUrl --retry 3
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to download Node.js headers"
+            exit 1
+          }
+          $headerExtract = "$env:RUNNER_TEMP\node-headers"
+          mkdir $headerExtract -Force | Out-Null
+          tar -xzf $tarPath -C $headerExtract
+          $headerDir = Get-ChildItem $headerExtract -Directory | Select-Object -First 1
+          $nodeInclude = "$($headerDir.FullName)\include\node"
+          Write-Host "Node.js headers at: $nodeInclude"
+
+          # Verify key header exists
+          if (-not (Test-Path "$nodeInclude\node_api.h")) {
+            Write-Error "node_api.h not found at $nodeInclude"
+            exit 1
+          }
+          echo "NODE_HEADER_DIR=$nodeInclude" >> $env:GITHUB_ENV
+
+          # Download win-x64 node.lib needed to link the .node addon
+          $libUrl = "https://nodejs.org/dist/v$nodeVersion/win-x64/node.lib"
+          $libDir = "$env:RUNNER_TEMP\node-lib"
+          mkdir $libDir -Force | Out-Null
+          curl.exe -L -o "$libDir\node.lib" $libUrl --retry 3
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to download node.lib"
+            exit 1
+          }
+          Write-Host "node.lib downloaded to: $libDir\node.lib"
+          echo "NODE_LIB_DIR=$libDir" >> $env:GITHUB_ENV
+
+      # -------------------------------------------------------------------
+      # CMake configure
+      # -------------------------------------------------------------------
+      - name: CMake configure
+        shell: pwsh
+        working-directory: libs
+        run: |
+          $vcpkgRoot = "C:\vcpkg\installed\x64-windows"
+          $ffmpegRoot = "$env:RUNNER_TEMP\ffmpeg"
+          $toolchainFile = "C:\vcpkg\scripts\buildsystems\vcpkg.cmake"
+
+          Write-Host "=== CMake Configuration ==="
+          Write-Host "  vcpkg root:      $vcpkgRoot"
+          Write-Host "  FFmpeg root:     $ffmpegRoot"
+          Write-Host "  Node headers:    $env:NODE_HEADER_DIR"
+          Write-Host "  Node lib dir:    $env:NODE_LIB_DIR"
+          Write-Host "  Toolchain file:  $toolchainFile"
+
+          cmake -B build -G "Visual Studio 17 2022" -A x64 `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_TOOLCHAIN_FILE="$toolchainFile" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows `
+            -DOPENSSL_ROOT_DIR="$vcpkgRoot" `
+            -DCMAKE_PREFIX_PATH="$vcpkgRoot" `
+            -DFFMPEG_ROOT="$ffmpegRoot" `
+            -DCS_BUILD_HOST=ON `
+            -DCS_BUILD_VIEWER=ON `
+            -DCS_BUILD_TESTS=OFF `
+            -DNODE_INCLUDE_DIR="$env:NODE_HEADER_DIR" `
+            -DCMAKE_SHARED_LINKER_FLAGS="/LIBPATH:$env:NODE_LIB_DIR node.lib"
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "CMake configure failed"
+            exit 1
+          }
+
+      # -------------------------------------------------------------------
+      # Build
+      # -------------------------------------------------------------------
+      - name: CMake build (Release)
+        shell: pwsh
+        working-directory: libs
+        run: |
+          cmake --build build --config Release --parallel
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "CMake build failed"
+            exit 1
+          }
+
+      # -------------------------------------------------------------------
+      # Verify outputs exist
+      # -------------------------------------------------------------------
+      - name: Verify build outputs
+        shell: pwsh
+        run: |
+          $hostExe = "libs\build\nvremote-host\Release\nvremote-host.exe"
+          $viewerNode = "libs\build\nvremote-viewer\Release\nvremote-viewer.node"
+
+          if (-not (Test-Path $hostExe)) {
+            Write-Error "nvremote-host.exe not found at $hostExe"
+            # List what was actually produced for debugging
+            Write-Host "Contents of libs\build\nvremote-host\"
+            Get-ChildItem "libs\build\nvremote-host" -Recurse -File | ForEach-Object { Write-Host "  $($_.FullName)" }
+            exit 1
+          }
+          if (-not (Test-Path $viewerNode)) {
+            Write-Error "nvremote-viewer.node not found at $viewerNode"
+            Write-Host "Contents of libs\build\nvremote-viewer\"
+            Get-ChildItem "libs\build\nvremote-viewer" -Recurse -File | ForEach-Object { Write-Host "  $($_.FullName)" }
+            exit 1
+          }
+
+          Write-Host "nvremote-host.exe: $('{0:N0}' -f (Get-Item $hostExe).Length) bytes"
+          Write-Host "nvremote-viewer.node: $('{0:N0}' -f (Get-Item $viewerNode).Length) bytes"
+
+      # -------------------------------------------------------------------
+      # Collect artifacts -- host exe, viewer addon, runtime DLLs
+      # -------------------------------------------------------------------
+      - name: Collect native artifacts
+        shell: pwsh
+        run: |
+          $out = "native-artifacts"
+          mkdir $out -Force | Out-Null
+
+          # Host executable
+          Copy-Item "libs\build\nvremote-host\Release\nvremote-host.exe" "$out\"
+
+          # Viewer N-API addon
+          Copy-Item "libs\build\nvremote-viewer\Release\nvremote-viewer.node" "$out\"
+
+          # FFmpeg DLLs needed at runtime
+          $ffBin = "$env:RUNNER_TEMP\ffmpeg\bin"
+          $dllPatterns = @("avcodec*.dll", "avutil*.dll", "swscale*.dll", "avformat*.dll", "swresample*.dll")
+          foreach ($pattern in $dllPatterns) {
+            Get-ChildItem $ffBin -Filter $pattern -ErrorAction SilentlyContinue | ForEach-Object {
+              Write-Host "Copying FFmpeg DLL: $($_.Name)"
+              Copy-Item $_.FullName "$out\"
+            }
+          }
+
+          # OpenSSL DLLs from vcpkg
+          $vcpkgBin = "C:\vcpkg\installed\x64-windows\bin"
+          Get-ChildItem $vcpkgBin -Filter "libssl*.dll" -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName "$out\" }
+          Get-ChildItem $vcpkgBin -Filter "libcrypto*.dll" -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName "$out\" }
+
+          Write-Host ""
+          Write-Host "=== Collected native artifacts ==="
+          Get-ChildItem $out | ForEach-Object { Write-Host "  $($_.Name)  ($([math]::Round($_.Length/1KB)) KB)" }
+
+      - name: Upload native artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-libs
+          path: native-artifacts/
+          if-no-files-found: error
+          retention-days: 5
+
+  ###########################################################################
+  # Job 2: Build Go host agent
+  ###########################################################################
+  build-host-agent:
+    name: Build Host Agent (Go)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: apps/host-agent/go.sum
+
+      - name: Tidy Go modules
+        shell: pwsh
+        working-directory: apps/host-agent
+        run: |
+          # Ensure go.sum exists and is up to date
+          go mod tidy
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "go mod tidy failed"
+            exit 1
+          }
+
+      - name: Build host agent
+        shell: pwsh
+        working-directory: apps/host-agent
+        run: |
+          $tag = "${{ github.ref_name }}"
+          Write-Host "Building NVRemoteAgent.exe for tag: $tag"
+
+          go build -ldflags="-s -w -X main.version=$tag" -o NVRemoteAgent.exe ./cmd/agent
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Go build failed"
+            exit 1
+          }
+          $size = (Get-Item NVRemoteAgent.exe).Length
+          Write-Host "Built NVRemoteAgent.exe ($('{0:N0}' -f $size) bytes)"
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          CGO_ENABLED: "0"
+
+      - name: Upload host agent
+        uses: actions/upload-artifact@v4
+        with:
+          name: host-agent
+          path: apps/host-agent/NVRemoteAgent.exe
+          if-no-files-found: error
+          retention-days: 5
+
+  ###########################################################################
+  # Job 3: Build Go host agent (Linux)
+  ###########################################################################
+  build-host-agent-linux:
+    name: Build Host Agent (Go/Linux)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: apps/host-agent/go.sum
+
+      - name: Tidy Go modules
+        working-directory: apps/host-agent
+        run: go mod tidy
+
+      - name: Build host agent
+        working-directory: apps/host-agent
+        run: |
+          TAG="${{ github.ref_name }}"
+          echo "Building NVRemoteAgent for tag: $TAG"
+          go build -ldflags="-s -w -X main.version=$TAG" -o NVRemoteAgent ./cmd/agent
+          echo "Built NVRemoteAgent ($(stat -c%s NVRemoteAgent) bytes)"
+        env:
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: "0"
+
+      - name: Upload host agent
+        uses: actions/upload-artifact@v4
+        with:
+          name: host-agent-linux
+          path: apps/host-agent/NVRemoteAgent
+          if-no-files-found: error
+          retention-days: 5
+
+  ###########################################################################
+  # Job 4: Build Go host agent (Linux ARM64 — Jetson/Orin/DGX Spark)
+  ###########################################################################
+  build-host-agent-linux-arm64:
+    name: Build Host Agent (Go/Linux ARM64)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: apps/host-agent/go.sum
+
+      - name: Tidy Go modules
+        working-directory: apps/host-agent
+        run: go mod tidy
+
+      - name: Build host agent (ARM64 cross-compile)
+        working-directory: apps/host-agent
+        run: |
+          TAG="${{ github.ref_name }}"
+          echo "Building NVRemoteAgent for tag: $TAG (linux/arm64)"
+          go build -ldflags="-s -w -X main.version=$TAG" -o NVRemoteAgent-arm64 ./cmd/agent
+          echo "Built NVRemoteAgent-arm64 ($(stat -c%s NVRemoteAgent-arm64) bytes)"
+        env:
+          GOOS: linux
+          GOARCH: arm64
+          CGO_ENABLED: "0"
+
+      - name: Upload host agent (ARM64)
+        uses: actions/upload-artifact@v4
+        with:
+          name: host-agent-linux-arm64
+          path: apps/host-agent/NVRemoteAgent-arm64
+          if-no-files-found: error
+          retention-days: 5
+
+  ###########################################################################
+  # Job 5: Bundle host streamer + agent into a single zip (Windows)
+  ###########################################################################
+  build-host-bundle:
+    name: Bundle Host Package
+    runs-on: ubuntu-latest
+    needs: [build-native-libs, build-host-agent]
+
+    steps:
+      - name: Download native libs artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: native-libs
+          path: native-libs
+
+      - name: Download host agent artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: host-agent
+          path: host-agent
+
+      - name: List downloaded artifacts
+        run: |
+          echo "=== native-libs ==="
+          ls -lh native-libs/
+          echo ""
+          echo "=== host-agent ==="
+          ls -lh host-agent/
+
+      - name: Create host bundle zip
+        run: |
+          TAG="${{ github.ref_name }}"
+          BUNDLE_NAME="NVRemoteHost-${TAG}-win64"
+          mkdir -p "$BUNDLE_NAME"
+
+          # Copy host executable
+          if [ -f "native-libs/nvremote-host.exe" ]; then
+            cp native-libs/nvremote-host.exe "$BUNDLE_NAME/"
+          else
+            echo "::error::nvremote-host.exe not found in native-libs artifact"
+            exit 1
+          fi
+
+          # Copy agent executable
+          if [ -f "host-agent/NVRemoteAgent.exe" ]; then
+            cp host-agent/NVRemoteAgent.exe "$BUNDLE_NAME/"
+          else
+            echo "::error::NVRemoteAgent.exe not found in host-agent artifact"
+            exit 1
+          fi
+
+          # Copy all runtime DLLs
+          cp native-libs/*.dll "$BUNDLE_NAME/" 2>/dev/null || echo "Note: no runtime DLLs found (may be statically linked)"
+
+          echo "=== Bundle contents ==="
+          ls -lh "$BUNDLE_NAME/"
+
+          zip -r "${BUNDLE_NAME}.zip" "$BUNDLE_NAME/"
+          echo "Created ${BUNDLE_NAME}.zip ($(du -h ${BUNDLE_NAME}.zip | cut -f1))"
+
+      - name: Upload host bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: host-bundle
+          path: "NVRemoteHost-${{ github.ref_name }}-win64.zip"
+          if-no-files-found: error
+          retention-days: 5
+
+  ###########################################################################
+  # Job 5: Bundle host agent for Linux (no C++ streamer yet)
+  ###########################################################################
+  build-host-bundle-linux:
+    name: Bundle Host Package (Linux)
+    runs-on: ubuntu-latest
+    needs: [build-host-agent-linux]
+
+    steps:
+      - name: Download host agent artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: host-agent-linux
+          path: host-agent-linux
+
+      - name: Create host bundle tarball
+        run: |
+          TAG="${{ github.ref_name }}"
+          BUNDLE_NAME="NVRemoteHost-${TAG}-linux-amd64"
+          mkdir -p "$BUNDLE_NAME"
+
+          cp host-agent-linux/NVRemoteAgent "$BUNDLE_NAME/"
+          chmod +x "$BUNDLE_NAME/NVRemoteAgent"
+
+          echo "=== Bundle contents ==="
+          ls -lh "$BUNDLE_NAME/"
+
+          tar -czf "${BUNDLE_NAME}.tar.gz" "$BUNDLE_NAME/"
+          echo "Created ${BUNDLE_NAME}.tar.gz ($(du -h ${BUNDLE_NAME}.tar.gz | cut -f1))"
+
+      - name: Upload host bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: host-bundle-linux
+          path: "NVRemoteHost-${{ github.ref_name }}-linux-amd64.tar.gz"
+          if-no-files-found: error
+          retention-days: 5
+
+  ###########################################################################
+  # Job 7: Bundle host agent for Linux ARM64 (Jetson/Orin/DGX Spark)
+  ###########################################################################
+  build-host-bundle-linux-arm64:
+    name: Bundle Host Package (Linux ARM64)
+    runs-on: ubuntu-latest
+    needs: [build-host-agent-linux-arm64]
+
+    steps:
+      - name: Download host agent artifact (ARM64)
+        uses: actions/download-artifact@v4
+        with:
+          name: host-agent-linux-arm64
+          path: host-agent-linux-arm64
+
+      - name: Create host bundle tarball
+        run: |
+          TAG="${{ github.ref_name }}"
+          BUNDLE_NAME="NVRemoteHost-${TAG}-linux-arm64"
+          mkdir -p "$BUNDLE_NAME"
+
+          cp host-agent-linux-arm64/NVRemoteAgent-arm64 "$BUNDLE_NAME/NVRemoteAgent"
+          chmod +x "$BUNDLE_NAME/NVRemoteAgent"
+
+          echo "=== Bundle contents ==="
+          ls -lh "$BUNDLE_NAME/"
+
+          tar -czf "${BUNDLE_NAME}.tar.gz" "$BUNDLE_NAME/"
+          echo "Created ${BUNDLE_NAME}.tar.gz ($(du -h ${BUNDLE_NAME}.tar.gz | cut -f1))"
+
+      - name: Upload host bundle (ARM64)
+        uses: actions/upload-artifact@v4
+        with:
+          name: host-bundle-linux-arm64
+          path: "NVRemoteHost-${{ github.ref_name }}-linux-arm64.tar.gz"
+          if-no-files-found: error
+          retention-days: 5
+
+  ###########################################################################
+  # Job 8: Build Electron desktop client (Windows installer)
+  ###########################################################################
+  build-client:
+    name: Build Desktop Client (Electron)
+    runs-on: windows-latest
+    needs: [build-native-libs]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download native libs artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: native-libs
+          path: native-libs
+
+      - name: Copy native binaries to client resources
+        shell: pwsh
+        run: |
+          $resourceDir = "apps\client-desktop\resources"
+          mkdir $resourceDir -Force | Out-Null
+
+          # Debug: list what's in the native-libs directory
+          Write-Host "=== Contents of native-libs directory ==="
+          Get-ChildItem "native-libs" -Recurse -File | ForEach-Object { Write-Host "  $($_.FullName)  ($([math]::Round($_.Length/1KB)) KB)" }
+
+          # Copy viewer N-API addon (try both paths in case of nesting)
+          $viewerSrc = $null
+          if (Test-Path "native-libs\nvremote-viewer.node") {
+            $viewerSrc = "native-libs\nvremote-viewer.node"
+          } elseif (Test-Path "native-libs\native-artifacts\nvremote-viewer.node") {
+            $viewerSrc = "native-libs\native-artifacts\nvremote-viewer.node"
+          } else {
+            # Search recursively
+            $found = Get-ChildItem "native-libs" -Recurse -Filter "nvremote-viewer.node" -File
+            if ($found) {
+              $viewerSrc = $found[0].FullName
+              Write-Host "Found viewer.node at: $viewerSrc"
+            }
+          }
+
+          if ($viewerSrc) {
+            Copy-Item $viewerSrc "$resourceDir\"
+            Write-Host "Copied nvremote-viewer.node to resources"
+          } else {
+            Write-Error "nvremote-viewer.node not found anywhere in native-libs artifact"
+            exit 1
+          }
+
+          # Copy all runtime DLLs (FFmpeg, OpenSSL)
+          Get-ChildItem "native-libs" -Filter "*.dll" | ForEach-Object {
+            Write-Host "Copying to resources: $($_.Name)"
+            Copy-Item $_.FullName "$resourceDir\"
+          }
+
+          Write-Host ""
+          Write-Host "=== Resources directory contents ==="
+          Get-ChildItem $resourceDir | ForEach-Object { Write-Host "  $($_.Name)  ($([math]::Round($_.Length/1KB)) KB)" }
+
+      - name: Install client dependencies
+        shell: pwsh
+        run: |
+          npm install
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "npm install failed"
+            exit 1
+          }
+
+      - name: Build and package client
+        shell: pwsh
+        working-directory: apps/client-desktop
+        run: |
+          npm run package
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Electron build/package failed"
+            exit 1
+          }
+
+          Write-Host ""
+          Write-Host "=== Release directory contents ==="
+          Get-ChildItem "release" -Recurse -File | ForEach-Object {
+            Write-Host "  $($_.FullName)  ($([math]::Round($_.Length/1MB, 1)) MB)"
+          }
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload client installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-installer
+          path: apps/client-desktop/release/NVRemote-*-Setup.exe
+          if-no-files-found: warn
+          retention-days: 5
+
+  ###########################################################################
+  # Job 7: Build Electron desktop client (Linux AppImage)
+  ###########################################################################
+  build-client-linux:
+    name: Build Desktop Client (Linux)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Create empty resources directory
+        run: mkdir -p apps/client-desktop/resources
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build and package client
+        working-directory: apps/client-desktop
+        run: |
+          npm run build
+          npx electron-builder --linux
+          echo ""
+          echo "=== Release directory contents ==="
+          find release -type f -exec ls -lh {} \;
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload client AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-linux
+          path: apps/client-desktop/release/NVRemote-*.AppImage
+          if-no-files-found: warn
+          retention-days: 5
+
+  ###########################################################################
+  # Job 10: Build Electron desktop client (Linux ARM64 AppImage)
+  ###########################################################################
+  build-client-linux-arm64:
+    name: Build Desktop Client (Linux ARM64)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup QEMU for ARM64 emulation
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Create empty resources directory
+        run: mkdir -p apps/client-desktop/resources
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build and package client (ARM64)
+        working-directory: apps/client-desktop
+        run: |
+          npm run build
+          USE_SYSTEM_FPM=true npx electron-builder --linux AppImage --arm64 \
+            -c.linux.artifactName='NVRemote-${version}-arm64.${ext}'
+          echo ""
+          echo "=== Release directory contents ==="
+          find release -type f -exec ls -lh {} \;
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload client AppImage (ARM64)
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-linux-arm64
+          path: apps/client-desktop/release/NVRemote-*-arm64.AppImage
+          if-no-files-found: warn
+          retention-days: 5
+
+  ###########################################################################
+  # Job 11a: Build macOS native viewer addon (VideoToolbox + Metal)
+  ###########################################################################
+  build-native-libs-macos:
+    name: Build Native Libs (macOS)
+    runs-on: macos-14  # Apple Silicon runner
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install macOS dependencies
+        run: |
+          brew install opus openssl@3
+          # FFmpeg for avcodec/avutil/swscale
+          brew install ffmpeg
+
+      - name: Download Node.js headers
+        run: |
+          NODE_VERSION=$(node -v | sed 's/^v//')
+          echo "Node.js version: $NODE_VERSION"
+
+          HEADERS_URL="https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-headers.tar.gz"
+          echo "Downloading Node.js headers from $HEADERS_URL"
+          curl -L -o /tmp/node-headers.tar.gz "$HEADERS_URL" --retry 3
+          mkdir -p /tmp/node-headers
+          tar -xzf /tmp/node-headers.tar.gz -C /tmp/node-headers
+          HEADER_DIR=$(find /tmp/node-headers -maxdepth 1 -type d | tail -1)
+          echo "NODE_HEADER_DIR=${HEADER_DIR}/include/node" >> $GITHUB_ENV
+
+      - name: CMake configure
+        working-directory: libs
+        run: |
+          OPENSSL_ROOT=$(brew --prefix openssl@3)
+          OPUS_ROOT=$(brew --prefix opus)
+          FFMPEG_ROOT=$(brew --prefix ffmpeg)
+
+          echo "=== CMake Configuration ==="
+          echo "  OpenSSL:  $OPENSSL_ROOT"
+          echo "  Opus:     $OPUS_ROOT"
+          echo "  FFmpeg:   $FFMPEG_ROOT"
+          echo "  Node:     $NODE_HEADER_DIR"
+
+          cmake -B build -G "Unix Makefiles" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DOPENSSL_ROOT_DIR="$OPENSSL_ROOT" \
+            -DOPUS_INCLUDE_DIRS="$OPUS_ROOT/include/opus" \
+            -DOPUS_LIBRARIES="$OPUS_ROOT/lib/libopus.dylib" \
+            -DFFMPEG_ROOT="$FFMPEG_ROOT" \
+            -DCS_BUILD_HOST=OFF \
+            -DCS_BUILD_VIEWER=ON \
+            -DCS_BUILD_TESTS=OFF \
+            -DNODE_INCLUDE_DIR="$NODE_HEADER_DIR"
+
+      - name: CMake build
+        working-directory: libs
+        run: cmake --build build --config Release --parallel
+
+      - name: Verify build output
+        run: |
+          ADDON="libs/build/nvremote-viewer/nvremote-viewer.node"
+          if [ ! -f "$ADDON" ]; then
+            echo "::error::nvremote-viewer.node not found"
+            find libs/build -name "*.node" -o -name "*.dylib" | head -20
+            exit 1
+          fi
+          echo "nvremote-viewer.node: $(ls -lh "$ADDON" | awk '{print $5}')"
+
+      - name: Collect macOS native artifacts
+        run: |
+          mkdir -p native-artifacts-macos
+          cp libs/build/nvremote-viewer/nvremote-viewer.node native-artifacts-macos/
+
+          # Copy dylib dependencies
+          FFMPEG_LIB=$(brew --prefix ffmpeg)/lib
+          OPUS_LIB=$(brew --prefix opus)/lib
+          for lib in libavcodec libavutil libswscale libswresample libopus; do
+            found=$(find "$FFMPEG_LIB" "$OPUS_LIB" -name "${lib}*.dylib" -not -name "*.dSYM" 2>/dev/null | head -1)
+            if [ -n "$found" ]; then
+              cp "$found" native-artifacts-macos/
+              echo "Copied: $(basename $found)"
+            fi
+          done
+
+          echo "=== macOS native artifacts ==="
+          ls -lh native-artifacts-macos/
+
+      - name: Upload macOS native artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-libs-macos
+          path: native-artifacts-macos/
+          if-no-files-found: error
+          retention-days: 5
+
+  ###########################################################################
+  # Job 8b: Build Electron desktop client (macOS DMG)
+  ###########################################################################
+  build-client-macos:
+    name: Build Desktop Client (macOS)
+    runs-on: macos-14  # Apple Silicon
+    needs: [build-native-libs-macos]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download macOS native libs
+        uses: actions/download-artifact@v4
+        with:
+          name: native-libs-macos
+          path: native-libs-macos
+
+      - name: Copy native binaries to client resources
+        run: |
+          RESOURCE_DIR="apps/client-desktop/resources"
+          mkdir -p "$RESOURCE_DIR"
+
+          echo "=== Downloaded native libs ==="
+          ls -lh native-libs-macos/
+
+          # Copy viewer addon
+          cp native-libs-macos/nvremote-viewer.node "$RESOURCE_DIR/"
+
+          # Copy runtime dylibs
+          cp native-libs-macos/*.dylib "$RESOURCE_DIR/" 2>/dev/null || echo "No dylibs to copy"
+
+          echo "=== Resources directory ==="
+          ls -lh "$RESOURCE_DIR/"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build and package client
+        working-directory: apps/client-desktop
+        run: |
+          npm run build
+          npx electron-builder --mac
+          echo ""
+          echo "=== Release directory contents ==="
+          find release -type f -exec ls -lh {} \;
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload client DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-macos
+          path: apps/client-desktop/release/NVRemote-*.dmg
+          if-no-files-found: warn
+          retention-days: 5
+
+  ###########################################################################
+  # Job 9: Build Android client APK
+  ###########################################################################
+  build-android:
+    name: Build Android Client
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Ensure Gradle wrapper JAR exists
+        working-directory: apps/android
+        run: |
+          WRAPPER_JAR="gradle/wrapper/gradle-wrapper.jar"
+          if [ ! -f "$WRAPPER_JAR" ]; then
+            echo "gradle-wrapper.jar not found, downloading from Gradle distributions..."
+            mkdir -p gradle/wrapper
+            # Extract Gradle version from wrapper properties to build the download URL
+            GRADLE_VERSION=$(grep -oP 'gradle-\K[0-9]+\.[0-9]+(\.[0-9]+)?' gradle/wrapper/gradle-wrapper.properties)
+            echo "Detected Gradle version: $GRADLE_VERSION"
+            WRAPPER_JAR_URL="https://raw.githubusercontent.com/gradle/gradle/v${GRADLE_VERSION}.0/gradle/wrapper/gradle-wrapper.jar"
+            echo "Downloading wrapper JAR from: $WRAPPER_JAR_URL"
+            curl -fsSL -o "$WRAPPER_JAR" "$WRAPPER_JAR_URL" --retry 3 --retry-delay 5
+            if [ ! -s "$WRAPPER_JAR" ]; then
+              echo "Direct download failed or empty, falling back to extracting from Gradle distribution..."
+              DIST_URL="https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
+              echo "Downloading Gradle distribution from: $DIST_URL"
+              curl -fsSL -o /tmp/gradle-dist.zip "$DIST_URL" --retry 3 --retry-delay 5
+              unzip -jo /tmp/gradle-dist.zip "gradle-${GRADLE_VERSION}/lib/gradle-wrapper-*.jar" -d /tmp/gradle-wrapper-extract
+              cp /tmp/gradle-wrapper-extract/gradle-wrapper-*.jar "$WRAPPER_JAR"
+              rm -rf /tmp/gradle-dist.zip /tmp/gradle-wrapper-extract
+            fi
+            echo "gradle-wrapper.jar size: $(stat -c%s "$WRAPPER_JAR" 2>/dev/null || stat -f%z "$WRAPPER_JAR") bytes"
+          else
+            echo "gradle-wrapper.jar already exists"
+          fi
+          chmod +x gradlew
+          echo "Gradle wrapper version:"
+          ./gradlew --version
+
+      - name: Generate signing keystore
+        run: |
+          KEYSTORE_PATH="${{ runner.temp }}/nvremote-release.jks"
+          KEYSTORE_PASS="NvRemoteAlpha2026"
+          keytool -genkeypair \
+            -alias nvremote \
+            -keyalg RSA -keysize 2048 \
+            -validity 10000 \
+            -keystore "$KEYSTORE_PATH" \
+            -storepass "$KEYSTORE_PASS" \
+            -keypass "$KEYSTORE_PASS" \
+            -dname "CN=NVRemote Alpha, OU=Dev, O=NVRemote, L=US, ST=CA, C=US"
+          echo "ANDROID_KEYSTORE_FILE=$KEYSTORE_PATH" >> $GITHUB_ENV
+          echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PASS" >> $GITHUB_ENV
+          echo "ANDROID_KEY_ALIAS=nvremote" >> $GITHUB_ENV
+          echo "ANDROID_KEY_PASSWORD=$KEYSTORE_PASS" >> $GITHUB_ENV
+          echo "Generated release keystore at $KEYSTORE_PATH"
+
+      - name: Build release APK
+        working-directory: apps/android
+        env:
+          VERSION_NAME: ${{ github.ref_name }}
+        run: |
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Rename APK with version tag
+        run: |
+          TAG="${{ github.ref_name }}"
+          APK_DIR="apps/android/app/build/outputs/apk/release"
+
+          echo "=== APK directory contents ==="
+          ls -lh "$APK_DIR/" 2>/dev/null || echo "APK directory does not exist"
+
+          # Handle both signed and unsigned APK names
+          if [ -f "$APK_DIR/app-release-unsigned.apk" ]; then
+            mv "$APK_DIR/app-release-unsigned.apk" "$APK_DIR/NVRemote-${TAG}.apk"
+            echo "Renamed app-release-unsigned.apk -> NVRemote-${TAG}.apk"
+          elif [ -f "$APK_DIR/app-release.apk" ]; then
+            mv "$APK_DIR/app-release.apk" "$APK_DIR/NVRemote-${TAG}.apk"
+            echo "Renamed app-release.apk -> NVRemote-${TAG}.apk"
+          else
+            echo "::error::No release APK found in $APK_DIR"
+            ls -lhR "$APK_DIR/" 2>/dev/null || true
+            exit 1
+          fi
+
+          ls -lh "$APK_DIR/NVRemote-${TAG}.apk"
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: apps/android/app/build/outputs/apk/release/NVRemote-*.apk
+          if-no-files-found: warn
+          retention-days: 5
+
+  ###########################################################################
+  # Job 10: Create GitHub Release with all artifacts
+  ###########################################################################
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - build-host-bundle
+      - build-host-bundle-linux
+      - build-host-bundle-linux-arm64
+      - build-client
+      - build-client-linux
+      - build-client-linux-arm64
+      - build-client-macos
+      - build-android
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: List all release artifacts
+        run: |
+          echo "=== All downloaded artifacts ==="
+          find release-artifacts -type f | sort
+          echo ""
+          echo "=== Sizes ==="
+          find release-artifacts -type f -exec ls -lh {} \;
+
+      - name: Collect release files
+        run: |
+          mkdir -p release-files
+
+          # Windows host bundle zip
+          cp release-artifacts/host-bundle/*.zip release-files/ 2>/dev/null && \
+            echo "Collected Windows host bundle zip" || echo "Warning: Windows host bundle zip not found"
+
+          # Linux host bundle tarball (x86_64)
+          cp release-artifacts/host-bundle-linux/*.tar.gz release-files/ 2>/dev/null && \
+            echo "Collected Linux host bundle tarball (x86_64)" || echo "Warning: Linux host bundle tarball not found"
+
+          # Linux host bundle tarball (ARM64 — Jetson/Orin/DGX Spark)
+          cp release-artifacts/host-bundle-linux-arm64/*.tar.gz release-files/ 2>/dev/null && \
+            echo "Collected Linux host bundle tarball (ARM64)" || echo "Warning: Linux ARM64 host bundle tarball not found"
+
+          # Windows client installer
+          cp release-artifacts/client-installer/*.exe release-files/ 2>/dev/null && \
+            echo "Collected Windows client installer exe" || echo "Warning: Windows client installer exe not found"
+
+          # Linux client AppImage (x86_64)
+          cp release-artifacts/client-linux/*.AppImage release-files/ 2>/dev/null && \
+            echo "Collected Linux client AppImage (x86_64)" || echo "Warning: Linux client AppImage not found"
+
+          # Linux client AppImage (ARM64)
+          cp release-artifacts/client-linux-arm64/*.AppImage release-files/ 2>/dev/null && \
+            echo "Collected Linux client AppImage (ARM64)" || echo "Warning: Linux ARM64 client AppImage not found"
+
+          # macOS client DMG
+          cp release-artifacts/client-macos/*.dmg release-files/ 2>/dev/null && \
+            echo "Collected macOS client DMG" || echo "Warning: macOS client DMG not found"
+
+          # Android APK
+          cp release-artifacts/android-apk/*.apk release-files/ 2>/dev/null && \
+            echo "Collected Android APK" || echo "Warning: Android APK not found"
+
+          echo ""
+          echo "=== Files for release ==="
+          ls -lh release-files/ || echo "No release files collected"
+
+      - name: Upload to GCS bucket
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Upload release files to GCS
+        uses: google-github-actions/upload-cloud-storage@v2
+        with:
+          path: release-files
+          destination: nvremote-downloads/${{ github.ref_name }}
+          parent: false
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: |
+            release-files/*
+          body: |
+            ## NVRemote ${{ github.ref_name }}
+
+            ### Downloads
+
+            | Platform | Artifact | Description |
+            |----------|----------|-------------|
+            | Windows (Host) | `NVRemoteHost-${{ github.ref_name }}-win64.zip` | Streaming host + agent bundle |
+            | Linux x86_64 (Host) | `NVRemoteHost-${{ github.ref_name }}-linux-amd64.tar.gz` | Host agent (Go) |
+            | Linux ARM64 (Host) | `NVRemoteHost-${{ github.ref_name }}-linux-arm64.tar.gz` | Host agent for Jetson/Orin/DGX Spark |
+            | Windows (Client) | `NVRemote-*-Setup.exe` | Desktop viewer (Electron) installer |
+            | Linux x86_64 (Client) | `NVRemote-*-x86_64.AppImage` | Desktop client (Electron AppImage) |
+            | Linux ARM64 (Client) | `NVRemote-*-arm64.AppImage` | Desktop client for Jetson/ARM64 |
+            | macOS (Client) | `NVRemote-*-universal.dmg` | Desktop client (Electron DMG) |
+            | Android | `NVRemote-${{ github.ref_name }}.apk` | Android mobile client |
+
+            ### Requirements
+            - **Host (Windows)**: NVIDIA GPU with NVENC support, Windows 10/11 x64
+            - **Host (Linux x86_64)**: Agent-only (GPU streaming requires Windows host for now)
+            - **Host (Linux ARM64)**: NVIDIA Jetson Orin / DGX Spark with JetPack 5.0+ (agent-only, GPU streaming TBD)
+            - **Desktop Client (Windows)**: Windows 10/11 x64 (D3D11VA/NVDEC decode)
+            - **Desktop Client (macOS)**: macOS 13+ Apple Silicon (VideoToolbox decode, Metal render)
+            - **Desktop Client (Linux x86_64)**: Linux x86_64 (signaling + host management only)
+            - **Desktop Client (Linux ARM64)**: Linux ARM64 / Jetson (signaling + host management only)
+            - **Android Client**: Android 7.0+ (API 24)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

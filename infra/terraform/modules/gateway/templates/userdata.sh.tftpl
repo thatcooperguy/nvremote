@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+exec > >(tee /var/log/nvrs-userdata.log) 2>&1
+echo "[$(date -u)] NVRS Gateway user data script starting..."
+
+# ---------------------------------------------------------------------------
+# System updates and base packages
+# ---------------------------------------------------------------------------
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -y
+apt-get upgrade -y
+apt-get install -y \
+  wireguard \
+  wireguard-tools \
+  iptables \
+  curl \
+  jq \
+  unzip \
+  apt-transport-https \
+  ca-certificates \
+  gnupg \
+  lsb-release
+
+# ---------------------------------------------------------------------------
+# Install Docker (official repo)
+# ---------------------------------------------------------------------------
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+  gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+chmod a+r /etc/apt/keyrings/docker.gpg
+
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | \
+  tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+apt-get update -y
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+systemctl enable --now docker
+
+# ---------------------------------------------------------------------------
+# Enable IP forwarding
+# ---------------------------------------------------------------------------
+cat > /etc/sysctl.d/99-wireguard.conf <<SYSEOF
+net.ipv4.ip_forward = 1
+net.ipv4.conf.all.forwarding = 1
+SYSEOF
+sysctl --system
+
+# ---------------------------------------------------------------------------
+# Generate WireGuard server keys
+# ---------------------------------------------------------------------------
+umask 077
+mkdir -p /etc/wireguard
+wg genkey | tee /etc/wireguard/server_private.key | wg pubkey > /etc/wireguard/server_public.key
+
+SERVER_PRIVKEY=$(cat /etc/wireguard/server_private.key)
+
+# Detect the primary network interface for NAT masquerade
+PRIMARY_IFACE=$(ip -o -4 route show default | awk '{print $5}' | head -n1)
+
+# ---------------------------------------------------------------------------
+# Configure WireGuard interface (wg0)
+# ---------------------------------------------------------------------------
+cat > /etc/wireguard/${wireguard_iface}.conf <<WGEOF
+[Interface]
+Address    = ${wireguard_address}
+ListenPort = ${wireguard_port}
+PrivateKey = $SERVER_PRIVKEY
+PostUp     = iptables -t nat -A POSTROUTING -o $PRIMARY_IFACE -j MASQUERADE; iptables -A FORWARD -i ${wireguard_iface} -j ACCEPT; iptables -A FORWARD -o ${wireguard_iface} -j ACCEPT
+PostDown   = iptables -t nat -D POSTROUTING -o $PRIMARY_IFACE -j MASQUERADE; iptables -D FORWARD -i ${wireguard_iface} -j ACCEPT; iptables -D FORWARD -o ${wireguard_iface} -j ACCEPT
+
+# Peers will be added dynamically by the gateway service
+WGEOF
+
+chmod 600 /etc/wireguard/${wireguard_iface}.conf
+systemctl enable --now wg-quick@${wireguard_iface}
+
+# ---------------------------------------------------------------------------
+# Write gateway environment file
+# ---------------------------------------------------------------------------
+mkdir -p /opt/nvrs
+cat > /opt/nvrs/.env <<ENVEOF
+NODE_ENV=production
+PROJECT_NAME=${project_name}
+ENVIRONMENT=${environment}
+DATABASE_URL=postgresql://${db_user}:${db_password}@${db_host}/${db_name}?sslmode=require
+WIREGUARD_INTERFACE=${wireguard_iface}
+WIREGUARD_PORT=${wireguard_port}
+WIREGUARD_SERVER_PUBLIC_KEY=$(cat /etc/wireguard/server_public.key)
+WIREGUARD_SUBNET=10.100.0.0/16
+ENVEOF
+chmod 600 /opt/nvrs/.env
+
+# ---------------------------------------------------------------------------
+# Pull and run NVRS gateway container
+# ---------------------------------------------------------------------------
+docker pull ghcr.io/nvremote/gateway:latest || echo "WARNING: Could not pull gateway image. Will retry on service start."
+
+cat > /etc/systemd/system/nvrs-gateway.service <<SVCEOF
+[Unit]
+Description=NVRS Gateway Service
+After=docker.service wg-quick@${wireguard_iface}.service
+Requires=docker.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=10
+ExecStartPre=-/usr/bin/docker stop nvrs-gateway
+ExecStartPre=-/usr/bin/docker rm nvrs-gateway
+ExecStart=/usr/bin/docker run --rm \
+  --name nvrs-gateway \
+  --cap-add NET_ADMIN \
+  --network host \
+  --env-file /opt/nvrs/.env \
+  -v /etc/wireguard:/etc/wireguard:rw \
+  ghcr.io/nvremote/gateway:latest
+ExecStop=/usr/bin/docker stop nvrs-gateway
+
+[Install]
+WantedBy=multi-user.target
+SVCEOF
+
+systemctl daemon-reload
+systemctl enable --now nvrs-gateway.service
+
+echo "[$(date -u)] NVRS Gateway user data script completed successfully."

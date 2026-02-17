@@ -1,0 +1,100 @@
+version: "3.9"
+
+services:
+  # PostgreSQL database
+  postgres:
+    image: postgres:16-alpine
+    container_name: nvrs-postgres
+    environment:
+      POSTGRES_DB: nvrs
+      POSTGRES_USER: nvrs
+      POSTGRES_PASSWORD: nvrs_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nvrs -d nvrs"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis for session caching and WebSocket scaling
+  redis:
+    image: redis:7-alpine
+    container_name: nvrs-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Control plane API
+  server-api:
+    build:
+      context: ../../apps/server-api
+      dockerfile: Dockerfile
+    container_name: nvrs-api
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://nvrs:nvrs_dev_password@postgres:5432/nvrs?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-jwt-secret-change-in-production
+      JWT_EXPIRY: 15m
+      JWT_REFRESH_EXPIRY: 7d
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_CALLBACK_URL: http://localhost:3001/auth/google/callback
+      GATEWAY_TOKEN: dev-gateway-token
+      CORS_ORIGINS: http://localhost:5173,http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ../../apps/server-api/src:/app/src
+    command: npm run start:dev
+
+  # Gateway service (simulated for local dev - no real WireGuard)
+  gateway:
+    build:
+      context: ../../apps/gateway
+      dockerfile: Dockerfile
+    container_name: nvrs-gateway
+    ports:
+      - "8080:8080"
+      - "51820:51820/udp"
+    environment:
+      LISTEN_ADDR: ":8080"
+      CONTROL_PLANE_URL: http://server-api:3001
+      GATEWAY_TOKEN: dev-gateway-token
+      TUNNEL_SUBNET: "10.100.0.0/16"
+      PUBLIC_IP: "127.0.0.1"
+      LOG_LEVEL: debug
+    cap_add:
+      - NET_ADMIN
+    sysctls:
+      - net.ipv4.ip_forward=1
+    depends_on:
+      - server-api
+
+  # Adminer for database management (dev only)
+  adminer:
+    image: adminer:latest
+    container_name: nvrs-adminer
+    ports:
+      - "8081:8080"
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:
+  redisdata:

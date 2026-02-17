@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Background circle -->
+    <path
+        android:fillColor="#0A0A0A"
+        android:pathData="M54,54m-40,0a40,40 0,1 1,80 0a40,40 0,1 1,-80 0" />
+
+    <!-- Lightning bolt / stream icon -->
+    <path
+        android:fillColor="#76B900"
+        android:pathData="M46,28L36,56L48,56L42,80L72,48L56,48L64,28Z" />
+
+    <!-- Controller outline at bottom -->
+    <path
+        android:fillColor="#76B900"
+        android:pathData="M38,68C34,68 31,71 31,75C31,79 34,82 38,82L50,82C52,82 54,80 54,78C54,80 56,82 58,82L70,82C74,82 77,79 77,75C77,71 74,68 70,68Z"
+        android:fillAlpha="0.6" />
+
+    <!-- Left stick dot -->
+    <path
+        android:fillColor="#76B900"
+        android:pathData="M42,75m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+
+    <!-- Right buttons dots -->
+    <path
+        android:fillColor="#76B900"
+        android:pathData="M66,73m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
+    <path
+        android:fillColor="#76B900"
+        android:pathData="M62,77m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
+    <path
+        android:fillColor="#76B900"
+        android:pathData="M70,77m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
+</vector>

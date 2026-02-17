@@ -1,0 +1,12 @@
+FROM node:20-alpine
+
+RUN apk add --no-cache openssl
+
+WORKDIR /app
+
+COPY package.json ./
+COPY prisma ./prisma/
+
+RUN npm install prisma@5.22.0 @prisma/client@5.22.0
+
+CMD ["npx", "prisma", "db", "push", "--accept-data-loss"]

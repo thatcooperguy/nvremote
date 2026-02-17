@@ -1,0 +1,38 @@
+{
+  "name": "nvremote",
+  "version": "0.3.0",
+  "private": true,
+  "description": "NVRemote - Secure, low-latency cloud gaming platform",
+  "workspaces": [
+    "apps/client-desktop",
+    "apps/server-api",
+    "apps/website"
+  ],
+  "scripts": {
+    "dev:api": "npm run start:dev --workspace=apps/server-api",
+    "dev:client": "npm run dev --workspace=apps/client-desktop",
+    "dev:website": "npm run dev --workspace=apps/website",
+    "build:api": "npm run build --workspace=apps/server-api",
+    "build:client": "npm run build --workspace=apps/client-desktop",
+    "build:website": "npm run build --workspace=apps/website",
+    "build:all": "npm run build:api && npm run build:client && npm run build:website",
+    "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --write \"apps/**/*.{ts,tsx,json,css}\"",
+    "test": "npm run test --workspaces --if-present",
+    "docker:up": "docker-compose -f infra/docker/docker-compose.yml up -d",
+    "docker:down": "docker-compose -f infra/docker/docker-compose.yml down",
+    "db:migrate": "npm run prisma:migrate --workspace=apps/server-api",
+    "db:generate": "npm run prisma:generate --workspace=apps/server-api"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}

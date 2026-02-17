@@ -1,0 +1,7 @@
+dist
+build
+node_modules
+*.md
+infra/terraform
+apps/host-agent
+apps/gateway

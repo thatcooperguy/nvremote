@@ -16,6 +16,7 @@ import { AuditModule } from './audit/audit.module';
 import { AdminModule } from './admin/admin.module';
 import { VpnModule } from './vpn/vpn.module';
 import { TunnelModule } from './tunnel/tunnel.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { TunnelModule } from './tunnel/tunnel.module';
     AdminModule,
     VpnModule,
     TunnelModule,
+    HealthModule,
   ],
   providers: [
     PrismaService,

@@ -29,6 +29,7 @@ type TunnelClaims struct {
 	TunnelID  string `json:"tunnelId"`  // tun_<hex>
 	SessionID string `json:"sessionId"` // session UUID
 	HostID    string `json:"hostId"`    // host UUID
+	HostVpnIp string `json:"hostVpnIp"` // host's VPN IP (e.g., 10.100.0.5)
 	Scope     string `json:"scope"`     // must be "tunnel"
 	Protocol  string `json:"protocol"`  // "wss" or "https"
 	Exp       int64  `json:"exp"`       // unix timestamp
@@ -190,16 +191,14 @@ func (tp *TunnelProxy) handleTunnel(w http.ResponseWriter, r *http.Request) {
 		"remote_addr", r.RemoteAddr,
 	)
 
-	// Resolve target host address from the VPN mesh.
-	// The host's VPN IP is looked up from the WireGuard peer list by host ID,
-	// or we use the host's allowed IP from the WG config.
-	targetAddr := tp.resolveHostAddr(claims.HostID)
+	// Resolve target host address from the JWT claims.
+	targetAddr := claims.HostVpnIp
 	if targetAddr == "" {
-		slog.Error("could not resolve host VPN address",
+		slog.Error("tunnel token missing hostVpnIp — host has not registered with VPN relay",
 			"tunnel_id", tunnelID,
 			"host_id", claims.HostID,
 		)
-		writeError(w, http.StatusBadGateway, "host not reachable via VPN mesh")
+		writeError(w, http.StatusBadGateway, "host VPN address not available — host may not be registered with VPN relay")
 		return
 	}
 
@@ -327,9 +326,9 @@ func (tp *TunnelProxy) handleHTTPSTunnel(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	targetAddr := tp.resolveHostAddr(claims.HostID)
+	targetAddr := claims.HostVpnIp
 	if targetAddr == "" {
-		writeError(w, http.StatusBadGateway, "host not reachable via VPN mesh")
+		writeError(w, http.StatusBadGateway, "host VPN address not available")
 		return
 	}
 
@@ -401,33 +400,6 @@ func (tp *TunnelProxy) handleHTTPSTunnel(w http.ResponseWriter, r *http.Request)
 		"tunnel_id", tunnelID,
 		"session_id", claims.SessionID,
 	)
-}
-
-// resolveHostAddr resolves a host's VPN IP address from the WireGuard peer
-// configuration. This is a simple lookup based on the AllowedIPs of known
-// peers — the NVRemote API assigns each host a unique /32 VPN IP.
-//
-// In practice, the host's VPN IP is passed through the tunnel token claims
-// or looked up from the control plane. Here we iterate the WG peers.
-func (tp *TunnelProxy) resolveHostAddr(hostID string) string {
-	// For now, we use a convention: the control plane should include
-	// the host VPN IP in the tunnel metadata. Since our JWT claims
-	// don't carry it directly, we'll look up via the WG peer list.
-	//
-	// Each peer's AllowedIPs contains their assigned VPN IP (e.g., 10.100.0.5/32).
-	// The NVRemote control plane ensures each host registers with a unique key.
-	//
-	// TODO: Add hostVpnIp to TunnelClaims for direct resolution
-	// without WireGuard state dependency.
-
-	// Fallback: try the control plane API to look up host VPN IP
-	// For alpha, return empty to signal that the host isn't reachable.
-	// The gateway will be enhanced to cache host->VPN IP mappings.
-
-	slog.Warn("host VPN IP resolution not yet implemented — requires control plane lookup or WG peer scanning",
-		"host_id", hostID,
-	)
-	return ""
 }
 
 // ActiveConnections returns the number of active tunnel connections.

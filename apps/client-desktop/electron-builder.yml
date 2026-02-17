@@ -68,5 +68,6 @@ extraResources:
       - "**/*"
 
 publish:
-  provider: generic
-  url: https://github.com/thatcooperguy/nvremote/releases/latest
+  provider: github
+  owner: thatcooperguy
+  repo: nvremote

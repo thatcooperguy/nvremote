@@ -14,6 +14,9 @@ import {
   Gamepad2,
   Keyboard,
   MousePointer2,
+  Gauge,
+  ArrowDown,
+  Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -111,10 +114,14 @@ export default function WebStreamPage() {
   const [showStats, setShowStats] = useState(false);
   const [isPointerLocked, setIsPointerLocked] = useState(false);
   const [gamepadConnected, setGamepadConnected] = useState(false);
+  const [reconnectToast, setReconnectToast] = useState<string | null>(null);
 
   const controlsTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttemptRef = useRef(0);
+  const reconnectToastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxReconnectAttempts = 3;
+  const prevBytesRef = useRef(0);
+  const prevTimestampRef = useRef(0);
 
   // ---------------------------------------------------------------------------
   // Auth check
@@ -214,6 +221,11 @@ export default function WebStreamPage() {
         switch (pc.iceConnectionState) {
           case 'connected':
           case 'completed':
+            if (state === 'reconnecting') {
+              setReconnectToast('Connection restored');
+              if (reconnectToastTimeout.current) clearTimeout(reconnectToastTimeout.current);
+              reconnectToastTimeout.current = setTimeout(() => setReconnectToast(null), 4000);
+            }
             setState('streaming');
             reconnectAttemptRef.current = 0;
             break;
@@ -364,7 +376,16 @@ export default function WebStreamPage() {
                 jitterMs = (stat.jitter || 0) * 1000;
                 width = stat.frameWidth || 0;
                 height = stat.frameHeight || 0;
-                bitrateKbps = ((stat.bytesReceived || 0) * 8) / 1000;
+                // Compute delta bitrate (per-second) instead of cumulative
+                const nowBytes = stat.bytesReceived || 0;
+                const nowTs = stat.timestamp || Date.now();
+                if (prevBytesRef.current > 0 && prevTimestampRef.current > 0) {
+                  const deltaBytes = nowBytes - prevBytesRef.current;
+                  const deltaSec = (nowTs - prevTimestampRef.current) / 1000;
+                  bitrateKbps = deltaSec > 0 ? (deltaBytes * 8) / 1000 / deltaSec : 0;
+                }
+                prevBytesRef.current = nowBytes;
+                prevTimestampRef.current = nowTs;
               }
               if (stat.type === 'candidate-pair' && stat.nominated) {
                 rttMs = stat.currentRoundTripTime
@@ -869,6 +890,45 @@ export default function WebStreamPage() {
           {state === 'streaming' ? 'Live' : state}
         </div>
       </div>
+
+      {/* Persistent latency + bandwidth badge (always visible when streaming) */}
+      {state === 'streaming' && stats && (
+        <div className="absolute top-4 left-4 z-30 flex items-center gap-2">
+          <div
+            className={cn(
+              'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium backdrop-blur-sm',
+              stats.rttMs < 30
+                ? 'bg-green-500/20 text-green-400'
+                : stats.rttMs < 80
+                  ? 'bg-yellow-500/20 text-yellow-400'
+                  : 'bg-red-500/20 text-red-400',
+            )}
+          >
+            <Clock size={12} />
+            {stats.rttMs}ms
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-white/10 backdrop-blur-sm text-gray-300">
+            <ArrowDown size={12} />
+            {stats.bitrateKbps > 1000
+              ? `${(stats.bitrateKbps / 1000).toFixed(1)} Mbps`
+              : `${stats.bitrateKbps} kbps`}
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-white/10 backdrop-blur-sm text-gray-300">
+            <Gauge size={12} />
+            {stats.fps} fps
+          </div>
+        </div>
+      )}
+
+      {/* Reconnection toast */}
+      {reconnectToast && (
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-40 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/20 backdrop-blur-sm border border-green-500/30 text-green-400 text-sm font-medium">
+            <div className="w-2 h-2 rounded-full bg-green-400" />
+            {reconnectToast}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

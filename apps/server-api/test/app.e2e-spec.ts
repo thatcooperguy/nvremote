@@ -262,4 +262,209 @@ describe('AppController (e2e)', () => {
         .expect(401);
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Health & Metrics (public endpoints)
+  // -----------------------------------------------------------------------
+
+  describe('Health & Metrics', () => {
+    it('GET /api/v1/health should return 200 with uptime', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/health')
+        .expect(200);
+
+      expect(res.body).toHaveProperty('status', 'ok');
+      expect(res.body).toHaveProperty('uptime');
+      expect(typeof res.body.uptime).toBe('number');
+    });
+
+    it('GET /api/v1/metrics should return 200 with Prometheus text', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/metrics')
+        .expect(200);
+
+      expect(res.text).toContain('nvremote_');
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Waitlist (public endpoint)
+  // -----------------------------------------------------------------------
+
+  describe('Waitlist', () => {
+    it('POST /api/v1/waitlist should reject without email', () => {
+      return request(app.getHttpServer())
+        .post('/api/v1/waitlist')
+        .send({})
+        .expect(400);
+    });
+
+    it('POST /api/v1/waitlist should reject with invalid email', () => {
+      return request(app.getHttpServer())
+        .post('/api/v1/waitlist')
+        .send({ email: 'not-an-email' })
+        .expect(400);
+    });
+
+    it('POST /api/v1/waitlist should accept a valid email', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/waitlist')
+        .send({ email: `e2e-${Date.now()}@test.nvremote.com` });
+
+      // 201 on first submit, or 200/409 if already exists
+      expect([200, 201, 409]).toContain(res.status);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Profile update (PATCH /auth/me)
+  // -----------------------------------------------------------------------
+
+  describe('Profile update', () => {
+    it('PATCH /api/v1/auth/me should return 401 without token', () => {
+      return request(app.getHttpServer())
+        .patch('/api/v1/auth/me')
+        .send({ preferences: { defaultQuality: 'balanced' } })
+        .expect(401);
+    });
+
+    it('PATCH /api/v1/auth/me with invalid JWT should return 401', () => {
+      return request(app.getHttpServer())
+        .patch('/api/v1/auth/me')
+        .set('Authorization', 'Bearer invalid.jwt.token')
+        .send({ preferences: { defaultQuality: 'balanced' } })
+        .expect(401);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Additional admin endpoints (401 without token)
+  // -----------------------------------------------------------------------
+
+  describe('Admin endpoints (extended)', () => {
+    it('GET /api/v1/admin/qos should return 401 without token', () => {
+      return request(app.getHttpServer())
+        .get('/api/v1/admin/qos')
+        .expect(401);
+    });
+
+    it('GET /api/v1/admin/clients should return 401 without token', () => {
+      return request(app.getHttpServer())
+        .get('/api/v1/admin/clients')
+        .expect(401);
+    });
+
+    it('GET /api/v1/admin/errors should return 401 without token', () => {
+      return request(app.getHttpServer())
+        .get('/api/v1/admin/errors')
+        .expect(401);
+    });
+
+    it('GET /api/v1/admin/infra should return 401 without token', () => {
+      return request(app.getHttpServer())
+        .get('/api/v1/admin/infra')
+        .expect(401);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Audit endpoints — require authentication
+  // -----------------------------------------------------------------------
+
+  describe('Audit endpoints', () => {
+    it('GET /api/v1/audit should return 401 without token', () => {
+      return request(app.getHttpServer())
+        .get('/api/v1/audit')
+        .expect(401);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Tunnel endpoints (extended)
+  // -----------------------------------------------------------------------
+
+  describe('Tunnel endpoints (extended)', () => {
+    it('POST /api/v1/tunnel/validate should return 401 without token', () => {
+      return request(app.getHttpServer())
+        .post('/api/v1/tunnel/validate')
+        .send({ tunnelId: 'fake' })
+        .expect(401);
+    });
+
+    it('GET /api/v1/tunnel/audit should return 401 without token', () => {
+      return request(app.getHttpServer())
+        .get('/api/v1/tunnel/audit')
+        .expect(401);
+    });
+
+    it('DELETE /api/v1/tunnel/fake-id should return 401 without token', () => {
+      return request(app.getHttpServer())
+        .delete('/api/v1/tunnel/fake-id')
+        .expect(401);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Input validation edge cases
+  // -----------------------------------------------------------------------
+
+  describe('Input validation', () => {
+    it('POST /api/v1/auth/refresh should reject extra fields (forbidNonWhitelisted)', () => {
+      return request(app.getHttpServer())
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: 'test', extraField: 'should-fail' })
+        .expect(400);
+    });
+
+    it('POST /api/v1/hosts/register should reject extra fields', () => {
+      return request(app.getHttpServer())
+        .post('/api/v1/hosts/register')
+        .send({
+          bootstrapToken: 'token',
+          name: 'Host',
+          hostname: 'machine',
+          maliciousField: 'injected',
+        })
+        .expect(400);
+    });
+
+    it('POST /api/v1/waitlist should reject extra fields', () => {
+      return request(app.getHttpServer())
+        .post('/api/v1/waitlist')
+        .send({ email: 'valid@test.com', spam: true })
+        .expect(400);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Session signaling (auth required)
+  // -----------------------------------------------------------------------
+
+  describe('Session signaling', () => {
+    it('POST /api/v1/sessions/:id/offer should return 401 without token', () => {
+      return request(app.getHttpServer())
+        .post('/api/v1/sessions/00000000-0000-0000-0000-000000000000/offer')
+        .send({ sdp: 'test', type: 'offer' })
+        .expect(401);
+    });
+
+    it('POST /api/v1/sessions/:id/ice-candidate should return 401 without token', () => {
+      return request(app.getHttpServer())
+        .post('/api/v1/sessions/00000000-0000-0000-0000-000000000000/ice-candidate')
+        .send({ candidate: 'test', sdpMid: '0', sdpMLineIndex: 0 })
+        .expect(401);
+    });
+
+    it('GET /api/v1/sessions/:id/ice-candidates should return 401 without token', () => {
+      return request(app.getHttpServer())
+        .get('/api/v1/sessions/00000000-0000-0000-0000-000000000000/ice-candidates')
+        .expect(401);
+    });
+
+    it('POST /api/v1/sessions/:id/end should return 401 without token', () => {
+      return request(app.getHttpServer())
+        .post('/api/v1/sessions/00000000-0000-0000-0000-000000000000/end')
+        .expect(401);
+    });
+  });
 });

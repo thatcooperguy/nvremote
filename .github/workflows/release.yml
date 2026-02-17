@@ -533,11 +533,21 @@ jobs:
           tar -czf "${BUNDLE_NAME}.tar.gz" "$BUNDLE_NAME/"
           echo "Created ${BUNDLE_NAME}.tar.gz ($(du -h ${BUNDLE_NAME}.tar.gz | cut -f1))"
 
+      - name: GPG sign host bundle
+        if: "${{ secrets.GPG_PRIVATE_KEY != '' }}"
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d | gpg --batch --import
+          TARBALL="NVRemoteHost-${{ github.ref_name }}-linux-amd64.tar.gz"
+          gpg --batch --yes --detach-sign --armor "$TARBALL"
+          echo "Signed: $TARBALL"
+
       - name: Upload host bundle
         uses: actions/upload-artifact@v4
         with:
           name: host-bundle-linux
-          path: "NVRemoteHost-${{ github.ref_name }}-linux-amd64.tar.gz"
+          path: |
+            NVRemoteHost-${{ github.ref_name }}-linux-amd64.tar.gz
+            NVRemoteHost-${{ github.ref_name }}-linux-amd64.tar.gz.asc
           if-no-files-found: error
           retention-days: 5
 
@@ -571,11 +581,21 @@ jobs:
           tar -czf "${BUNDLE_NAME}.tar.gz" "$BUNDLE_NAME/"
           echo "Created ${BUNDLE_NAME}.tar.gz ($(du -h ${BUNDLE_NAME}.tar.gz | cut -f1))"
 
+      - name: GPG sign host bundle (ARM64)
+        if: "${{ secrets.GPG_PRIVATE_KEY != '' }}"
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d | gpg --batch --import
+          TARBALL="NVRemoteHost-${{ github.ref_name }}-linux-arm64.tar.gz"
+          gpg --batch --yes --detach-sign --armor "$TARBALL"
+          echo "Signed: $TARBALL"
+
       - name: Upload host bundle (ARM64)
         uses: actions/upload-artifact@v4
         with:
           name: host-bundle-linux-arm64
-          path: "NVRemoteHost-${{ github.ref_name }}-linux-arm64.tar.gz"
+          path: |
+            NVRemoteHost-${{ github.ref_name }}-linux-arm64.tar.gz
+            NVRemoteHost-${{ github.ref_name }}-linux-arm64.tar.gz.asc
           if-no-files-found: error
           retention-days: 5
 
@@ -713,11 +733,26 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: GPG sign AppImage
+        if: "${{ secrets.GPG_PRIVATE_KEY != '' }}"
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d | gpg --batch --import
+          APPIMAGE=$(find apps/client-desktop/release -name 'NVRemote-*.AppImage' | head -1)
+          if [ -n "$APPIMAGE" ]; then
+            gpg --batch --yes --detach-sign --armor "$APPIMAGE"
+            echo "Signed: $APPIMAGE"
+            echo "Signature: ${APPIMAGE}.asc"
+          else
+            echo "No AppImage found to sign"
+          fi
+
       - name: Upload client AppImage
         uses: actions/upload-artifact@v4
         with:
           name: client-linux
-          path: apps/client-desktop/release/NVRemote-*.AppImage
+          path: |
+            apps/client-desktop/release/NVRemote-*.AppImage
+            apps/client-desktop/release/NVRemote-*.AppImage.asc
           if-no-files-found: warn
           retention-days: 5
 
@@ -760,11 +795,26 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: GPG sign AppImage (ARM64)
+        if: "${{ secrets.GPG_PRIVATE_KEY != '' }}"
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d | gpg --batch --import
+          APPIMAGE=$(find apps/client-desktop/release -name 'NVRemote-*-arm64.AppImage' | head -1)
+          if [ -n "$APPIMAGE" ]; then
+            gpg --batch --yes --detach-sign --armor "$APPIMAGE"
+            echo "Signed: $APPIMAGE"
+            echo "Signature: ${APPIMAGE}.asc"
+          else
+            echo "No ARM64 AppImage found to sign"
+          fi
+
       - name: Upload client AppImage (ARM64)
         uses: actions/upload-artifact@v4
         with:
           name: client-linux-arm64
-          path: apps/client-desktop/release/NVRemote-*-arm64.AppImage
+          path: |
+            apps/client-desktop/release/NVRemote-*-arm64.AppImage
+            apps/client-desktop/release/NVRemote-*-arm64.AppImage.asc
           if-no-files-found: warn
           retention-days: 5
 
@@ -1085,10 +1135,14 @@ jobs:
           # Linux host bundle tarball (x86_64)
           cp release-artifacts/host-bundle-linux/*.tar.gz release-files/ 2>/dev/null && \
             echo "Collected Linux host bundle tarball (x86_64)" || echo "Warning: Linux host bundle tarball not found"
+          cp release-artifacts/host-bundle-linux/*.tar.gz.asc release-files/ 2>/dev/null && \
+            echo "Collected Linux host bundle signature" || echo "Note: No Linux host bundle signature"
 
           # Linux host bundle tarball (ARM64 — Jetson/Orin/DGX Spark)
           cp release-artifacts/host-bundle-linux-arm64/*.tar.gz release-files/ 2>/dev/null && \
             echo "Collected Linux host bundle tarball (ARM64)" || echo "Warning: Linux ARM64 host bundle tarball not found"
+          cp release-artifacts/host-bundle-linux-arm64/*.tar.gz.asc release-files/ 2>/dev/null && \
+            echo "Collected Linux ARM64 host bundle signature" || echo "Note: No Linux ARM64 host bundle signature"
 
           # Windows client installer
           cp release-artifacts/client-installer/*.exe release-files/ 2>/dev/null && \
@@ -1097,10 +1151,14 @@ jobs:
           # Linux client AppImage (x86_64)
           cp release-artifacts/client-linux/*.AppImage release-files/ 2>/dev/null && \
             echo "Collected Linux client AppImage (x86_64)" || echo "Warning: Linux client AppImage not found"
+          cp release-artifacts/client-linux/*.AppImage.asc release-files/ 2>/dev/null && \
+            echo "Collected Linux client AppImage signature" || echo "Note: No Linux client AppImage signature"
 
           # Linux client AppImage (ARM64)
           cp release-artifacts/client-linux-arm64/*.AppImage release-files/ 2>/dev/null && \
             echo "Collected Linux client AppImage (ARM64)" || echo "Warning: Linux ARM64 client AppImage not found"
+          cp release-artifacts/client-linux-arm64/*.AppImage.asc release-files/ 2>/dev/null && \
+            echo "Collected Linux ARM64 client AppImage signature" || echo "Note: No Linux ARM64 client AppImage signature"
 
           # macOS client DMG
           cp release-artifacts/client-macos/*.dmg release-files/ 2>/dev/null && \
@@ -1170,5 +1228,13 @@ jobs:
             - **Desktop Client (Linux x86_64)**: Linux x86_64 (signaling + host management only)
             - **Desktop Client (Linux ARM64)**: Linux ARM64 / Jetson (signaling + host management only)
             - **Android Client**: Android 7.0+ (API 24)
+
+            ### Verify GPG Signatures (Linux)
+            Linux artifacts are GPG-signed. To verify:
+            ```
+            curl -sL https://raw.githubusercontent.com/thatcooperguy/nvremote/main/GPG-PUBLIC-KEY.asc | gpg --import
+            gpg --verify NVRemote-*.AppImage.asc NVRemote-*.AppImage
+            ```
+            Key fingerprint: `178E 1F4A 1849 810C 253B  C569 E48D D3D3 1666 D821`
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

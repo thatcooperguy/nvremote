@@ -190,7 +190,13 @@ func runSignalingSession(ctx context.Context, url string, hostID string, token s
 	if err != nil {
 		return fmt.Errorf("WebSocket dial failed: %w", err)
 	}
-	defer conn.Close()
+	defer func() {
+		// Clear the connection reference so QoS goroutines don't write to a closed conn.
+		if sigHandler != nil {
+			sigHandler.SetConn(nil)
+		}
+		conn.Close()
+	}()
 
 	slog.Info("Socket.IO WebSocket transport connected")
 
@@ -232,6 +238,12 @@ func runSignalingSession(ctx context.Context, url string, hostID string, token s
 		return fmt.Errorf("expected Socket.IO CONNECT ACK (40), got: %s", ackStr)
 	}
 	slog.Info("Socket.IO connected to /signaling namespace")
+
+	// Store the connection reference on the signaling handler so it can send
+	// outbound messages (e.g., QoS stats) from goroutines.
+	if sigHandler != nil {
+		sigHandler.SetConn(conn)
+	}
 
 	// Step 4: Register as a host agent by emitting host:register
 	registerPayload := struct {

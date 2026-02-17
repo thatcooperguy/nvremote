@@ -34,6 +34,9 @@ export class UserProfileDto {
 
   @ApiProperty()
   createdAt!: Date;
+
+  @ApiProperty({ description: 'Whether the user is a platform super-admin' })
+  isSuperAdmin!: boolean;
 }
 
 export class AuthCallbackResultDto {

@@ -8,11 +8,13 @@ import {
   Clock,
   Loader2,
   Monitor,
+  Play,
   RefreshCw,
   Unplug,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { authFetch } from '@/lib/auth';
+import { useRouter } from 'next/navigation';
 
 // ---------------------------------------------------------------------------
 // Types — match the API DTOs
@@ -85,6 +87,8 @@ function formatDuration(startedAt: string, endedAt?: string | null): string {
 // ---------------------------------------------------------------------------
 
 export default function SessionsPage() {
+  const router = useRouter();
+
   // Data state
   const [sessions, setSessions] = useState<Session[]>([]);
   const [hosts, setHosts] = useState<Host[]>([]);
@@ -405,6 +409,17 @@ export default function SessionsPage() {
                   </div>
                 </div>
 
+                {/* Launch Stream button */}
+                <button
+                  onClick={() => router.push(`/stream/${createdSessionId}`)}
+                  className={cn(
+                    'w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-nv-green text-white font-semibold text-sm rounded-lg hover:bg-nv-green-300 transition-all duration-300 shadow-glow hover:shadow-glow-lg',
+                  )}
+                >
+                  <Play className="w-4 h-4" />
+                  Launch Stream in Browser
+                </button>
+
                 {/* Status */}
                 <div className="flex items-center gap-2.5 py-3 px-4 rounded-lg bg-nv-green/[0.04] border border-nv-green/10">
                   <span className="relative flex h-2.5 w-2.5">
@@ -412,7 +427,7 @@ export default function SessionsPage() {
                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-nv-green" />
                   </span>
                   <span className="text-sm text-nv-green font-medium">
-                    Connecting to host...
+                    Session ready — click above to start streaming
                   </span>
                 </div>
 
@@ -498,22 +513,33 @@ export default function SessionsPage() {
                     </span>
                   </div>
                 </div>
-                <button
-                  onClick={() => handleEndSession(session.id)}
-                  disabled={endingSessionId === session.id}
-                  className={cn(
-                    'shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-red-400 border border-gray-200 hover:border-red-500/30 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed',
+                <div className="flex items-center gap-2 shrink-0">
+                  {session.status === 'ACTIVE' && (
+                    <button
+                      onClick={() => router.push(`/stream/${session.id}`)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-nv-green hover:bg-nv-green-300 rounded-lg transition-all"
+                    >
+                      <Play className="w-3.5 h-3.5" />
+                      Connect
+                    </button>
                   )}
-                >
-                  {endingSessionId === session.id ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Unplug className="w-3.5 h-3.5" />
-                  )}
-                  {endingSessionId === session.id
-                    ? 'Ending...'
-                    : 'End Session'}
-                </button>
+                  <button
+                    onClick={() => handleEndSession(session.id)}
+                    disabled={endingSessionId === session.id}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-red-400 border border-gray-200 hover:border-red-500/30 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed',
+                    )}
+                  >
+                    {endingSessionId === session.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Unplug className="w-3.5 h-3.5" />
+                    )}
+                    {endingSessionId === session.id
+                      ? 'Ending...'
+                      : 'End Session'}
+                  </button>
+                </div>
               </div>
             ))}
           </div>

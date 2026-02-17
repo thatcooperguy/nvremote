@@ -232,15 +232,13 @@ const clientDownloads: DownloadItem[] = [
   },
   {
     id: 'web-client',
-    platform: 'Web Client',
+    platform: 'Web Client (Chrome)',
     ext: '',
     icon: <Globe className="w-6 h-6" />,
     version: VERSION,
-    size: '',
+    size: 'No download required',
     sha256: '',
-    href: '#',
-    disabled: true,
-    comingSoon: true,
+    href: '/dashboard/sessions',
   },
 ];
 

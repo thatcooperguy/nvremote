@@ -14,10 +14,12 @@ import {
   Trash2,
   Download,
   Loader2,
+  Play,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { authFetch, isAuthenticated } from '@/lib/auth';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 // ---------------------------------------------------------------------------
 // Types matching the API response from HostResponseDto
@@ -107,10 +109,12 @@ const statusStyles: Record<string, { dot: string; text: string }> = {
 // ---------------------------------------------------------------------------
 
 export default function DevicesPage() {
+  const router = useRouter();
   const [hosts, setHosts] = useState<HostResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [connectingId, setConnectingId] = useState<string | null>(null);
 
   const fetchDevices = useCallback(async () => {
     if (!isAuthenticated()) return;
@@ -153,6 +157,27 @@ export default function DevicesPage() {
   useEffect(() => {
     fetchDevices();
   }, [fetchDevices]);
+
+  /** Quick-connect: create a session and launch the web stream */
+  const handleStream = async (hostId: string) => {
+    if (connectingId) return;
+    setConnectingId(hostId);
+    try {
+      const res = await authFetch('/api/v1/sessions', {
+        method: 'POST',
+        body: JSON.stringify({ hostId }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message || `Failed to create session (${res.status})`);
+      }
+      const data = await res.json();
+      router.push(`/stream/${data.sessionId}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to start session');
+      setConnectingId(null);
+    }
+  };
 
   /** Remove (deregister) a host */
   const handleRemove = async (hostId: string) => {
@@ -358,7 +383,28 @@ export default function DevicesPage() {
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-gray-200/60">
+                <div className="pt-3 border-t border-gray-200/60 flex items-center justify-between">
+                  {host.status === 'ONLINE' ? (
+                    <button
+                      onClick={() => handleStream(host.id)}
+                      disabled={connectingId === host.id}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-lg transition-all',
+                        connectingId === host.id
+                          ? 'bg-nv-green/60 cursor-wait'
+                          : 'bg-nv-green hover:bg-nv-green-300',
+                      )}
+                    >
+                      {connectingId === host.id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Play className="w-3 h-3" />
+                      )}
+                      {connectingId === host.id ? 'Connecting...' : 'Stream'}
+                    </button>
+                  ) : (
+                    <span className="text-xs text-gray-400">Offline</span>
+                  )}
                   <button
                     onClick={() => handleRemove(host.id)}
                     disabled={isRemoving}

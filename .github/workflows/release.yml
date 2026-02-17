@@ -1114,6 +1114,17 @@ jobs:
           echo "=== Files for release ==="
           ls -lh release-files/ || echo "No release files collected"
 
+      - name: Generate SHA256 checksums
+        run: |
+          cd release-files
+          if ls * 1>/dev/null 2>&1; then
+            sha256sum * > SHA256SUMS.txt
+            echo "=== SHA256 Checksums ==="
+            cat SHA256SUMS.txt
+          else
+            echo "No files to checksum"
+          fi
+
       - name: Upload to GCS bucket
         uses: google-github-actions/auth@v2
         with:

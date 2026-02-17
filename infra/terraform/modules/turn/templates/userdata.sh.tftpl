@@ -10,7 +10,7 @@ echo "[$(date -u)] NVRemote TURN server setup starting..."
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
 apt-get upgrade -y
-apt-get install -y coturn
+apt-get install -y coturn certbot
 
 # ---------------------------------------------------------------------------
 # Enable coturn as a system service
@@ -18,6 +18,41 @@ apt-get install -y coturn
 # Ubuntu ships coturn disabled by default; enable it
 sed -i 's/^#TURNSERVER_ENABLED=1/TURNSERVER_ENABLED=1/' /etc/default/coturn
 echo "TURNSERVER_ENABLED=1" >> /etc/default/coturn
+
+# ---------------------------------------------------------------------------
+# Provision TLS certificate (TURNS on port 5349)
+# ---------------------------------------------------------------------------
+# Use certbot standalone to get a Let's Encrypt cert for the TURN realm.
+# The cert is used for TURNS (TLS) connections on port ${turn_tls_port}.
+# If the realm isn't a resolvable hostname (e.g., just an IP), skip TLS.
+TURN_CERT=""
+TURN_KEY=""
+
+if [[ "${turn_realm}" == *.* ]] && host "${turn_realm}" &>/dev/null; then
+  echo "[$(date -u)] Requesting TLS certificate for ${turn_realm}..."
+  certbot certonly --standalone --non-interactive --agree-tos \
+    --email admin@${turn_realm} \
+    -d "turn.${turn_realm}" \
+    --preferred-challenges http || true
+
+  CERT_PATH="/etc/letsencrypt/live/turn.${turn_realm}"
+  if [ -d "$CERT_PATH" ]; then
+    TURN_CERT="$CERT_PATH/fullchain.pem"
+    TURN_KEY="$CERT_PATH/privkey.pem"
+    echo "[$(date -u)] TLS certificate provisioned for TURNS."
+
+    # Auto-renew cron (certbot installs a systemd timer, but add a reload hook)
+    cat > /etc/letsencrypt/renewal-hooks/deploy/restart-coturn.sh <<'HOOKEOF'
+#!/bin/bash
+systemctl restart coturn
+HOOKEOF
+    chmod +x /etc/letsencrypt/renewal-hooks/deploy/restart-coturn.sh
+  else
+    echo "[$(date -u)] WARNING: TLS cert request failed; TURNS will be unavailable."
+  fi
+else
+  echo "[$(date -u)] Realm '${turn_realm}' is not a DNS hostname; skipping TLS."
+fi
 
 # ---------------------------------------------------------------------------
 # Configure coturn
@@ -72,6 +107,17 @@ denied-peer-ip=192.168.0.0-192.168.255.255
 relay-threads=4
 TURNEOF
 
+# Append TLS configuration if certificate is available
+if [ -n "$TURN_CERT" ] && [ -n "$TURN_KEY" ]; then
+  cat >> /etc/turnserver.conf <<TLSEOF
+
+# TLS (TURNS) — encrypted relay for restrictive networks
+cert=$TURN_CERT
+pkey=$TURN_KEY
+TLSEOF
+  echo "[$(date -u)] TURNS (TLS) configuration appended."
+fi
+
 chmod 644 /etc/turnserver.conf
 
 # ---------------------------------------------------------------------------
@@ -86,6 +132,10 @@ systemctl restart coturn
 sleep 2
 if systemctl is-active --quiet coturn; then
   echo "[$(date -u)] coturn is running successfully."
+  echo "[$(date -u)] TURN: ${external_ip}:${turn_port} (UDP/TCP)"
+  if [ -n "$TURN_CERT" ]; then
+    echo "[$(date -u)] TURNS: ${external_ip}:${turn_tls_port} (TLS)"
+  fi
 else
   echo "[$(date -u)] ERROR: coturn failed to start. Check /var/log/turnserver.log"
   journalctl -u coturn --no-pager -n 50

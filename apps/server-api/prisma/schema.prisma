@@ -166,6 +166,26 @@ model AuditLog {
 }
 
 // ---------------------------------------------------------------------------
+// VPN Peer (WireGuard peer registration for VPN relay mode)
+// ---------------------------------------------------------------------------
+
+model VpnPeer {
+  id           String   @id @default(uuid()) @db.Uuid
+  publicKey    String   @unique
+  assignedIp   String   @unique
+  hostId       String?  @db.Uuid   // If this peer is a host agent
+  userId       String?  @db.Uuid   // If this peer is a client
+  endpoint     String?             // host:port if known
+  region       String   @default("us-west1")
+  lastSeenAt   DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([hostId])
+  @@index([userId])
+  @@map("vpn_peers")
+}
+
+// ---------------------------------------------------------------------------
 // Refresh Token
 // ---------------------------------------------------------------------------
 

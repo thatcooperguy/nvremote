@@ -39,6 +39,13 @@ type Config struct {
 
 	// HeartbeatInterval is the number of seconds between control plane heartbeats.
 	HeartbeatInterval int `yaml:"heartbeat_interval"`
+
+	// TunnelEnabled enables the zero-trust tunnel proxy.
+	TunnelEnabled bool `yaml:"tunnel_enabled"`
+
+	// TunnelSecret is the HMAC secret used to verify tunnel JWT tokens.
+	// Must match the TUNNEL_SECRET configured on the NVRemote API server.
+	TunnelSecret string `yaml:"tunnel_secret"`
 }
 
 // DefaultConfig returns a Config populated with default values.
@@ -131,6 +138,12 @@ func applyEnvOverrides(cfg *Config) {
 			cfg.HeartbeatInterval = interval
 		}
 	}
+	if v := os.Getenv("NVREMOTE_TUNNEL_ENABLED"); v == "true" {
+		cfg.TunnelEnabled = true
+	}
+	if v := os.Getenv("NVREMOTE_TUNNEL_SECRET"); v != "" {
+		cfg.TunnelSecret = v
+	}
 }
 
 // validateConfig ensures all required configuration values are set.
@@ -143,6 +156,9 @@ func validateConfig(cfg *Config) error {
 	}
 	if cfg.WireGuardPort < 1 || cfg.WireGuardPort > 65535 {
 		return fmt.Errorf("WireGuard port must be between 1 and 65535, got %d", cfg.WireGuardPort)
+	}
+	if cfg.TunnelEnabled && cfg.TunnelSecret == "" {
+		return fmt.Errorf("tunnel secret is required when tunnel is enabled (set NVREMOTE_TUNNEL_SECRET)")
 	}
 	return nil
 }

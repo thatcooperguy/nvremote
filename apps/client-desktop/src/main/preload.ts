@@ -247,6 +247,35 @@ const p2pApi = {
     ipcRenderer.on('p2p:remote-ice-complete', handler);
     return () => ipcRenderer.removeListener('p2p:remote-ice-complete', handler);
   },
+
+  onHostCapabilities: (
+    callback: (info: {
+      sessionId: string;
+      gpu: { name: string; vram?: number; nvencGen?: string };
+      encoders: string[];
+      maxEncode?: Record<string, string>;
+      captureApi?: string;
+      displays?: Array<{ width: number; height: number; refreshRate: number }>;
+    }) => void
+  ): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      info: Parameters<typeof callback>[0]
+    ) => callback(info);
+    ipcRenderer.on('p2p:host-capabilities', handler);
+    return () => ipcRenderer.removeListener('p2p:host-capabilities', handler);
+  },
+
+  onCapabilityNegotiated: (
+    callback: (info: { sessionId: string; negotiated: boolean }) => void
+  ): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      info: { sessionId: string; negotiated: boolean }
+    ) => callback(info);
+    ipcRenderer.on('p2p:capability-negotiated', handler);
+    return () => ipcRenderer.removeListener('p2p:capability-negotiated', handler);
+  },
 };
 
 // ---------------------------------------------------------------------------

@@ -101,15 +101,35 @@ interface P2PStatusResult {
 
 interface SessionAcceptedInfo {
   sessionId: string;
+  hostId?: string;
   codec: string;
-  capabilities: {
+  capabilities?: {
     maxBitrate: number;
     maxFps: number;
     maxResolution: { width: number; height: number };
     supportedCodecs: string[];
   };
-  dtlsFingerprint: string;
-  stunServers: string[];
+  dtlsFingerprint?: string;
+  stunServers?: string[];
+  turnServers?: Array<{ urls: string | string[]; username?: string; credential?: string }>;
+  /** Pre-gathered ICE candidates from the host, bundled in session:answer */
+  candidates?: IceCandidate[];
+}
+
+/** Host GPU and encoder capabilities received via capability:host */
+interface HostCapabilityInfo {
+  sessionId: string;
+  gpu: { name: string; vram?: number; nvencGen?: string };
+  encoders: string[];
+  maxEncode?: Record<string, string>;
+  captureApi?: string;
+  displays?: Array<{ width: number; height: number; refreshRate: number }>;
+}
+
+/** Capability negotiation acknowledgment */
+interface CapabilityNegotiatedInfo {
+  sessionId: string;
+  negotiated: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -169,6 +189,8 @@ interface NvrsApi {
     onSessionError: (cb: (data: { error: string }) => void) => () => void;
     onRemoteCandidate: (cb: (candidate: IceCandidate) => void) => () => void;
     onRemoteIceComplete: (cb: () => void) => () => void;
+    onHostCapabilities: (cb: (info: HostCapabilityInfo) => void) => () => void;
+    onCapabilityNegotiated: (cb: (info: CapabilityNegotiatedInfo) => void) => () => void;
   };
 
   connection: {

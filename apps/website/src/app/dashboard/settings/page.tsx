@@ -34,6 +34,12 @@ interface UserProfile {
   name?: string | null;
   avatarUrl?: string | null;
   createdAt: string;
+  preferences?: {
+    defaultQuality?: string;
+    defaultTransport?: string;
+    emailNotifs?: boolean;
+    pushNotifs?: boolean;
+  } | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -48,11 +54,11 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [orgs, setOrgs] = useState<OrgInfo[]>([]);
 
-  // Streaming preferences (local state — no backend endpoint yet)
+  // Streaming preferences (synced with API)
   const [defaultQuality, setDefaultQuality] = useState('balanced');
   const [defaultTransport, setDefaultTransport] = useState('udp');
 
-  // Notifications (local state — no backend endpoint yet)
+  // Notifications (synced with API)
   const [emailNotifs, setEmailNotifs] = useState(true);
   const [pushNotifs, setPushNotifs] = useState(false);
 
@@ -88,6 +94,15 @@ export default function SettingsPage() {
 
       const profileData: UserProfile = await profileRes.json();
       setProfile(profileData);
+
+      // Hydrate preferences from API response
+      if (profileData.preferences) {
+        const p = profileData.preferences;
+        if (p.defaultQuality) setDefaultQuality(p.defaultQuality);
+        if (p.defaultTransport) setDefaultTransport(p.defaultTransport);
+        if (typeof p.emailNotifs === 'boolean') setEmailNotifs(p.emailNotifs);
+        if (typeof p.pushNotifs === 'boolean') setPushNotifs(p.pushNotifs);
+      }
 
       if (orgsRes.ok) {
         const orgsData: OrgInfo[] = await orgsRes.json();
@@ -127,40 +142,31 @@ export default function SettingsPage() {
     setSaving(true);
     setSaveSuccess(false);
     try {
-      // Persist to localStorage for now (streaming prefs have no backend endpoint yet)
-      localStorage.setItem(
-        'nvremote_preferences',
-        JSON.stringify({
-          defaultQuality,
-          defaultTransport,
-          emailNotifs,
-          pushNotifs,
+      const res = await authFetch('/api/v1/auth/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          preferences: {
+            defaultQuality,
+            defaultTransport,
+            emailNotifs,
+            pushNotifs,
+          },
         }),
-      );
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to save preferences (${res.status})`);
+      }
+      const updated: UserProfile = await res.json();
+      setProfile(updated);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2500);
-    } catch {
-      setError('Failed to save preferences');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save preferences');
     } finally {
       setSaving(false);
     }
   };
-
-  // Load saved preferences from localStorage on mount
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('nvremote_preferences');
-      if (raw) {
-        const prefs = JSON.parse(raw);
-        if (prefs.defaultQuality) setDefaultQuality(prefs.defaultQuality);
-        if (prefs.defaultTransport) setDefaultTransport(prefs.defaultTransport);
-        if (typeof prefs.emailNotifs === 'boolean') setEmailNotifs(prefs.emailNotifs);
-        if (typeof prefs.pushNotifs === 'boolean') setPushNotifs(prefs.pushNotifs);
-      }
-    } catch {
-      // ignore parse errors
-    }
-  }, []);
 
   // -----------------------------------------------------------------------
   // Derived values
@@ -538,8 +544,8 @@ export default function SettingsPage() {
         <Shield className="w-4 h-4 text-nv-green shrink-0 mt-0.5" />
         <p className="text-xs text-gray-500 leading-relaxed">
           Your session tokens are encrypted at rest and in transit. Streaming
-          preferences are stored locally in your browser. Sign out on shared
-          devices when you are done.
+          preferences are synced to your account and available on all devices.
+          Sign out on shared devices when you are done.
         </p>
       </motion.div>
     </div>

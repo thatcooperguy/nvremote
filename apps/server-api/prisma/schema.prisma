@@ -42,6 +42,7 @@ model User {
   avatarUrl    String?
   googleId     String?  @unique
   isSuperAdmin Boolean  @default(false) // Platform owner — only set via DB migration or seed
+  preferences  Json?    // User streaming preferences: qualityPreset, transport, notifications
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

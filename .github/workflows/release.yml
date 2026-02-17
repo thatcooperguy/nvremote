@@ -510,6 +510,8 @@ jobs:
     name: Bundle Host Package (Linux)
     runs-on: ubuntu-latest
     needs: [build-host-agent-linux]
+    env:
+      HAS_GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY != '' }}
 
     steps:
       - name: Download host agent artifact
@@ -534,7 +536,7 @@ jobs:
           echo "Created ${BUNDLE_NAME}.tar.gz ($(du -h ${BUNDLE_NAME}.tar.gz | cut -f1))"
 
       - name: GPG sign host bundle
-        if: "${{ secrets.GPG_PRIVATE_KEY != '' }}"
+        if: env.HAS_GPG_KEY == 'true'
         run: |
           echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d | gpg --batch --import
           TARBALL="NVRemoteHost-${{ github.ref_name }}-linux-amd64.tar.gz"
@@ -558,6 +560,8 @@ jobs:
     name: Bundle Host Package (Linux ARM64)
     runs-on: ubuntu-latest
     needs: [build-host-agent-linux-arm64]
+    env:
+      HAS_GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY != '' }}
 
     steps:
       - name: Download host agent artifact (ARM64)
@@ -582,7 +586,7 @@ jobs:
           echo "Created ${BUNDLE_NAME}.tar.gz ($(du -h ${BUNDLE_NAME}.tar.gz | cut -f1))"
 
       - name: GPG sign host bundle (ARM64)
-        if: "${{ secrets.GPG_PRIVATE_KEY != '' }}"
+        if: env.HAS_GPG_KEY == 'true'
         run: |
           echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d | gpg --batch --import
           TARBALL="NVRemoteHost-${{ github.ref_name }}-linux-arm64.tar.gz"
@@ -706,6 +710,8 @@ jobs:
   build-client-linux:
     name: Build Desktop Client (Linux)
     runs-on: ubuntu-latest
+    env:
+      HAS_GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY != '' }}
 
     steps:
       - name: Checkout repository
@@ -734,7 +740,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: GPG sign AppImage
-        if: "${{ secrets.GPG_PRIVATE_KEY != '' }}"
+        if: env.HAS_GPG_KEY == 'true'
         run: |
           echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d | gpg --batch --import
           APPIMAGE=$(find apps/client-desktop/release -name 'NVRemote-*.AppImage' | head -1)
@@ -762,6 +768,8 @@ jobs:
   build-client-linux-arm64:
     name: Build Desktop Client (Linux ARM64)
     runs-on: ubuntu-latest
+    env:
+      HAS_GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY != '' }}
 
     steps:
       - name: Checkout repository
@@ -796,7 +804,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: GPG sign AppImage (ARM64)
-        if: "${{ secrets.GPG_PRIVATE_KEY != '' }}"
+        if: env.HAS_GPG_KEY == 'true'
         run: |
           echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d | gpg --batch --import
           APPIMAGE=$(find apps/client-desktop/release -name 'NVRemote-*-arm64.AppImage' | head -1)

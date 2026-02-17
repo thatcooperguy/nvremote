@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 import {
   Zap,
   Shield,
@@ -14,6 +15,9 @@ import {
   Github,
   Server,
   Smartphone,
+  Mail,
+  CheckCircle2,
+  Loader2,
 } from 'lucide-react';
 
 /* -------------------------------------------------------------------------- */
@@ -169,6 +173,137 @@ function WindowsIcon({ className }: { className?: string }) {
     >
       <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801" />
     </svg>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Waitlist CTA Section                                                       */
+/* -------------------------------------------------------------------------- */
+
+function WaitlistCTA() {
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+
+    setStatus('loading');
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      if (res.ok) {
+        setStatus('success');
+        setEmail('');
+      } else {
+        setStatus('error');
+      }
+    } catch {
+      setStatus('error');
+    }
+  };
+
+  return (
+    <section className="section-padding py-24 sm:py-32 relative bg-white">
+      <div className="relative rounded-3xl overflow-hidden">
+        {/* Background layers */}
+        <div className="absolute inset-0 bg-gradient-to-br from-nv-green/[0.06] via-gray-50 to-white" />
+        <div className="absolute inset-0 grid-overlay opacity-20" />
+
+        <div className="relative px-8 sm:px-16 lg:px-24 py-20 sm:py-28 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900 mb-5">
+              Ready to{' '}
+              <span className="text-gradient">Stream?</span>
+            </h2>
+            <p className="text-gray-500 max-w-md mx-auto mb-10 leading-relaxed">
+              Join the waitlist to get early access and be the first to stream
+              your GPU-powered desktop to any device.
+            </p>
+
+            {/* Waitlist form */}
+            {status === 'success' ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-nv-green/10 border border-nv-green/30 text-nv-green-600 font-semibold mb-10"
+              >
+                <CheckCircle2 size={20} />
+                You&apos;re on the list! We&apos;ll be in touch.
+              </motion.div>
+            ) : (
+              <form
+                onSubmit={handleSubmit}
+                className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-10 max-w-lg mx-auto"
+              >
+                <div className="relative flex-1 w-full">
+                  <Mail
+                    size={18}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                  />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (status === 'error') setStatus('idle');
+                    }}
+                    placeholder="you@company.com"
+                    required
+                    className="w-full pl-11 pr-4 py-4 text-base rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-nv-green/50 focus:border-nv-green transition-all duration-200"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={status === 'loading'}
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold rounded-xl bg-nv-green text-white hover:bg-nv-green-500 active:bg-nv-green-600 shadow-glow hover:shadow-glow-lg transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  {status === 'loading' ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    <Zap size={18} />
+                  )}
+                  {status === 'loading' ? 'Joining...' : 'Join Waitlist'}
+                </button>
+              </form>
+            )}
+
+            {status === 'error' && (
+              <p className="text-red-500 text-sm mb-6">
+                Something went wrong. Please try again.
+              </p>
+            )}
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link
+                href="/downloads"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl bg-transparent text-gray-700 border border-gray-300 hover:border-nv-green/50 hover:text-nv-green-600 hover:bg-nv-green/5 transition-all duration-300"
+              >
+                <Download size={18} />
+                Download Now
+              </Link>
+              <a
+                href="https://github.com/thatcooperguy/nvremote"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl bg-transparent text-gray-700 border border-gray-300 hover:border-nv-green/50 hover:text-nv-green-600 hover:bg-nv-green/5 transition-all duration-300"
+              >
+                <Github size={18} />
+                Star on GitHub
+              </a>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -643,56 +778,9 @@ export default function HomePage() {
       </section>
 
       {/* ================================================================== */}
-      {/*  BOTTOM CTA                                                        */}
+      {/*  BOTTOM CTA + WAITLIST                                             */}
       {/* ================================================================== */}
-      <section className="section-padding py-24 sm:py-32 relative bg-white">
-        <div className="relative rounded-3xl overflow-hidden">
-          {/* Background layers */}
-          <div className="absolute inset-0 bg-gradient-to-br from-nv-green/[0.06] via-gray-50 to-white" />
-          <div className="absolute inset-0 grid-overlay opacity-20" />
-
-          <div className="relative px-8 sm:px-16 lg:px-24 py-20 sm:py-28 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900 mb-5">
-                Ready to{' '}
-                <span className="text-gradient">Stream?</span>
-              </h2>
-              <p className="text-gray-500 max-w-md mx-auto mb-10 leading-relaxed">
-                Start streaming your GPU-powered desktop to any device.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link
-                  href="/downloads"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold rounded-xl bg-nv-green text-white hover:bg-nv-green-500 active:bg-nv-green-600 shadow-glow hover:shadow-glow-lg transition-all duration-300 group/btn relative overflow-hidden"
-                >
-                  <span className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
-                    <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                  </span>
-                  <span className="relative z-10 flex items-center gap-2">
-                    <Zap size={18} />
-                    Get Started
-                    <ArrowRight size={16} className="transition-transform duration-300 group-hover/btn:translate-x-1" />
-                  </span>
-                </Link>
-                <a
-                  href="https://github.com/thatcooperguy/nvremote"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-medium rounded-xl bg-transparent text-gray-700 border border-gray-300 hover:border-nv-green/50 hover:text-nv-green-600 hover:bg-nv-green/5 transition-all duration-300"
-                >
-                  <Github size={18} />
-                  Star on GitHub
-                </a>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
+      <WaitlistCTA />
     </>
   );
 }

@@ -293,9 +293,100 @@ export function StreamView(): React.ReactElement {
 
       {/* Stats overlay */}
       {showStatsOverlay && <StatsOverlay stats={stats} />}
+
+      {/* Reconnecting overlay */}
+      <ReconnectOverlay />
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Reconnect overlay
+// ---------------------------------------------------------------------------
+
+function ReconnectOverlay(): React.ReactElement | null {
+  const status = useConnectionStore((s) => s.status);
+  const attempts = useConnectionStore((s) => s.reconnectAttempts);
+  const disconnect = useConnectionStore((s) => s.disconnect);
+
+  if (status !== 'reconnecting') return null;
+
+  return (
+    <div style={reconnectStyles.overlay}>
+      <div style={reconnectStyles.card}>
+        <div style={reconnectStyles.spinner} />
+        <span style={reconnectStyles.title}>Reconnecting...</span>
+        <span style={reconnectStyles.subtitle}>
+          Attempt {attempts} of 3
+        </span>
+        <button
+          onClick={() => disconnect()}
+          style={reconnectStyles.cancelBtn}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)';
+          }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const reconnectStyles: Record<string, React.CSSProperties> = {
+  overlay: {
+    position: 'fixed',
+    inset: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backdropFilter: 'blur(4px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 500,
+  },
+  card: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 12,
+    padding: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(20, 20, 20, 0.9)',
+    border: `1px solid ${colors.border.default}`,
+    boxShadow: shadows.lg,
+  },
+  spinner: {
+    width: 40,
+    height: 40,
+    border: '3px solid rgba(255,255,255,0.15)',
+    borderTopColor: '#EAB308',
+    borderRadius: '50%',
+    animation: 'spin 0.8s linear infinite',
+  },
+  title: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
+  },
+  subtitle: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.disabled,
+  },
+  cancelBtn: {
+    marginTop: 8,
+    padding: '8px 24px',
+    borderRadius: 8,
+    border: 'none',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    color: colors.text.secondary,
+    fontSize: typography.fontSize.sm,
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
+  },
+};
 
 // ---------------------------------------------------------------------------
 // Styles

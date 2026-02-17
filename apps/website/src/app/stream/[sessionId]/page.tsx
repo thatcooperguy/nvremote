@@ -36,6 +36,7 @@ type ConnectionState =
   | 'connecting'
   | 'signaling'
   | 'streaming'
+  | 'reconnecting'
   | 'disconnected'
   | 'error';
 
@@ -112,6 +113,8 @@ export default function WebStreamPage() {
   const [gamepadConnected, setGamepadConnected] = useState(false);
 
   const controlsTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttemptRef = useRef(0);
+  const maxReconnectAttempts = 3;
 
   // ---------------------------------------------------------------------------
   // Auth check
@@ -212,9 +215,46 @@ export default function WebStreamPage() {
           case 'connected':
           case 'completed':
             setState('streaming');
+            reconnectAttemptRef.current = 0;
             break;
           case 'disconnected':
-            setState('disconnected');
+            // Attempt ICE restart before giving up
+            if (reconnectAttemptRef.current < maxReconnectAttempts) {
+              reconnectAttemptRef.current += 1;
+              setState('reconnecting');
+              pc.restartIce();
+              // Create a new offer with iceRestart to trigger re-negotiation
+              pc.createOffer({ iceRestart: true })
+                .then((restartOffer) => pc.setLocalDescription(restartOffer))
+                .then(() => {
+                  return authFetch(`/api/v1/sessions/${sessionId}/offer`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      sdp: pc.localDescription?.sdp,
+                      type: pc.localDescription?.type,
+                    }),
+                  });
+                })
+                .then(async (restartRes) => {
+                  if (restartRes.ok) {
+                    const restartAnswer = await restartRes.json();
+                    if (restartAnswer.sdp) {
+                      await pc.setRemoteDescription(
+                        new RTCSessionDescription({
+                          type: 'answer',
+                          sdp: restartAnswer.sdp,
+                        }),
+                      );
+                    }
+                  }
+                })
+                .catch(() => {
+                  // ICE restart failed, will fall through on next state change
+                });
+            } else {
+              setState('disconnected');
+            }
             break;
           case 'failed':
             setState('error');
@@ -623,7 +663,21 @@ export default function WebStreamPage() {
       {state !== 'streaming' && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-20">
           <div className="text-center space-y-4">
-            {state === 'connecting' || state === 'signaling' ? (
+            {state === 'reconnecting' ? (
+              <>
+                <div className="w-12 h-12 border-3 border-yellow-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                <p className="text-white text-lg">Reconnecting...</p>
+                <p className="text-gray-400 text-sm">
+                  Attempt {reconnectAttemptRef.current} of {maxReconnectAttempts}
+                </p>
+                <button
+                  onClick={disconnect}
+                  className="mt-4 px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : state === 'connecting' || state === 'signaling' ? (
               <>
                 <div className="w-12 h-12 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
                 <p className="text-white text-lg">

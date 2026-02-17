@@ -5,6 +5,7 @@ import { Sidebar } from './components/Sidebar';
 import { Toast } from './components/Toast';
 import { ConnectionOverlay } from './components/ConnectionOverlay';
 import { StreamView } from './components/StreamView';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { HostDetailPage } from './pages/HostDetailPage';
@@ -56,32 +57,34 @@ export function App(): React.ReactElement {
     connectionStatus === 'connecting';
 
   return (
-    <div style={styles.app}>
-      <TitleBar />
-      <div style={styles.content}>
-        <Routes>
-          <Route
-            path="/"
-            element={
-              isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />
-            }
-          />
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <AuthenticatedLayout />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
+    <ErrorBoundary>
+      <div style={styles.app}>
+        <TitleBar />
+        <div style={styles.content}>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />
+              }
+            />
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <AuthenticatedLayout />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </div>
+        {/* Full-screen stream view when actively streaming */}
+        {isStreaming && <StreamView />}
+        {/* Connection overlay shown during the connecting phase */}
+        {isConnecting && <ConnectionOverlay />}
+        <Toast />
       </div>
-      {/* Full-screen stream view when actively streaming */}
-      {isStreaming && <StreamView />}
-      {/* Connection overlay shown during the connecting phase */}
-      {isConnecting && <ConnectionOverlay />}
-      <Toast />
-    </div>
+    </ErrorBoundary>
   );
 }
 

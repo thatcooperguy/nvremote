@@ -180,11 +180,16 @@ func determineStatus(streamerRunning bool) string {
 	return "degraded-no-streamer"
 }
 
-// buildWebSocketURL converts an HTTP(S) control plane URL to the corresponding
-// WebSocket URL for signaling.
+// buildWebSocketURL converts an HTTP(S) control plane URL to the Socket.IO
+// WebSocket transport URL for the /signaling namespace.
+//
+// Socket.IO uses Engine.IO's WebSocket transport which requires the
+// ?EIO=4&transport=websocket query parameters.
 func buildWebSocketURL(controlPlaneURL, hostID string) string {
 	wsURL := controlPlaneURL
 	wsURL = strings.Replace(wsURL, "https://", "wss://", 1)
 	wsURL = strings.Replace(wsURL, "http://", "ws://", 1)
-	return fmt.Sprintf("%s/api/hosts/%s/ws", wsURL, hostID)
+	// Remove trailing slash if present
+	wsURL = strings.TrimRight(wsURL, "/")
+	return wsURL + "/signaling/?EIO=4&transport=websocket"
 }

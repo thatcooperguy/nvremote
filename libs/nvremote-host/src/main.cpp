@@ -142,12 +142,21 @@ static std::string handlePipeCommand(const std::string& command,
     // ---- start_session ----
     if (command == "start_session") {
         PeerInfo peer;
-        peer.ip               = params.getString("peer_ip");
-        peer.port             = static_cast<uint16_t>(params.getUint("peer_port"));
+        // Accept both "peer_ip"/"peer_port" and "ip"/"port" for compatibility
+        // with different host-agent versions.
+        peer.ip = params.getString("peer_ip");
+        if (peer.ip.empty()) {
+            peer.ip = params.getString("ip");
+        }
+        uint16_t port = static_cast<uint16_t>(params.getUint("peer_port"));
+        if (port == 0) {
+            port = static_cast<uint16_t>(params.getUint("port"));
+        }
+        peer.port = port;
         peer.dtls_fingerprint = params.getString("dtls_fingerprint");
 
         if (peer.ip.empty() || peer.port == 0) {
-            return makeErrorResponse("Missing peer_ip or peer_port");
+            return makeErrorResponse("Missing peer IP or port");
         }
 
         if (!session.startSession(peer)) {
@@ -218,6 +227,45 @@ static std::string handlePipeCommand(const std::string& command,
         SimpleJson data;
         data.setString("mode", cs::gamingModeToString(mode));
         return makeOkResponse(data);
+    }
+
+    // ---- get_capabilities ----
+    if (command == "get_capabilities") {
+        auto* enc = session.getEncoder();
+
+        SimpleJson data;
+        // Report supported codecs
+        std::string codecs_json = "[";
+        bool first_codec = true;
+        for (auto ct : {CodecType::H264, CodecType::HEVC, CodecType::AV1}) {
+            if (enc && enc->isCodecSupported(ct)) {
+                if (!first_codec) codecs_json += ",";
+                first_codec = false;
+                switch (ct) {
+                    case CodecType::H264: codecs_json += "\"h264\""; break;
+                    case CodecType::HEVC: codecs_json += "\"h265\""; break;
+                    case CodecType::AV1:  codecs_json += "\"av1\"";  break;
+                }
+            }
+        }
+        codecs_json += "]";
+        data.setString("codecs", codecs_json);
+
+        // Max resolution depends on codec -- report the highest
+        data.setString("max_resolution", "7680x4320");
+        data.setUint("max_fps", 240);
+        data.setString("gpu_name", "");   // filled by Go agent via nvidia-smi
+        data.setString("nvenc_version", "");
+
+        return makeOkResponseRaw(data.serialize());
+    }
+
+    // ---- shutdown ----
+    if (command == "shutdown") {
+        CS_LOG(INFO, "Shutdown command received via IPC");
+        session.stopSession();
+        g_shutdown_requested.store(true);
+        return makeOkResponse();
     }
 
     return makeErrorResponse("Unknown command: " + command);

@@ -31,15 +31,19 @@ export interface SessionInfo {
 
 export interface SessionAcceptedInfo {
   sessionId: string;
+  hostId?: string;
   codec: string;
-  capabilities: {
+  capabilities?: {
     maxBitrate: number;
     maxFps: number;
     maxResolution: { width: number; height: number };
     supportedCodecs: string[];
   };
-  dtlsFingerprint: string;
-  stunServers: string[];
+  dtlsFingerprint?: string;
+  stunServers?: string[];
+  turnServers?: Array<{ urls: string | string[]; username?: string; credential?: string }>;
+  /** Pre-gathered ICE candidates from the host, bundled in session:answer */
+  candidates?: IceCandidate[];
 }
 
 export interface SessionConnectedInfo {
@@ -173,6 +177,17 @@ export function requestSession(
       clearTimeout(timeout);
       currentSessionId = info.sessionId;
 
+      // If the host pre-bundled ICE candidates in the session:answer,
+      // pass them to the native addon immediately so they're available
+      // for connectivity checks before trickle candidates arrive.
+      if (info.candidates && info.candidates.length > 0) {
+        const viewer = getViewer();
+        for (const candidate of info.candidates) {
+          viewer.addRemoteCandidate(candidate);
+        }
+        console.log(`[P2P] Added ${info.candidates.length} pre-bundled host candidates`);
+      }
+
       // Notify the stored callback
       if (onSessionAcceptedCallback) {
         onSessionAcceptedCallback(info);
@@ -189,6 +204,7 @@ export function requestSession(
         codec: info.codec,
         gamingMode: options.gamingMode,
         stunServers: info.stunServers,
+        turnServers: info.turnServers,
       });
     };
 
@@ -311,7 +327,7 @@ export function disconnectP2P(): void {
   viewer.disconnectP2P();
 
   if (signalingSocket?.connected && currentSessionId) {
-    signalingSocket.emit('session:ended', {
+    signalingSocket.emit('session:end', {
       sessionId: currentSessionId,
     });
   }

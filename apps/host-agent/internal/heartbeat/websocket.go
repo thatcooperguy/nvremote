@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"math"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -39,6 +40,7 @@ const (
 	MsgSessionRequest MessageType = "session:request"
 	MsgSessionOffer   MessageType = "session:offer"
 	MsgSessionEnd     MessageType = "session:end"
+	MsgSessionEnded   MessageType = "session:ended"
 	MsgConfigUpdate   MessageType = "config:update"
 	MsgIceCandidate   MessageType = "ice:candidate"
 	MsgIceComplete    MessageType = "ice:complete"
@@ -77,13 +79,13 @@ type SessionAcceptPayload struct {
 
 // IceCandidateMessage is the payload for ice:candidate messages.
 type IceCandidateMessage struct {
-	SessionID string        `json:"session_id"`
+	SessionID string           `json:"sessionId"`
 	Candidate p2p.IceCandidate `json:"candidate"`
 }
 
 // IceCompleteMessage is the payload for ice:complete messages.
 type IceCompleteMessage struct {
-	SessionID string `json:"session_id"`
+	SessionID string `json:"sessionId"`
 }
 
 // QosStatsPayload is sent periodically by the host to report real-time QoS metrics.
@@ -155,13 +157,25 @@ func ConnectSignaling(ctx context.Context, url string, hostID string, token stri
 	}
 }
 
-// runSignalingSession handles a single WebSocket connection lifetime.
-// It returns when the connection is lost or an unrecoverable error occurs.
+// runSignalingSession handles a single Socket.IO v4 connection lifetime.
+// It speaks the Engine.IO/Socket.IO wire protocol so that the NestJS gateway
+// (which is a Socket.IO server) can route messages into rooms correctly.
+//
+// Socket.IO v4 protocol over WebSocket:
+//   Engine.IO packet types: 0=OPEN 1=CLOSE 2=PING 3=PONG 4=MESSAGE
+//   Socket.IO packet types: 0=CONNECT 1=DISCONNECT 2=EVENT 3=ACK
+//
+//   Examples:
+//     Server → Client:  0{"sid":"abc","pingInterval":25000,"pingTimeout":20000}
+//     Client → Server:  40{"token":"..."}                    (CONNECT with auth)
+//     Server → Client:  40{"sid":"xyz"}                      (CONNECT OK)
+//     Server → Client:  42["session:offer",{...}]            (EVENT)
+//     Client → Server:  42["ice:candidate",{...}]            (EVENT)
+//     Server → Client:  2                                    (Engine.IO PING)
+//     Client → Server:  3                                    (Engine.IO PONG)
 func runSignalingSession(ctx context.Context, url string, hostID string, token string, sigHandler *p2p.SignalingHandler) error {
-	// Set up the WebSocket dialer with authorization header.
+	// Set up the WebSocket dialer.
 	header := http.Header{}
-	header.Set("Authorization", "Bearer "+token)
-	header.Set("X-Host-ID", hostID)
 
 	dialer := websocket.Dialer{
 		HandshakeTimeout: 15 * time.Second,
@@ -173,25 +187,62 @@ func runSignalingSession(ctx context.Context, url string, hostID string, token s
 	}
 	defer conn.Close()
 
-	slog.Info("WebSocket connection established")
+	slog.Info("Socket.IO WebSocket transport connected")
 
-	// Set up pong handler for keepalive.
-	conn.SetPongHandler(func(appData string) error {
-		return conn.SetReadDeadline(time.Now().Add(pongWait))
-	})
+	// Step 1: Read Engine.IO OPEN packet (type 0)
+	if err := conn.SetReadDeadline(time.Now().Add(15 * time.Second)); err != nil {
+		return fmt.Errorf("setting read deadline for OPEN: %w", err)
+	}
+	_, openMsg, err := conn.ReadMessage()
+	if err != nil {
+		return fmt.Errorf("reading Engine.IO OPEN: %w", err)
+	}
+	if len(openMsg) == 0 || openMsg[0] != '0' {
+		return fmt.Errorf("expected Engine.IO OPEN (0), got: %s", string(openMsg))
+	}
+	slog.Debug("received Engine.IO OPEN", "payload", string(openMsg[1:]))
 
-	// Start the ping sender in a goroutine.
-	pingDone := make(chan struct{})
-	go func() {
-		defer close(pingDone)
-		sendPings(ctx, conn)
-	}()
+	// Step 2: Send Socket.IO CONNECT (40) to /signaling namespace with auth token
+	connectPayload := fmt.Sprintf(`40/signaling,{"token":"%s"}`, token)
+	if err := conn.WriteMessage(websocket.TextMessage, []byte(connectPayload)); err != nil {
+		return fmt.Errorf("sending Socket.IO CONNECT: %w", err)
+	}
+	slog.Debug("sent Socket.IO CONNECT to /signaling namespace")
+
+	// Step 3: Read Socket.IO CONNECT ACK (40)
+	if err := conn.SetReadDeadline(time.Now().Add(15 * time.Second)); err != nil {
+		return fmt.Errorf("setting read deadline for CONNECT ACK: %w", err)
+	}
+	_, ackMsg, err := conn.ReadMessage()
+	if err != nil {
+		return fmt.Errorf("reading Socket.IO CONNECT ACK: %w", err)
+	}
+	ackStr := string(ackMsg)
+	// Accept both "40/signaling,{...}" and "40{...}" as valid acks
+	if !strings.HasPrefix(ackStr, "40") {
+		// Check for Socket.IO error (44)
+		if strings.HasPrefix(ackStr, "44") {
+			return fmt.Errorf("Socket.IO connection rejected: %s", ackStr)
+		}
+		return fmt.Errorf("expected Socket.IO CONNECT ACK (40), got: %s", ackStr)
+	}
+	slog.Info("Socket.IO connected to /signaling namespace")
+
+	// Step 4: Register as a host agent by emitting host:register
+	registerPayload := struct {
+		HostID string `json:"hostId"`
+	}{HostID: hostID}
+	if err := sendSocketIOEvent(conn, "host:register", registerPayload); err != nil {
+		return fmt.Errorf("sending host:register: %w", err)
+	}
+	slog.Info("sent host:register", "hostId", hostID)
 
 	// Read messages until an error occurs or context is cancelled.
 	for {
 		select {
 		case <-ctx.Done():
-			// Send a close message before exiting.
+			// Send Socket.IO DISCONNECT and WebSocket close
+			_ = conn.WriteMessage(websocket.TextMessage, []byte("41/signaling,"))
 			_ = conn.WriteMessage(
 				websocket.CloseMessage,
 				websocket.FormatCloseMessage(websocket.CloseNormalClosure, "agent shutting down"),
@@ -210,48 +261,110 @@ func runSignalingSession(ctx context.Context, url string, hostID string, token s
 			return fmt.Errorf("reading WebSocket message: %w", err)
 		}
 
-		if err := handleMessage(ctx, conn, message, sigHandler); err != nil {
-			slog.Error("error handling WebSocket message", "error", err)
-			// Non-fatal; continue reading.
+		msgStr := string(message)
+
+		// Handle Engine.IO PING (type 2) — respond with PONG (type 3)
+		if msgStr == "2" {
+			if writeErr := conn.WriteMessage(websocket.TextMessage, []byte("3")); writeErr != nil {
+				slog.Warn("failed to send Engine.IO PONG", "error", writeErr)
+			}
+			continue
 		}
+
+		// Handle Socket.IO EVENT (type 42 or 42/signaling,)
+		if strings.HasPrefix(msgStr, "42") {
+			eventData := msgStr[2:]
+			// Strip namespace prefix if present: "/signaling,["event",...]"
+			if strings.HasPrefix(eventData, "/signaling,") {
+				eventData = eventData[len("/signaling,"):]
+			}
+
+			if err := handleSocketIOEvent(ctx, conn, []byte(eventData), sigHandler); err != nil {
+				slog.Error("error handling Socket.IO event", "error", err)
+				// Non-fatal; continue reading.
+			}
+			continue
+		}
+
+		// Handle Socket.IO ACK (type 43) — log and discard
+		if strings.HasPrefix(msgStr, "43") {
+			slog.Debug("received Socket.IO ACK", "data", msgStr)
+			continue
+		}
+
+		// Handle Engine.IO PONG (type 3) — server responding to our ping
+		if msgStr == "3" {
+			continue
+		}
+
+		slog.Debug("unhandled Socket.IO packet", "data", msgStr)
 	}
 }
 
-// handleMessage processes an incoming WebSocket message and dispatches it
-// to the appropriate handler based on type.
-func handleMessage(ctx context.Context, conn *websocket.Conn, raw []byte, sigHandler *p2p.SignalingHandler) error {
-	var msg WSMessage
-	if err := json.Unmarshal(raw, &msg); err != nil {
-		return fmt.Errorf("unmarshalling WebSocket message: %w", err)
+// sendSocketIOEvent sends a Socket.IO EVENT packet: 42/signaling,["event_name",{payload}]
+func sendSocketIOEvent(conn *websocket.Conn, event string, payload interface{}) error {
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("marshalling event payload: %w", err)
 	}
 
-	slog.Debug("received WebSocket message", "type", msg.Type)
+	// Socket.IO EVENT format: 42/signaling,["event_name",payload]
+	packet := fmt.Sprintf(`42/signaling,["%s",%s]`, event, string(payloadJSON))
+	return conn.WriteMessage(websocket.TextMessage, []byte(packet))
+}
 
-	switch msg.Type {
+// handleSocketIOEvent processes a Socket.IO EVENT array: ["event_name", payload]
+// The raw input has the "42" prefix already stripped and is a JSON array.
+func handleSocketIOEvent(ctx context.Context, conn *websocket.Conn, raw []byte, sigHandler *p2p.SignalingHandler) error {
+	// Parse the JSON array: ["event_name", {...payload...}]
+	var arr []json.RawMessage
+	if err := json.Unmarshal(raw, &arr); err != nil {
+		return fmt.Errorf("unmarshalling Socket.IO event array: %w", err)
+	}
+	if len(arr) < 1 {
+		return fmt.Errorf("empty Socket.IO event array")
+	}
+
+	var eventName string
+	if err := json.Unmarshal(arr[0], &eventName); err != nil {
+		return fmt.Errorf("unmarshalling event name: %w", err)
+	}
+
+	// The payload is the second element (if present), or empty JSON object
+	var payload json.RawMessage
+	if len(arr) >= 2 {
+		payload = arr[1]
+	} else {
+		payload = json.RawMessage(`{}`)
+	}
+
+	slog.Debug("received Socket.IO event", "event", eventName)
+
+	switch MessageType(eventName) {
 	case MsgSessionOffer:
-		return handleSessionOffer(ctx, conn, msg.Payload, sigHandler)
+		return handleSessionOffer(ctx, conn, payload, sigHandler)
 
 	case MsgSessionRequest:
 		// Legacy handler for backward compatibility with older control plane versions.
-		return handleSessionRequest(ctx, conn, msg.Payload)
+		return handleSessionRequest(ctx, conn, payload)
 
 	case MsgIceCandidate:
-		return handleIceCandidateMessage(msg.Payload, sigHandler)
+		return handleIceCandidateMessage(payload, sigHandler)
 
 	case MsgIceComplete:
-		return handleIceCompleteMessage(msg.Payload, sigHandler)
+		return handleIceCompleteMessage(payload, sigHandler)
 
-	case MsgSessionEnd:
-		return handleSessionEnd(msg.Payload, sigHandler)
+	case MsgSessionEnd, MsgSessionEnded:
+		return handleSessionEnd(payload, sigHandler)
 
 	case MsgConfigUpdate:
-		return handleConfigUpdate(msg.Payload)
+		return handleConfigUpdate(payload)
 
 	case MsgQosProfileChange:
-		return handleQosProfileChange(msg.Payload, sigHandler)
+		return handleQosProfileChange(payload, sigHandler)
 
 	default:
-		slog.Warn("unknown WebSocket message type", "type", msg.Type)
+		slog.Warn("unknown Socket.IO event", "event", eventName)
 		return nil
 	}
 }
@@ -333,13 +446,18 @@ func handleSessionRequest(ctx context.Context, conn *websocket.Conn, payload jso
 }
 
 // handleSessionEnd processes a session termination notification.
+// Accepts both camelCase (from Socket.IO gateway) and snake_case (legacy).
 func handleSessionEnd(payload json.RawMessage, sigHandler *p2p.SignalingHandler) error {
 	var data struct {
-		SessionID string `json:"session_id"`
-		Reason    string `json:"reason"`
+		SessionID  string `json:"sessionId"`
+		SessionID2 string `json:"session_id"` // legacy fallback
+		Reason     string `json:"reason"`
 	}
 	if err := json.Unmarshal(payload, &data); err != nil {
 		return fmt.Errorf("unmarshalling session end: %w", err)
+	}
+	if data.SessionID == "" {
+		data.SessionID = data.SessionID2
 	}
 
 	slog.Info("session ended",
@@ -398,33 +516,10 @@ func handleConfigUpdate(payload json.RawMessage) error {
 	return nil
 }
 
-// sendMessage marshals a payload and sends it as a WebSocket message.
+// sendMessage marshals a payload and sends it as a Socket.IO EVENT packet.
+// Format: 42/signaling,["event_name",{payload}]
 func sendMessage(conn *websocket.Conn, msgType MessageType, payload interface{}) error {
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("marshalling payload: %w", err)
-	}
-
-	msg := WSMessage{
-		Type:    msgType,
-		Payload: payloadBytes,
-	}
-
-	msgBytes, err := json.Marshal(msg)
-	if err != nil {
-		return fmt.Errorf("marshalling message: %w", err)
-	}
-
-	if err := conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
-		return fmt.Errorf("setting write deadline: %w", err)
-	}
-
-	if err := conn.WriteMessage(websocket.TextMessage, msgBytes); err != nil {
-		return fmt.Errorf("writing WebSocket message: %w", err)
-	}
-
-	slog.Debug("sent WebSocket message", "type", msgType)
-	return nil
+	return sendSocketIOEvent(conn, string(msgType), payload)
 }
 
 // SendQosStats sends QoS statistics for an active session to the control plane.

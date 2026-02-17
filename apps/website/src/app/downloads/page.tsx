@@ -25,7 +25,7 @@ import Button from '@/components/Button';
 /*  Constants                                                                  */
 /* -------------------------------------------------------------------------- */
 
-const VERSION = 'v0.4.0-alpha';
+const VERSION = 'v0.5.0-beta';
 const GCS_BUCKET = 'https://storage.googleapis.com/nvremote-downloads';
 const BASE_URL = `${GCS_BUCKET}/${VERSION}`;
 const GITHUB_RELEASES = 'https://github.com/thatcooperguy/nvremote/releases';

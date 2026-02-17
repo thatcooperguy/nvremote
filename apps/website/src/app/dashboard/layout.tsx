@@ -107,7 +107,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             );
           })}
 
-          {/* Admin Section */}
+          {/* Admin Section — only visible to super admins */}
+          {user?.isSuperAdmin && (
           <div className="pt-4 mt-4 border-t border-gray-100">
             <p className="px-3 pb-2 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
               Admin
@@ -133,6 +134,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               );
             })}
           </div>
+          )}
         </nav>
 
         {/* User section */}

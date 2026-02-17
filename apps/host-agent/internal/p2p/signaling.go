@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -69,6 +70,8 @@ type SignalingHandler struct {
 	iceAgent        *IceAgent
 	currentSession  *SessionState
 	stunServers     []string
+	conn            *websocket.Conn
+	qosCancel       context.CancelFunc // cancels the QoS reporter goroutine
 	mu              sync.Mutex
 }
 
@@ -298,6 +301,9 @@ func (h *SignalingHandler) HandleIceComplete(sessionID string) error {
 	h.currentSession.State = "active"
 	slog.Info("streaming session is now active", "sessionId", sessionID)
 
+	// Start the QoS stats reporter now that the session is active.
+	h.startQosReporter(sessionID)
+
 	return nil
 }
 
@@ -312,6 +318,9 @@ func (h *SignalingHandler) HandleSessionEnd(sessionID string) error {
 	}
 
 	slog.Info("ending session", "sessionId", sessionID)
+
+	// Stop the QoS reporter before tearing down the session.
+	h.stopQosReporter()
 
 	if err := h.streamerManager.StopSession(sessionID); err != nil {
 		slog.Warn("failed to stop streamer session", "error", err)
@@ -340,6 +349,105 @@ func (h *SignalingHandler) GetCurrentSession() *SessionState {
 // Used by the websocket handler for QoS profile changes during active sessions.
 func (h *SignalingHandler) GetStreamerManager() *streamer.Manager {
 	return h.streamerManager
+}
+
+// SetConn stores the WebSocket connection for outbound messages (e.g., QoS stats).
+// Called by the websocket handler whenever a new signaling session is established.
+func (h *SignalingHandler) SetConn(conn *websocket.Conn) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.conn = conn
+}
+
+// startQosReporter launches a goroutine that polls the streamer for stats every
+// 2 seconds and relays them to the control plane via the signaling WebSocket.
+// The goroutine runs until the context is cancelled or the session ends.
+func (h *SignalingHandler) startQosReporter(sessionID string) {
+	// Cancel any existing QoS reporter from a previous session.
+	if h.qosCancel != nil {
+		h.qosCancel()
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	h.qosCancel = cancel
+
+	go func() {
+		ticker := time.NewTicker(2 * time.Second)
+		defer ticker.Stop()
+
+		slog.Info("QoS reporter started", "sessionId", sessionID)
+
+		for {
+			select {
+			case <-ctx.Done():
+				slog.Info("QoS reporter stopped", "sessionId", sessionID)
+				return
+			case <-ticker.C:
+				h.mu.Lock()
+				conn := h.conn
+				session := h.currentSession
+				h.mu.Unlock()
+
+				// Stop if session ended or connection lost.
+				if session == nil || session.SessionID != sessionID || session.State != "active" {
+					continue
+				}
+				if conn == nil {
+					continue
+				}
+
+				stats, err := h.streamerManager.GetStats()
+				if err != nil {
+					slog.Debug("QoS reporter: failed to get stats", "error", err)
+					continue
+				}
+
+				payload := struct {
+					SessionID         string  `json:"sessionId"`
+					BitrateKbps       int     `json:"bitrateKbps"`
+					FPS               int     `json:"fps"`
+					Width             int     `json:"width"`
+					Height            int     `json:"height"`
+					Codec             string  `json:"codec"`
+					Profile           string  `json:"profile"`
+					PacketLossPercent float64 `json:"packetLossPercent"`
+					RttMs             float64 `json:"rttMs"`
+					JitterMs          float64 `json:"jitterMs"`
+					FecRatio          float64 `json:"fecRatio"`
+					EstimatedBwKbps   int     `json:"estimatedBwKbps"`
+					DecodeTimeUs      int     `json:"decodeTimeUs,omitempty"`
+					QosState          string  `json:"qosState"`
+				}{
+					SessionID:         sessionID,
+					BitrateKbps:       stats.BitrateKbps,
+					FPS:               stats.FPS,
+					Width:             stats.Width,
+					Height:            stats.Height,
+					Codec:             stats.Codec,
+					Profile:           stats.GamingMode,
+					PacketLossPercent: stats.PacketLoss,
+					RttMs:             stats.RTT,
+					JitterMs:          stats.Jitter,
+					FecRatio:          stats.FecRatio,
+					EstimatedBwKbps:   stats.EstimatedBwKbps,
+					DecodeTimeUs:      stats.DecodeTimeUs,
+					QosState:          stats.QosState,
+				}
+
+				if err := sendWSMessage(conn, "qos:stats", payload); err != nil {
+					slog.Debug("QoS reporter: failed to send stats", "error", err)
+				}
+			}
+		}
+	}()
+}
+
+// stopQosReporter cancels the active QoS reporter goroutine.
+func (h *SignalingHandler) stopQosReporter() {
+	if h.qosCancel != nil {
+		h.qosCancel()
+		h.qosCancel = nil
+	}
 }
 
 // HostCapabilityPayload is the capability:host message sent to the control plane.

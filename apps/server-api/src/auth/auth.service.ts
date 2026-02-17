@@ -81,6 +81,7 @@ export class AuthService {
         name: user.name,
         avatarUrl: user.avatarUrl,
         createdAt: user.createdAt,
+        isSuperAdmin: user.isSuperAdmin ?? false,
       },
     };
   }
@@ -174,6 +175,7 @@ export class AuthService {
       name: user.name,
       avatarUrl: user.avatarUrl,
       createdAt: user.createdAt,
+      isSuperAdmin: user.isSuperAdmin ?? false,
     };
   }
 }

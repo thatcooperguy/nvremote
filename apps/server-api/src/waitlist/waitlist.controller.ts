@@ -8,7 +8,7 @@ import {
 import { Public } from '../common/decorators/public.decorator';
 import { PrismaService } from '../common/prisma.service';
 
-@Controller('api/v1/waitlist')
+@Controller('waitlist')
 export class WaitlistController {
   private readonly logger = new Logger(WaitlistController.name);
 

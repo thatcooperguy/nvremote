@@ -48,7 +48,7 @@ export function App(): React.ReactElement {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const connectionStatus = useConnectionStore((state) => state.status);
 
-  const isStreaming = connectionStatus === 'streaming';
+  const isStreaming = connectionStatus === 'streaming' || connectionStatus === 'reconnecting';
   const isConnecting =
     connectionStatus === 'requesting' ||
     connectionStatus === 'signaling' ||

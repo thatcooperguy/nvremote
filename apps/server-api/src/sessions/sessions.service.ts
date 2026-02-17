@@ -9,6 +9,7 @@ import { SessionStatus, HostStatus, Session } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service';
 import { IceConfigService } from '../common/gateway.service';
 import { SignalingGatewayWs } from '../signaling/signaling.gateway';
+import { AuditService } from '../audit/audit.service';
 import {
   CreateSessionDto,
   SessionResponseDto,
@@ -23,6 +24,7 @@ export class SessionsService {
     private readonly prisma: PrismaService,
     private readonly iceConfig: IceConfigService,
     private readonly signaling: SignalingGatewayWs,
+    private readonly audit: AuditService,
   ) {}
 
   // -----------------------------------------------------------------------
@@ -91,6 +93,25 @@ export class SessionsService {
         `(codec: ${dto.codecs?.[0] ?? 'default'}, gaming: ${dto.gamingMode ?? false})`,
     );
 
+    // -- Audit log: session started -----------------------------------------
+    this.audit.log({
+      orgId: host.orgId,
+      userId,
+      action: 'session.started',
+      resourceType: 'session',
+      resourceId: session.id,
+      metadata: {
+        hostId: dto.hostId,
+        hostName: host.name,
+        codec: dto.codecs?.[0] ?? null,
+        gamingMode: dto.gamingMode ?? false,
+        maxBitrate: dto.maxBitrate ?? null,
+        targetFps: dto.targetFps ?? null,
+        resolution: dto.resolution ?? null,
+        clientIp: dto.clientIp ?? null,
+      },
+    });
+
     // -- Notify host agent --------------------------------------------------
     const stunServers = this.iceConfig.getStunServers();
     const turnServers = this.iceConfig.getTurnServers(session.id);
@@ -130,6 +151,7 @@ export class SessionsService {
   ): Promise<SessionResponseDto> {
     const session = await this.prisma.session.findUnique({
       where: { id: sessionId },
+      include: { host: { select: { orgId: true, name: true } } },
     });
 
     if (!session) {
@@ -154,6 +176,29 @@ export class SessionsService {
     });
 
     this.logger.log(`Session ${sessionId} ended by user ${userId}`);
+
+    // -- Audit log: session ended -------------------------------------------
+    const durationMs = updated.endedAt
+      ? updated.endedAt.getTime() - session.startedAt.getTime()
+      : 0;
+    const meta = (session.metadata as Record<string, unknown>) ?? {};
+
+    this.audit.log({
+      orgId: session.host.orgId,
+      userId,
+      action: 'session.ended',
+      resourceType: 'session',
+      resourceId: sessionId,
+      metadata: {
+        hostId: session.hostId,
+        hostName: session.host.name,
+        durationMs,
+        durationFormatted: formatDuration(durationMs),
+        codec: meta.codec ?? null,
+        gamingMode: meta.gamingMode ?? null,
+        connectionType: meta.connectionType ?? null,
+      },
+    });
 
     // -- Notify host agent --------------------------------------------------
     this.signaling.notifyHostSessionEnded(session.hostId, sessionId);
@@ -209,4 +254,18 @@ export class SessionsService {
       metadata: session.metadata as Record<string, unknown> | null,
     };
   }
+}
+
+function formatDuration(ms: number): string {
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+
+  if (hours > 0) {
+    return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${seconds % 60}s`;
+  }
+  return `${seconds}s`;
 }

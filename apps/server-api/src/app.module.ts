@@ -17,6 +17,7 @@ import { AdminModule } from './admin/admin.module';
 import { VpnModule } from './vpn/vpn.module';
 import { TunnelModule } from './tunnel/tunnel.module';
 import { HealthModule } from './health/health.module';
+import { WaitlistModule } from './waitlist/waitlist.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { HealthModule } from './health/health.module';
     VpnModule,
     TunnelModule,
     HealthModule,
+    WaitlistModule,
   ],
   providers: [
     PrismaService,

@@ -15,6 +15,7 @@ export type ConnectionStatus =
   | 'connecting'
   | 'connected'
   | 'streaming'
+  | 'reconnecting'
   | 'error';
 
 export type GamingMode = 'competitive' | 'balanced' | 'cinematic';
@@ -60,6 +61,7 @@ interface ConnectionState {
   connectionType: string | null; // 'p2p' or 'relay'
   error: string | null;
   stats: StreamStats | null;
+  reconnectAttempts: number;
 
   connect: (host: Host) => Promise<void>;
   disconnect: () => Promise<void>;
@@ -75,6 +77,9 @@ interface ConnectionState {
 // ---------------------------------------------------------------------------
 
 let statsInterval: ReturnType<typeof setInterval> | null = null;
+let reconnectAttempt = 0;
+const MAX_RECONNECT_ATTEMPTS = 3;
+let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 
 function startStatsPolling(): void {
   stopStatsPolling();
@@ -132,10 +137,42 @@ function attachP2PListeners(): void {
   });
 
   p2pDisconnectedCleanup = window.nvrs.p2p.onDisconnected(() => {
-    const { status } = useConnectionStore.getState();
-    if (status === 'streaming') {
-      console.warn('[ConnectionStore] P2P disconnected unexpectedly. Triggering auto-disconnect.');
-      useConnectionStore.getState().disconnect().catch(() => {});
+    const { status, connectedHost } = useConnectionStore.getState();
+    if (status === 'streaming' || status === 'reconnecting') {
+      if (reconnectAttempt < MAX_RECONNECT_ATTEMPTS && connectedHost) {
+        reconnectAttempt += 1;
+        console.warn(
+          `[ConnectionStore] P2P disconnected. Reconnect attempt ${reconnectAttempt}/${MAX_RECONNECT_ATTEMPTS}...`,
+        );
+        useConnectionStore.setState({
+          status: 'reconnecting',
+          reconnectAttempts: reconnectAttempt,
+        });
+
+        // Exponential backoff: 1s, 2s, 4s
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempt - 1), 4000);
+        reconnectTimeout = setTimeout(async () => {
+          try {
+            const result = await window.nvrs.p2p.reconnect();
+            if (result.success) {
+              reconnectAttempt = 0;
+              useConnectionStore.setState({
+                status: 'streaming',
+                reconnectAttempts: 0,
+              });
+            } else {
+              // Will trigger another onDisconnected cycle
+              console.warn('[ConnectionStore] Reconnect attempt failed:', result.error);
+            }
+          } catch (err) {
+            console.error('[ConnectionStore] Reconnect error:', err);
+          }
+        }, delay);
+      } else {
+        console.warn('[ConnectionStore] Max reconnect attempts reached. Disconnecting.');
+        reconnectAttempt = 0;
+        useConnectionStore.getState().disconnect().catch(() => {});
+      }
     }
   });
 }
@@ -192,6 +229,7 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
   connectionType: null,
   error: null,
   stats: null,
+  reconnectAttempts: 0,
 
   // -----------------------------------------------------------------------
   // connect
@@ -302,7 +340,8 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
       }
 
       // 6. Fully streaming. Wire up monitoring.
-      set({ status: 'streaming' });
+      reconnectAttempt = 0;
+      set({ status: 'streaming', reconnectAttempts: 0 });
       window.nvrs.tray.updateDisconnect(true);
 
       attachP2PListeners();
@@ -340,11 +379,19 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
   // disconnect
   // -----------------------------------------------------------------------
   disconnect: async () => {
+    // Cancel any pending reconnect
+    if (reconnectTimeout) {
+      clearTimeout(reconnectTimeout);
+      reconnectTimeout = null;
+    }
+    reconnectAttempt = 0;
+
     // Immediately update UI state
     set({
       status: 'disconnected',
       connectionType: null,
       stats: null,
+      reconnectAttempts: 0,
     });
 
     stopStatsPolling();

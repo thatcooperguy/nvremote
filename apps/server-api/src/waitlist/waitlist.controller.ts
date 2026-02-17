@@ -5,7 +5,7 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
-import { Public } from '../auth/public.decorator';
+import { Public } from '../common/decorators/public.decorator';
 import { PrismaService } from '../common/prisma.service';
 
 @Controller('api/v1/waitlist')

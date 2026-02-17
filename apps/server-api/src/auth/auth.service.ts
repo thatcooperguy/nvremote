@@ -12,7 +12,9 @@ import {
   TokenResponseDto,
   AuthCallbackResultDto,
   UserProfileDto,
+  UpdatePreferencesDto,
 } from './dto/auth.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -82,6 +84,7 @@ export class AuthService {
         avatarUrl: user.avatarUrl,
         createdAt: user.createdAt,
         isSuperAdmin: user.isSuperAdmin ?? false,
+        preferences: user.preferences as Record<string, unknown> | null,
       },
     };
   }
@@ -176,6 +179,35 @@ export class AuthService {
       avatarUrl: user.avatarUrl,
       createdAt: user.createdAt,
       isSuperAdmin: user.isSuperAdmin ?? false,
+      preferences: user.preferences as Record<string, unknown> | null,
+    };
+  }
+
+  /**
+   * Update the current user's profile (display name and/or streaming preferences).
+   */
+  async updateProfile(
+    userId: string,
+    dto: UpdatePreferencesDto,
+  ): Promise<UserProfileDto> {
+    const data: Prisma.UserUpdateInput = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.preferences !== undefined)
+      data.preferences = dto.preferences as Prisma.InputJsonValue;
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data,
+    });
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      avatarUrl: user.avatarUrl,
+      createdAt: user.createdAt,
+      isSuperAdmin: user.isSuperAdmin ?? false,
+      preferences: user.preferences as Record<string, unknown> | null,
     };
   }
 }

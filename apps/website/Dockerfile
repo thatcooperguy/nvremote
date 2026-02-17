@@ -25,6 +25,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=8080
 ENV HOSTNAME="0.0.0.0"
 
+# dumb-init as PID 1 for proper signal handling
+RUN apk add --no-cache dumb-init curl
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
@@ -37,4 +40,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:8080/ || exit 1
+
+ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "server.js"]

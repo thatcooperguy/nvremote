@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   UseGuards,
   Req,
@@ -26,6 +27,7 @@ import {
   UserProfileDto,
   AuthCallbackResultDto,
   GoogleProfile,
+  UpdatePreferencesDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtPayload } from '../common/decorators/current-user.decorator';
@@ -130,5 +132,20 @@ export class AuthController {
   @ApiOkResponse({ type: UserProfileDto })
   async me(@CurrentUser() user: JwtPayload): Promise<UserProfileDto> {
     return this.authService.getProfile(user.sub);
+  }
+
+  /**
+   * Update the current user's profile (display name and/or streaming preferences).
+   */
+  @Patch('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update current user profile and preferences' })
+  @ApiOkResponse({ type: UserProfileDto })
+  async updateMe(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: UpdatePreferencesDto,
+  ): Promise<UserProfileDto> {
+    return this.authService.updateProfile(user.sub, dto);
   }
 }

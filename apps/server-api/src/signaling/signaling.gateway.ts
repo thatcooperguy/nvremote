@@ -38,6 +38,11 @@ interface HostHeartbeatPayload {
 
 interface SessionRequestPayload {
   hostId: string;
+  codecs?: string[];
+  gamingMode?: string;
+  maxBitrate?: number;
+  targetFps?: number;
+  resolution?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -398,23 +403,52 @@ export class SignalingGatewayWs
       throw new WsException('Access denied');
     }
 
+    // Build default STUN/TURN config
+    const defaultStunServers = [
+      'stun:stun.l.google.com:19302',
+      'stun:stun1.l.google.com:19302',
+    ];
+
+    const codecs = payload.codecs ?? ['h264', 'h265'];
+    const gamingMode = payload.gamingMode ?? 'balanced';
+    const maxBitrate = payload.maxBitrate ?? 20000;
+    const targetFps = payload.targetFps ?? 60;
+    const resolution = payload.resolution ?? '1920x1080';
+
     const session = await this.prisma.session.create({
       data: {
         userId,
         hostId: host.id,
         status: SessionStatus.PENDING,
-        metadata: (payload.metadata as Prisma.InputJsonValue) ?? undefined,
+        metadata: {
+          ...((payload.metadata as Record<string, unknown>) ?? {}),
+          codecs,
+          gamingMode,
+          maxBitrate,
+          targetFps,
+          resolution,
+          stunServers: defaultStunServers,
+        } as Prisma.InputJsonValue,
       },
     });
 
-    // Notify the host agent
-    this.server.to(`host:${host.id}`).emit('session:incoming', {
+    // Send session:offer to the host agent (same format as the REST path).
+    // This allows the host to prepare the streamer and begin ICE gathering.
+    const offerData: SessionOfferData = {
       sessionId: session.id,
-      userId,
-    });
+      stunServers: defaultStunServers,
+      codecs,
+      gamingMode: gamingMode === 'true' || gamingMode === 'competitive',
+      maxBitrate,
+      targetFps,
+      resolution,
+    };
+
+    this.server.to(`host:${host.id}`).emit('session:offer', offerData);
 
     this.logger.log(
-      `Session ${session.id} requested by ${userId} on host ${host.id}`,
+      `Session ${session.id} requested by ${userId} on host ${host.id} — ` +
+        `session:offer sent (codecs: ${codecs.join(',')})`,
     );
 
     return { sessionId: session.id };
@@ -490,6 +524,88 @@ export class SignalingGatewayWs
     });
 
     this.logger.log(`Session ${session.id} ended`);
+
+    return { success: true };
+  }
+
+  // -----------------------------------------------------------------------
+  // session:answer -- host responds to session:offer with codec, caps, ICE
+  // -----------------------------------------------------------------------
+
+  /**
+   * Handle a session:answer from the host agent.
+   *
+   * The host sends this after processing a session:offer. It contains the
+   * selected codec, streamer capabilities, and pre-gathered ICE candidates.
+   * The server marks the session ACTIVE and forwards the answer to the
+   * requesting client as session:accepted.
+   */
+  @SubscribeMessage('session:answer')
+  async handleSessionAnswer(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: {
+      session_id: string;
+      codec: string;
+      capabilities?: Record<string, unknown>;
+      candidates?: Array<{
+        type: string;
+        ip: string;
+        port: number;
+        protocol: string;
+        priority: number;
+        foundation: string;
+      }>;
+    },
+  ): Promise<{ success: boolean }> {
+    const hostId = client.data.hostId;
+
+    if (!hostId) {
+      throw new WsException('Only host agents can send session answers');
+    }
+
+    const session = await this.prisma.session.findUnique({
+      where: { id: payload.session_id },
+    });
+
+    if (!session || session.hostId !== hostId) {
+      throw new WsException('Session not found on this host');
+    }
+
+    // Mark session as ACTIVE
+    const existingMeta = (session.metadata as Record<string, unknown>) ?? {};
+    await this.prisma.session.update({
+      where: { id: session.id },
+      data: {
+        status: SessionStatus.ACTIVE,
+        metadata: {
+          ...existingMeta,
+          codec: payload.codec,
+          hostCapabilities: payload.capabilities,
+          hostCandidateCount: payload.candidates?.length ?? 0,
+          answeredAt: new Date().toISOString(),
+        },
+      },
+    });
+
+    // Retrieve the STUN/TURN config that was stored when the session was created
+    const stunServers = (existingMeta.stunServers as string[]) ?? [];
+    const turnServers = existingMeta.turnServers ?? [];
+
+    // Notify the requesting client that the session is accepted
+    this.server.to(`user:${session.userId}`).emit('session:accepted', {
+      sessionId: session.id,
+      hostId,
+      codec: payload.codec,
+      capabilities: payload.capabilities,
+      candidates: payload.candidates,
+      stunServers,
+      turnServers,
+    });
+
+    this.logger.log(
+      `Session ${session.id} answered by host ${hostId} (codec: ${payload.codec}, ` +
+        `candidates: ${payload.candidates?.length ?? 0})`,
+    );
 
     return { success: true };
   }

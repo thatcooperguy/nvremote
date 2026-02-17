@@ -22,26 +22,31 @@ type TurnServerConfig struct {
 
 // SessionOffer represents a new session offer received from the control plane.
 // It contains the negotiation parameters sent by the client.
+// JSON tags use camelCase to match the NestJS Socket.IO gateway format.
 type SessionOffer struct {
-	SessionID   string             `json:"session_id"`
-	UserID      string             `json:"user_id"`
+	SessionID   string             `json:"sessionId"`
+	UserID      string             `json:"userId"`
 	Codecs      []string           `json:"codecs"`
-	MaxBitrate  int                `json:"max_bitrate"`
-	TargetFPS   int                `json:"target_fps"`
+	MaxBitrate  int                `json:"maxBitrate"`
+	TargetFPS   int                `json:"targetFps"`
 	Resolution  string             `json:"resolution"` // e.g., "1920x1080"
-	GamingMode  string             `json:"gaming_mode"`
-	StunServers []string           `json:"stun_servers"`
-	TurnServers []TurnServerConfig `json:"turn_servers"`
+	GamingMode  interface{}        `json:"gamingMode"`  // bool or string depending on source
+	StunServers []string           `json:"stunServers"`
+	TurnServers []TurnServerConfig `json:"turnServers"`
 }
 
 // SessionAnswer is the response sent back to the control plane after processing
 // a session offer. It contains the selected codec, capabilities, and ICE candidates.
+// JSON tags use camelCase to match the NestJS Socket.IO gateway format.
 type SessionAnswer struct {
 	SessionID    string            `json:"session_id"`
 	Codec        string            `json:"codec"`
 	Capabilities json.RawMessage   `json:"capabilities"`
 	Candidates   []IceCandidate    `json:"candidates"`
 }
+
+// Keeping session_id in snake_case for the answer because the server-side
+// session:answer handler reads payload.session_id (which we control).
 
 // SessionState tracks the current state of an active or pending session.
 type SessionState struct {
@@ -135,6 +140,17 @@ func (h *SignalingHandler) HandleSessionOffer(conn *websocket.Conn, offer Sessio
 	}
 
 	// Step 3: Prepare the streamer via IPC.
+	// GamingMode may arrive as a string ("balanced") or a boolean (from REST path).
+	gamingModeStr := "balanced"
+	switch v := offer.GamingMode.(type) {
+	case string:
+		gamingModeStr = v
+	case bool:
+		if v {
+			gamingModeStr = "competitive"
+		}
+	}
+
 	sessionConfig := streamer.SessionConfig{
 		SessionID:   offer.SessionID,
 		Codec:       selectedCodec,
@@ -142,7 +158,7 @@ func (h *SignalingHandler) HandleSessionOffer(conn *websocket.Conn, offer Sessio
 		FPS:         offer.TargetFPS,
 		Width:       width,
 		Height:      height,
-		GamingMode:  offer.GamingMode,
+		GamingMode:  gamingModeStr,
 		StunServers: offer.StunServers,
 	}
 
@@ -322,9 +338,10 @@ func (h *SignalingHandler) GetStreamerManager() *streamer.Manager {
 }
 
 // sendIceCandidate sends a single ICE candidate to the control plane via WebSocket.
+// Uses camelCase JSON tags to match the NestJS Socket.IO gateway expectations.
 func (h *SignalingHandler) sendIceCandidate(conn *websocket.Conn, sessionID string, candidate IceCandidate) error {
 	payload := struct {
-		SessionID string       `json:"session_id"`
+		SessionID string       `json:"sessionId"`
 		Candidate IceCandidate `json:"candidate"`
 	}{
 		SessionID: sessionID,
@@ -334,19 +351,21 @@ func (h *SignalingHandler) sendIceCandidate(conn *websocket.Conn, sessionID stri
 }
 
 // sendIceGatheringComplete signals that all local ICE candidates have been gathered.
+// Uses camelCase JSON tags to match the NestJS Socket.IO gateway expectations.
 func (h *SignalingHandler) sendIceGatheringComplete(conn *websocket.Conn, sessionID string) error {
 	payload := struct {
-		SessionID string `json:"session_id"`
+		SessionID string `json:"sessionId"`
 	}{
 		SessionID: sessionID,
 	}
-	return sendWSMessage(conn, "ice:gathering_complete", payload)
+	return sendWSMessage(conn, "ice:complete", payload)
 }
 
 // sendSessionReject sends a session:reject message back to the control plane.
+// Uses camelCase JSON tags to match the NestJS Socket.IO gateway expectations.
 func (h *SignalingHandler) sendSessionReject(conn *websocket.Conn, sessionID string, reason string) error {
 	payload := struct {
-		SessionID string `json:"session_id"`
+		SessionID string `json:"sessionId"`
 		Reason    string `json:"reason"`
 	}{
 		SessionID: sessionID,
@@ -357,37 +376,30 @@ func (h *SignalingHandler) sendSessionReject(conn *websocket.Conn, sessionID str
 	return sendWSMessage(conn, "session:reject", payload)
 }
 
-// sendWSMessage marshals a payload and sends it as a typed WebSocket message.
-// The message format matches the existing WSMessage envelope used throughout
-// the heartbeat/websocket package.
-func sendWSMessage(conn *websocket.Conn, msgType string, payload interface{}) error {
+// sendWSMessage marshals a payload and sends it as a Socket.IO v4 EVENT packet.
+//
+// Socket.IO EVENT format: 42/signaling,["event_name",{payload}]
+//
+// The "42" prefix means Engine.IO MESSAGE (4) + Socket.IO EVENT (2).
+// The "/signaling," prefix targets the /signaling namespace.
+func sendWSMessage(conn *websocket.Conn, eventName string, payload interface{}) error {
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("marshalling payload: %w", err)
 	}
 
-	msg := struct {
-		Type    string          `json:"type"`
-		Payload json.RawMessage `json:"payload"`
-	}{
-		Type:    msgType,
-		Payload: payloadBytes,
-	}
-
-	msgBytes, err := json.Marshal(msg)
-	if err != nil {
-		return fmt.Errorf("marshalling message: %w", err)
-	}
+	// Build Socket.IO EVENT: 42/signaling,["event_name",payload]
+	packet := fmt.Sprintf(`42/signaling,["%s",%s]`, eventName, string(payloadBytes))
 
 	if err := conn.SetWriteDeadline(time.Now().Add(10 * time.Second)); err != nil {
 		return fmt.Errorf("setting write deadline: %w", err)
 	}
 
-	if err := conn.WriteMessage(websocket.TextMessage, msgBytes); err != nil {
-		return fmt.Errorf("writing WebSocket message: %w", err)
+	if err := conn.WriteMessage(websocket.TextMessage, []byte(packet)); err != nil {
+		return fmt.Errorf("writing Socket.IO event: %w", err)
 	}
 
-	slog.Debug("sent WebSocket message", "type", msgType)
+	slog.Debug("sent Socket.IO event", "event", eventName)
 	return nil
 }
 

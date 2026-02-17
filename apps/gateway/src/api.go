@@ -26,7 +26,7 @@ type APIResponse struct {
 
 // NewAPIRouter creates and configures the HTTP API router with all routes
 // and middleware.
-func NewAPIRouter(cfg *Config, wg *WGManager, health *HealthMonitor) http.Handler {
+func NewAPIRouter(cfg *Config, wg *WGManager, health *HealthMonitor, tunnel *TunnelProxy) http.Handler {
 	r := mux.NewRouter()
 
 	// Apply global middleware.
@@ -36,7 +36,12 @@ func NewAPIRouter(cfg *Config, wg *WGManager, health *HealthMonitor) http.Handle
 	// Health check endpoint (no auth required).
 	r.HandleFunc("/api/health", handleHealth(health)).Methods(http.MethodGet)
 
-	// Authenticated API routes.
+	// Zero-trust tunnel proxy routes (uses per-session JWT auth, not gateway token).
+	if tunnel != nil {
+		tunnel.RegisterRoutes(r)
+	}
+
+	// Authenticated API routes (gateway token auth).
 	api := r.PathPrefix("/api").Subrouter()
 	api.Use(authMiddleware(cfg.GatewayToken))
 
@@ -45,7 +50,25 @@ func NewAPIRouter(cfg *Config, wg *WGManager, health *HealthMonitor) http.Handle
 	api.HandleFunc("/peers/{publicKey}", handleRemovePeer(wg)).Methods(http.MethodDelete)
 	api.HandleFunc("/peers/{publicKey}/status", handlePeerStatus(wg)).Methods(http.MethodGet)
 
+	// Tunnel admin status (requires gateway auth).
+	if tunnel != nil {
+		api.HandleFunc("/tunnel/status", handleTunnelStatus(tunnel)).Methods(http.MethodGet)
+	}
+
 	return r
+}
+
+// handleTunnelStatus returns the current tunnel proxy status.
+func handleTunnelStatus(tp *TunnelProxy) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, APIResponse{
+			Success: true,
+			Data: map[string]interface{}{
+				"enabled":           true,
+				"activeConnections": tp.ActiveConnections(),
+			},
+		})
+	}
 }
 
 // authMiddleware verifies that incoming requests carry a valid Bearer token

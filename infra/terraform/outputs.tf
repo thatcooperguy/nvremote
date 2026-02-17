@@ -47,3 +47,13 @@ output "api_url_domain" {
   description = "API URL with custom domain"
   value       = var.domain_name != "" ? "https://api.${var.domain_name}" : "https://nvremote-api-luz2bubotq-uw.a.run.app"
 }
+
+output "turn_url" {
+  description = "TURN server URI for client configuration"
+  value       = var.enable_turn ? module.turn[0].turn_url : ""
+}
+
+output "turn_external_ip" {
+  description = "TURN server public IP address"
+  value       = var.enable_turn ? module.turn[0].turn_external_ip : ""
+}

@@ -46,6 +46,11 @@ module "nvrs" {
   # WireGuard
   wireguard_port = var.wireguard_port
 
+  # TURN relay
+  enable_turn = true
+  turn_secret = var.turn_secret
+  turn_realm  = "nvremote.com"
+
   # Domain
   domain_name = var.domain_name
 }
@@ -100,6 +105,12 @@ variable "wireguard_port" {
   default     = 51820
 }
 
+variable "turn_secret" {
+  description = "Shared secret for HMAC-based TURN credential generation"
+  type        = string
+  sensitive   = true
+}
+
 variable "domain_name" {
   description = "Custom domain name for the API endpoint"
   type        = string
@@ -138,4 +149,14 @@ output "wireguard_endpoint" {
 output "ssh_command" {
   description = "SSH command to connect to the prod gateway"
   value       = module.nvrs.ssh_command
+}
+
+output "turn_url" {
+  description = "TURN server URL for client configuration"
+  value       = module.nvrs.turn_url
+}
+
+output "turn_external_ip" {
+  description = "TURN server public IP address"
+  value       = module.nvrs.turn_external_ip
 }

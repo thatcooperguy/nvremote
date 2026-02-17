@@ -46,8 +46,17 @@ func main() {
 	// Initialize the health monitor.
 	healthMonitor := NewHealthMonitor(cfg, wgManager)
 
+	// Initialize tunnel proxy (if enabled).
+	var tunnelProxy *TunnelProxy
+	if cfg.TunnelEnabled {
+		tunnelProxy = NewTunnelProxy(cfg)
+		slog.Info("zero-trust tunnel proxy enabled")
+	} else {
+		slog.Info("zero-trust tunnel proxy disabled")
+	}
+
 	// Build HTTP API server.
-	router := NewAPIRouter(cfg, wgManager, healthMonitor)
+	router := NewAPIRouter(cfg, wgManager, healthMonitor, tunnelProxy)
 
 	server := &http.Server{
 		Addr:         cfg.ListenAddr,

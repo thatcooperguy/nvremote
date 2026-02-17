@@ -1,0 +1,41 @@
+FROM node:20-alpine AS builder
+
+RUN apk add --no-cache openssl
+
+WORKDIR /app
+
+COPY package.json ./
+COPY prisma ./prisma/
+
+# Install ALL dependencies (including devDependencies needed for build)
+RUN npm install
+
+COPY tsconfig*.json nest-cli.json ./
+COPY src ./src/
+
+RUN npx prisma generate
+RUN npm run build
+
+FROM node:20-alpine AS production
+
+RUN apk add --no-cache openssl
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/prisma ./prisma/
+
+# Install production dependencies only
+RUN npm install --omit=dev && npx prisma generate
+
+COPY --from=builder /app/dist ./dist/
+
+# Startup script: run migrations then start the app
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
+EXPOSE 8080
+
+CMD ["/app/start.sh"]

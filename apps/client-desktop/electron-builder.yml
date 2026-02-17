@@ -1,0 +1,72 @@
+appId: com.nvremote.client
+productName: NVRemote
+copyright: Copyright (c) NVRemote
+
+# Prevent electron-builder from running its own npm install during packaging.
+# In npm workspace setups, this step restructures node_modules and deletes
+# app-builder-bin, causing spawn ENOENT failures.
+npmRebuild: false
+
+directories:
+  output: release
+
+files:
+  - dist-electron/**/*
+  - dist/**/*
+  - "!node_modules/**/*"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: "NVRemote-${version}-Setup.${ext}"
+  publisherName: NVRemote
+
+nsis:
+  oneClick: false
+  perMachine: true
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: NVRemote
+
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+  artifactName: "NVRemote-${version}-x86_64.${ext}"
+  category: Game
+  desktop:
+    StartupWMClass: NVRemote
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - universal
+  artifactName: "NVRemote-${version}-universal.${ext}"
+  category: public.app-category.games
+  # Allow shared native resources in universal builds (FFmpeg dylibs,
+  # N-API addons are arch-specific but bundled from a single CI build)
+  x64ArchFiles: "Contents/Resources/resources/**"
+
+dmg:
+  title: "NVRemote ${version}"
+
+protocols:
+  name: NVRemote Protocol
+  schemes:
+    - nvremote
+
+extraResources:
+  - from: resources/
+    to: resources/
+    filter:
+      - "**/*"
+
+publish:
+  provider: generic
+  url: https://github.com/thatcooperguy/nvremote/releases/latest

@@ -1,0 +1,183 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum OrgRole {
+  ADMIN
+  MEMBER
+  GUEST
+}
+
+enum HostStatus {
+  ONLINE
+  OFFLINE
+  MAINTENANCE
+}
+
+enum SessionStatus {
+  PENDING
+  ACTIVE
+  ENDED
+  FAILED
+}
+
+// ---------------------------------------------------------------------------
+// User
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  name         String?
+  avatarUrl    String?
+  googleId     String?  @unique
+  isSuperAdmin Boolean  @default(false) // Platform owner — only set via DB migration or seed
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orgMemberships OrgMember[]
+  sessions       Session[]
+  auditLogs      AuditLog[]
+  refreshTokens  RefreshToken[]
+
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// Organisation
+// ---------------------------------------------------------------------------
+
+model Org {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+
+  // Enterprise SSO / AD integration (Phase: future)
+  authProvider   String? // "google" | "saml" | "azure-ad" | "okta" — null means Google OAuth only
+  samlEntityId   String? // SAML IdP entity ID for this org
+  samlSsoUrl     String? // SAML IdP SSO URL
+  samlCert       String? // SAML IdP X.509 certificate (PEM)
+  allowedDomains String? // Comma-separated email domains that auto-join this org (e.g. "acme.com,acme.org")
+
+  members   OrgMember[]
+  hosts     Host[]
+  auditLogs AuditLog[]
+
+  @@map("orgs")
+}
+
+model OrgMember {
+  id       String   @id @default(uuid()) @db.Uuid
+  userId   String   @db.Uuid
+  orgId    String   @db.Uuid
+  role     OrgRole  @default(MEMBER)
+  joinedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org  Org  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId])
+  @@map("org_members")
+}
+
+// ---------------------------------------------------------------------------
+// Host (streaming machine registered by the NVRemote host agent)
+// ---------------------------------------------------------------------------
+
+model Host {
+  id                String     @id @default(uuid()) @db.Uuid
+  orgId             String     @db.Uuid
+  name              String
+  hostname          String
+  status            HostStatus @default(OFFLINE)
+  publicIp          String?
+  privateIp         String?
+  tunnelIp          String?  // DEPRECATED: Was used for WireGuard tunnel addressing. No longer assigned for P2P sessions. Keep nullable; will be removed in a future migration.
+  gatewayId         String?  // DEPRECATED: Was used to associate with a WireGuard gateway. No longer used with P2P ICE signaling. Keep nullable; will be removed in a future migration.
+  gpuInfo           String?
+  hostVersion String?
+  hostPorts   Json?
+  bootstrapToken    String?
+  bootstrapTokenExpiresAt DateTime?
+  apiToken          String?  @unique // Persistent API token for host agent auth (heartbeats, etc.)
+  lastSeenAt        DateTime?
+  createdAt         DateTime   @default(now())
+
+  org      Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  sessions Session[]
+
+  @@index([orgId])
+  @@index([bootstrapToken])
+  @@map("hosts")
+}
+
+// ---------------------------------------------------------------------------
+// Session (a streaming connection between a user and a host)
+// ---------------------------------------------------------------------------
+
+model Session {
+  id        String        @id @default(uuid()) @db.Uuid
+  userId    String        @db.Uuid
+  hostId    String        @db.Uuid
+  status    SessionStatus @default(PENDING)
+  startedAt DateTime      @default(now())
+  endedAt   DateTime?
+  clientIp  String?
+  metadata  Json?     // Now stores P2P connection details: codec, codecs[], gamingMode, maxBitrate, targetFps, resolution, connectionType (p2p|relay), p2pEstablishedAt. Previously stored WireGuard clientPublicKey/clientTunnelIp/hostTunnelIp.
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  host Host @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([hostId])
+  @@map("sessions")
+}
+
+// ---------------------------------------------------------------------------
+// Audit Log
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  orgId        String   @db.Uuid
+  userId       String?  @db.Uuid
+  action       String
+  resourceType String
+  resourceId   String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  org  Org   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([orgId, createdAt])
+  @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Refresh Token
+// ---------------------------------------------------------------------------
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@map("refresh_tokens")
+}

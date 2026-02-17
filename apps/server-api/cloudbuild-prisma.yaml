@@ -1,0 +1,11 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - 'Dockerfile.prisma-push'
+      - '-t'
+      - 'us-west1-docker.pkg.dev/nvremote/cloud-run-source-deploy/prisma-push:latest'
+      - '.'
+images:
+  - 'us-west1-docker.pkg.dev/nvremote/cloud-run-source-deploy/prisma-push:latest'

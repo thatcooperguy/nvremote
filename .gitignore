@@ -1,0 +1,97 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go
+apps/host-agent/host-agent
+apps/host-agent/host-agent.exe
+apps/gateway/gateway
+apps/gateway/gateway-linux
+
+# Electron
+apps/client-desktop/release/
+
+# Environment files
+.env
+.env.local
+.env.production
+*.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+*.tfvars
+!*.tfvars.example
+
+# Database
+*.sqlite
+*.db
+
+# Logs
+*.log
+logs/
+
+# Docker
+docker-compose.override.yml
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Prisma
+apps/server-api/prisma/migrations/
+
+# WireGuard keys (never commit!)
+*.key
+*.conf
+wg-*.conf
+
+# Secrets
+*.pem
+*.p12
+*.pfx
+credentials.json
+env-vars.yaml
+*-key.json
+scripts/migrate/*.json
+
+# Migration/temp scripts
+*.ps1
+verify-domain*.ps1
+check-mappings.ps1
+cleanup-*.ps1
+dns-check.ps1
+gh-run*.ps1
+recreate-mappings.ps1
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Misc
+nul
+PLAN.md
+*ci-log*

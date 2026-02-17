@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="cs_black">#FF0A0A0A</color>
+    <color name="cs_green">#FF76B900</color>
+    <color name="cs_green_dark">#FF5A8F00</color>
+    <color name="cs_surface">#FF141414</color>
+    <color name="cs_surface_variant">#FF1E1E1E</color>
+    <color name="cs_on_surface">#FFFAFAFA</color>
+    <color name="cs_on_surface_dim">#FF888888</color>
+    <color name="cs_error">#FFCF6679</color>
+    <color name="cs_xbox_a">#FF3CB043</color>
+    <color name="cs_xbox_b">#FFE3242B</color>
+    <color name="cs_xbox_x">#FF0078D7</color>
+    <color name="cs_xbox_y">#FFFFC800</color>
+</resources>

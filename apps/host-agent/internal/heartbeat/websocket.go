@@ -55,6 +55,11 @@ const (
 
 	// Inbound QoS messages
 	MsgQosProfileChange MessageType = "qos:profile-change"
+
+	// Capability negotiation messages
+	MsgCapabilityClient MessageType = "capability:client"
+	MsgCapabilityHost   MessageType = "capability:host"
+	MsgCapabilityAck    MessageType = "capability:ack"
 )
 
 // WSMessage is the envelope for all WebSocket messages.
@@ -363,6 +368,12 @@ func handleSocketIOEvent(ctx context.Context, conn *websocket.Conn, raw []byte, 
 	case MsgQosProfileChange:
 		return handleQosProfileChange(payload, sigHandler)
 
+	case MsgCapabilityClient:
+		return handleCapabilityClient(payload, sigHandler)
+
+	case MsgCapabilityAck:
+		return handleCapabilityAck(payload, sigHandler)
+
 	default:
 		slog.Warn("unknown Socket.IO event", "event", eventName)
 		return nil
@@ -500,6 +511,48 @@ func handleQosProfileChange(payload json.RawMessage, sigHandler *p2p.SignalingHa
 				slog.Info("streaming profile changed", "profile", msg.Profile)
 			}
 		}
+	}
+
+	return nil
+}
+
+// handleCapabilityClient processes a capability:client message relayed by the server.
+// Contains the remote client's display, decoder, and input capabilities.
+func handleCapabilityClient(payload json.RawMessage, sigHandler *p2p.SignalingHandler) error {
+	var data struct {
+		SessionID string `json:"sessionId"`
+	}
+	if err := json.Unmarshal(payload, &data); err != nil {
+		return fmt.Errorf("unmarshalling capability:client sessionId: %w", err)
+	}
+
+	slog.Debug("received client capabilities", "sessionId", data.SessionID)
+
+	if sigHandler != nil {
+		sigHandler.HandleClientCapability(data.SessionID, payload)
+	}
+
+	return nil
+}
+
+// handleCapabilityAck processes a capability:ack from the server, indicating
+// that both client and host capabilities have been exchanged successfully.
+func handleCapabilityAck(payload json.RawMessage, sigHandler *p2p.SignalingHandler) error {
+	var data struct {
+		SessionID  string `json:"sessionId"`
+		Negotiated bool   `json:"negotiated"`
+	}
+	if err := json.Unmarshal(payload, &data); err != nil {
+		return fmt.Errorf("unmarshalling capability:ack: %w", err)
+	}
+
+	slog.Info("capability negotiation acknowledged",
+		"sessionId", data.SessionID,
+		"negotiated", data.Negotiated,
+	)
+
+	if sigHandler != nil {
+		sigHandler.HandleCapabilityAck(data.SessionID)
 	}
 
 	return nil

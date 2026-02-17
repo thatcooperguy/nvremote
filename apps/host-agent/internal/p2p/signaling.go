@@ -218,6 +218,11 @@ func (h *SignalingHandler) HandleSessionOffer(conn *websocket.Conn, offer Sessio
 		return fmt.Errorf("sending session:answer: %w", err)
 	}
 
+	// Step 7: Send capability:host for the capability negotiation protocol.
+	// This provides detailed host hardware info that the server stores on the
+	// session metadata and relays to the client.
+	h.sendHostCapabilities(conn, offer.SessionID, caps)
+
 	session.State = "connecting"
 	slog.Info("session answer sent, waiting for remote candidates",
 		"sessionId", offer.SessionID,
@@ -335,6 +340,143 @@ func (h *SignalingHandler) GetCurrentSession() *SessionState {
 // Used by the websocket handler for QoS profile changes during active sessions.
 func (h *SignalingHandler) GetStreamerManager() *streamer.Manager {
 	return h.streamerManager
+}
+
+// HostCapabilityPayload is the capability:host message sent to the control plane.
+// The server stores these on the session metadata and relays them to the client.
+// JSON tags use camelCase to match the NestJS Socket.IO gateway expectations.
+type HostCapabilityPayload struct {
+	SessionID  string                  `json:"sessionId"`
+	GPU        HostGPUInfo             `json:"gpu"`
+	Encoders   []string                `json:"encoders"`
+	MaxEncode  map[string]string       `json:"maxEncode,omitempty"`
+	CaptureAPI string                  `json:"captureApi"`
+	Displays   []HostDisplayInfo       `json:"displays,omitempty"`
+}
+
+// HostGPUInfo describes the host GPU for capability negotiation.
+type HostGPUInfo struct {
+	Name     string `json:"name"`
+	VRAM     int    `json:"vram,omitempty"`
+	NVENCGen string `json:"nvencGen,omitempty"`
+}
+
+// HostDisplayInfo describes a display output on the host.
+type HostDisplayInfo struct {
+	Width       int `json:"width"`
+	Height      int `json:"height"`
+	RefreshRate int `json:"refreshRate"`
+}
+
+// sendHostCapabilities sends a capability:host message to the control plane
+// containing detailed GPU, encoder, and display information. This feeds the
+// server's capability negotiation protocol and triggers a capability:ack once
+// the client has also reported its capabilities.
+func (h *SignalingHandler) sendHostCapabilities(conn *websocket.Conn, sessionID string, caps *streamer.StreamerCapabilities) {
+	gpu := HostGPUInfo{}
+	captureAPI := "nvfbc" // Default for Windows desktop GPUs
+
+	var encoders []string
+	maxEncode := make(map[string]string)
+
+	if caps != nil {
+		gpu.Name = caps.GPUName
+		gpu.NVENCGen = caps.NVENCVersion
+		encoders = caps.Codecs
+
+		// Build max encode capabilities per codec
+		for _, codec := range caps.Codecs {
+			switch codec {
+			case "h264":
+				maxEncode["h264"] = fmt.Sprintf("4096x4096@%d", caps.MaxFPS)
+			case "h265":
+				maxEncode["h265"] = fmt.Sprintf("8192x8192@%d", caps.MaxFPS)
+			case "av1":
+				maxEncode["av1"] = fmt.Sprintf("8192x8192@%d", caps.MaxFPS)
+			}
+		}
+	}
+
+	// If GPU name is still empty, try to detect it from nvidia-smi
+	if gpu.Name == "" {
+		info, err := h.streamerManager.Detect()
+		if err == nil && info != nil {
+			gpu.Name = info.GPUName
+			if len(encoders) == 0 {
+				encoders = info.Codecs
+			}
+		}
+	}
+
+	payload := HostCapabilityPayload{
+		SessionID:  sessionID,
+		GPU:        gpu,
+		Encoders:   encoders,
+		MaxEncode:  maxEncode,
+		CaptureAPI: captureAPI,
+	}
+
+	if err := sendWSMessage(conn, "capability:host", payload); err != nil {
+		slog.Warn("failed to send capability:host", "error", err)
+	} else {
+		slog.Info("sent host capabilities",
+			"sessionId", sessionID,
+			"gpu", gpu.Name,
+			"encoders", encoders,
+		)
+	}
+}
+
+// HandleClientCapability processes a capability:client message relayed by the
+// server. This contains the remote client's display, decoder, and input info.
+// Currently logged for diagnostics; the QoS engine will use this data in future.
+func (h *SignalingHandler) HandleClientCapability(sessionID string, payload json.RawMessage) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if h.currentSession == nil || h.currentSession.SessionID != sessionID {
+		slog.Debug("capability:client for unknown session", "sessionId", sessionID)
+		return
+	}
+
+	// Parse just enough to log useful fields
+	var data struct {
+		Display struct {
+			Width       int  `json:"width"`
+			Height      int  `json:"height"`
+			RefreshRate int  `json:"refreshRate"`
+			HDR         bool `json:"hdr"`
+		} `json:"display"`
+		Decoders []string `json:"decoders"`
+		Platform string   `json:"platform"`
+	}
+
+	if err := json.Unmarshal(payload, &data); err != nil {
+		slog.Warn("failed to parse capability:client payload", "error", err)
+		return
+	}
+
+	slog.Info("received client capabilities",
+		"sessionId", sessionID,
+		"display", fmt.Sprintf("%dx%d@%dHz", data.Display.Width, data.Display.Height, data.Display.RefreshRate),
+		"hdr", data.Display.HDR,
+		"decoders", data.Decoders,
+		"platform", data.Platform,
+	)
+}
+
+// HandleCapabilityAck processes the capability:ack message from the server,
+// indicating that both client and host capabilities have been received and
+// the negotiation is complete. The QoS engine can now begin adapting parameters.
+func (h *SignalingHandler) HandleCapabilityAck(sessionID string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if h.currentSession == nil || h.currentSession.SessionID != sessionID {
+		return
+	}
+
+	slog.Info("capability negotiation complete", "sessionId", sessionID)
 }
 
 // sendIceCandidate sends a single ICE candidate to the control plane via WebSocket.

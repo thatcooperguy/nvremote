@@ -3,8 +3,8 @@
 // ---------------------------------------------------------------------------
 
 import { io, Socket } from 'socket.io-client';
-import { BrowserWindow } from 'electron';
-import { getViewer, type IceCandidate } from './viewer';
+import { BrowserWindow, screen } from 'electron';
+import { getViewer, isUsingMockViewer, type IceCandidate } from './viewer';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -188,6 +188,11 @@ export function requestSession(
         console.log(`[P2P] Added ${info.candidates.length} pre-bundled host candidates`);
       }
 
+      // Send client capabilities now that we have an active session.
+      // This feeds the server's capability negotiation flow and ultimately
+      // triggers a capability:ack once the host also reports its capabilities.
+      sendClientCapabilities(info.sessionId);
+
       // Notify the stored callback
       if (onSessionAcceptedCallback) {
         onSessionAcceptedCallback(info);
@@ -278,6 +283,73 @@ export function sendIceComplete(): void {
   signalingSocket.emit('ice:complete', {
     sessionId: currentSessionId,
   });
+}
+
+/**
+ * Send client capabilities to the signaling server for capability negotiation.
+ *
+ * Detects the primary display's resolution and refresh rate via Electron's
+ * `screen` module, reports supported decoders (from the native addon), and
+ * sends the platform identifier.  The server stores this on the session
+ * metadata and relays it to the host agent.
+ *
+ * Should be called immediately after receiving session:accepted.
+ */
+export function sendClientCapabilities(sessionId: string): void {
+  if (!signalingSocket?.connected) {
+    console.warn('[P2P] Cannot send client capabilities: not connected');
+    return;
+  }
+
+  // Query primary display info from Electron
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width, height } = primaryDisplay.size;
+  const refreshRate = primaryDisplay.displayFrequency || 60;
+  // Electron doesn't expose HDR natively, but we can detect from color depth
+  const hdr = (primaryDisplay.colorDepth ?? 24) > 24;
+
+  // Determine supported hardware decoders based on platform and addon availability
+  const decoders: string[] = ['h264']; // H.264 is universally supported
+  if (process.platform === 'win32') {
+    // Windows with NVDEC supports HEVC and sometimes AV1
+    decoders.push('h265');
+    if (!isUsingMockViewer()) {
+      decoders.push('av1'); // Ada Lovelace+ NVDEC supports AV1
+    }
+  } else if (process.platform === 'darwin') {
+    // macOS VideoToolbox supports HEVC
+    decoders.push('h265');
+  }
+
+  const payload = {
+    sessionId,
+    display: {
+      width,
+      height,
+      refreshRate,
+      hdr,
+    },
+    decoders,
+    maxDecode: {
+      h264: `${Math.min(width, 3840)}x${Math.min(height, 2160)}@${Math.min(refreshRate, 240)}`,
+      h265: `${Math.min(width, 7680)}x${Math.min(height, 4320)}@${Math.min(refreshRate, 120)}`,
+    } as Record<string, string>,
+    network: {
+      type: 'unknown', // Electron doesn't expose network type easily
+    },
+    platform: `electron-${process.platform}`,
+    input: {
+      touch: false,
+      gamepad: true,
+      keyboard: true,
+    },
+  };
+
+  signalingSocket.emit('capability:client', payload);
+  console.log(
+    `[P2P] Sent client capabilities: ${width}x${height}@${refreshRate}Hz, ` +
+      `decoders: ${decoders.join(',')}, platform: ${payload.platform}`,
+  );
 }
 
 /**
@@ -444,6 +516,39 @@ function setupSignalingHandlers(socket: Socket): void {
 
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('p2p:session-error', { error: data.error });
+    }
+  });
+
+  // Host capabilities received (relayed by server during capability negotiation)
+  socket.on('capability:host', (data: {
+    sessionId: string;
+    gpu: { name: string; vram?: number; nvencGen?: string };
+    encoders: string[];
+    maxEncode?: Record<string, string>;
+    captureApi?: string;
+    displays?: Array<{ width: number; height: number; refreshRate: number }>;
+  }) => {
+    if (data.sessionId !== currentSessionId) return;
+
+    console.log(
+      `[P2P] Host capabilities received: GPU=${data.gpu?.name}, ` +
+        `encoders=${data.encoders?.join(',')}, captureApi=${data.captureApi}`,
+    );
+
+    // Forward to renderer for UI display
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('p2p:host-capabilities', data);
+    }
+  });
+
+  // Capability negotiation complete (both client and host have reported)
+  socket.on('capability:ack', (data: { sessionId: string; negotiated: boolean }) => {
+    if (data.sessionId !== currentSessionId) return;
+
+    console.log('[P2P] Capability negotiation complete');
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('p2p:capability-negotiated', data);
     }
   });
 

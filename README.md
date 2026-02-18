@@ -22,7 +22,33 @@
 
 ---
 
-> **This is a proof of concept** built collaboratively by a human developer and AI (Claude by Anthropic). Every line of code across 7 languages, 6 platforms, and a production cloud backend was pair-programmed in iterative sessions. This project is not affiliated with NVIDIA Corporation.
+> **This is a personal passion project** built collaboratively by a human developer and AI (Claude by Anthropic). Every line of code across 7 languages, 6 platforms, and a production cloud backend was pair-programmed in iterative sessions. **This project is not created, sponsored, endorsed, or affiliated with NVIDIA Corporation.** See [Legal Disclaimer](#legal-disclaimer) below.
+
+---
+
+## Downloads
+
+Grab the latest release for your platform. No account required — just download and run.
+
+### 🖥️ Stream TO Your Device (Client)
+
+| Platform | Download | Notes |
+|----------|----------|-------|
+| **Windows** | [NVRemote-0.5.0-beta-Setup.exe](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemote-0.5.0-beta-Setup.exe) | Windows 10/11, auto-updates |
+| **macOS** | [NVRemote-0.5.0-beta-universal.dmg](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemote-0.5.0-beta-universal.dmg) | Universal binary (Intel + Apple Silicon) |
+| **Linux x86_64** | [NVRemote-0.5.0-beta-x86_64.AppImage](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemote-0.5.0-beta-x86_64.AppImage) | AppImage — `chmod +x` and run |
+| **Linux ARM64** | [NVRemote-0.5.0-beta-arm64.AppImage](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemote-0.5.0-beta-arm64.AppImage) | Jetson / Pi / ARM64 Linux |
+| **Android** | [NVRemote-v0.5.0-beta.apk](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemote-v0.5.0-beta.apk) | Android 7.0+, sideload APK |
+
+### 🖧 Stream FROM Your GPU Machine (Host Agent)
+
+| Platform | Download | Notes |
+|----------|----------|-------|
+| **Windows** | [NVRemoteHost-v0.5.0-beta-win64.zip](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemoteHost-v0.5.0-beta-win64.zip) | Extract and run — requires NVIDIA GPU |
+| **Linux x86_64** | [NVRemoteHost-v0.5.0-beta-linux-amd64.tar.gz](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemoteHost-v0.5.0-beta-linux-amd64.tar.gz) | GPG signed ([.asc](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemoteHost-v0.5.0-beta-linux-amd64.tar.gz.asc)) |
+| **Linux ARM64** | [NVRemoteHost-v0.5.0-beta-linux-arm64.tar.gz](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemoteHost-v0.5.0-beta-linux-arm64.tar.gz) | Jetson / DGX Spark — GPG signed ([.asc](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemoteHost-v0.5.0-beta-linux-arm64.tar.gz.asc)) |
+
+> 📋 [SHA256 checksums](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/SHA256SUMS.txt) &middot; [All releases](https://github.com/thatcooperguy/nvremote/releases)
 
 ---
 
@@ -202,7 +228,51 @@ nvremote/
 
 ---
 
-## Quick Start
+## Getting Started
+
+Stream your GPU desktop in 3 steps. Your host and sessions are private to your account — no one else can see or connect to your machine.
+
+### Step 1: Install the Host Agent (on your GPU machine)
+
+Download the host agent for your platform from the [Downloads](#downloads) section above.
+
+**Windows:**
+1. Download [NVRemoteHost-v0.5.0-beta-win64.zip](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemoteHost-v0.5.0-beta-win64.zip)
+2. Extract the zip
+3. Run `NVRemoteAgent.exe`
+4. Sign in with your Google account — the agent registers your machine
+
+**Linux:**
+```bash
+tar xzf NVRemoteHost-v0.5.0-beta-linux-amd64.tar.gz
+cd nvremote-host
+./NVRemoteAgent
+```
+
+### Step 2: Install the Client (on the device you want to stream TO)
+
+Download the client for your platform from the [Downloads](#downloads) section above.
+
+**Windows:** Run [NVRemote-0.5.0-beta-Setup.exe](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemote-0.5.0-beta-Setup.exe) — installs and launches automatically.
+
+**macOS:** Open [NVRemote-0.5.0-beta-universal.dmg](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemote-0.5.0-beta-universal.dmg) and drag to Applications.
+
+**Android:** Sideload [NVRemote-v0.5.0-beta.apk](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemote-v0.5.0-beta.apk).
+
+**Linux:** `chmod +x NVRemote-*.AppImage && ./NVRemote-*.AppImage`
+
+### Step 3: Connect and Stream
+
+1. Open the NVRemote client and sign in with the **same Google account** you used on the host
+2. Your GPU machine appears in the device list (only visible to you)
+3. Click **Stream** — a peer-to-peer connection is established directly between your devices
+4. That's it. Your GPU desktop is now streaming to your device.
+
+> 🔒 **Privacy:** Your host is registered to your account and is only visible to you (or members of your organization if you create one). Sessions are encrypted end-to-end with DTLS/SRTP. No one — not even NVRemote servers — can see your stream content.
+
+---
+
+## Building from Source
 
 ```bash
 git clone https://github.com/thatcooperguy/nvremote.git
@@ -259,6 +329,22 @@ The result: a multi-platform GPU streaming system spanning **7 programming langu
 
 ---
 
+## Legal Disclaimer
+
+**NVRemote is an independent, personal project.** It is **not** created, sponsored, endorsed, or affiliated with NVIDIA Corporation or any of its subsidiaries. The author is employed by NVIDIA but developed this project entirely on personal time, using personal equipment, personal cloud infrastructure, and personal funds. This project does not represent NVIDIA in any way, and no proprietary NVIDIA information, internal tools, or confidential resources were used in its development.
+
+**Trademark Notice:** "NVIDIA," "GeForce," "Quadro," "RTX," "Jetson," "DGX," "NVENC," "NvFBC," and related marks are trademarks or registered trademarks of NVIDIA Corporation. "WebRTC" is a trademark of Google LLC. All other trademarks are property of their respective owners. Use of these names is for identification purposes only and does not imply endorsement.
+
+**No Warranty:** This software is provided "as is," without warranty of any kind, express or implied. See the [MIT License](LICENSE) for full terms. Use at your own risk.
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
 <p align="center">
-  <sub>Built with <a href="https://claude.ai">Claude</a> by Anthropic &middot; Powered by NVIDIA</sub>
+  <sub>Built with <a href="https://claude.ai">Claude</a> by Anthropic</sub>
 </p>

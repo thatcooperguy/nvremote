@@ -294,11 +294,124 @@ export function StreamView(): React.ReactElement {
       {/* Stats overlay */}
       {showStatsOverlay && <StatsOverlay stats={stats} />}
 
+      {/* Network health indicator — always visible in bottom-right */}
+      <NetworkHealthIndicator stats={stats} visible={!controlsVisible} />
+
       {/* Reconnecting overlay */}
       <ReconnectOverlay />
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Network health indicator — always-visible small badge in bottom-right
+// ---------------------------------------------------------------------------
+
+type HealthLevel = 'excellent' | 'good' | 'fair' | 'poor';
+
+function getNetworkHealth(stats: StreamStats | null): { level: HealthLevel; label: string } {
+  if (!stats) return { level: 'good', label: 'Connecting' };
+
+  const { rtt, packetLoss, jitter, fps } = stats;
+
+  // Score from 0–100 based on multiple factors
+  let score = 100;
+  if (rtt > 10) score -= Math.min(40, (rtt - 10) * 0.8);
+  if (packetLoss > 0) score -= Math.min(30, packetLoss * 15);
+  if (jitter > 2) score -= Math.min(20, (jitter - 2) * 2);
+  if (fps < 55) score -= Math.min(10, (55 - fps) * 0.5);
+
+  if (score >= 85) return { level: 'excellent', label: 'Excellent' };
+  if (score >= 65) return { level: 'good', label: 'Good' };
+  if (score >= 40) return { level: 'fair', label: 'Fair' };
+  return { level: 'poor', label: 'Poor' };
+}
+
+function getHealthColor(level: HealthLevel): string {
+  switch (level) {
+    case 'excellent': return colors.semantic.success;
+    case 'good': return colors.semantic.success;
+    case 'fair': return colors.semantic.warning;
+    case 'poor': return colors.semantic.error;
+  }
+}
+
+interface NetworkHealthIndicatorProps {
+  stats: StreamStats | null;
+  visible: boolean;
+}
+
+function NetworkHealthIndicator({ stats, visible }: NetworkHealthIndicatorProps): React.ReactElement {
+  const { level, label } = getNetworkHealth(stats);
+  const color = getHealthColor(level);
+  const barCount = level === 'excellent' ? 4 : level === 'good' ? 3 : level === 'fair' ? 2 : 1;
+
+  return (
+    <div
+      style={{
+        ...healthStyles.container,
+        opacity: visible ? 0.85 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(10px)',
+      }}
+    >
+      {/* Signal bars */}
+      <div style={healthStyles.bars}>
+        {[1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            style={{
+              width: 3,
+              height: 4 + i * 3,
+              borderRadius: 1,
+              backgroundColor: i <= barCount ? color : 'rgba(255,255,255,0.15)',
+              transition: 'background-color 500ms ease',
+            }}
+          />
+        ))}
+      </div>
+      <span style={{ ...healthStyles.label, color }}>{label}</span>
+      {stats && (
+        <span style={healthStyles.rtt}>{stats.rtt}ms</span>
+      )}
+    </div>
+  );
+}
+
+const healthStyles: Record<string, React.CSSProperties> = {
+  container: {
+    position: 'fixed',
+    bottom: spacing.md,
+    right: spacing.md,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '4px 10px',
+    backgroundColor: 'rgba(10, 10, 10, 0.75)',
+    backdropFilter: 'blur(8px)',
+    borderRadius: radius.md,
+    border: '1px solid rgba(255,255,255,0.06)',
+    zIndex: 498,
+    transition: 'opacity 400ms ease, transform 400ms ease',
+    pointerEvents: 'none',
+  },
+  bars: {
+    display: 'flex',
+    alignItems: 'flex-end',
+    gap: 2,
+    height: 16,
+  },
+  label: {
+    fontSize: 10,
+    fontWeight: typography.fontWeight.semibold,
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+  rtt: {
+    fontSize: 10,
+    fontFamily: typography.fontMono,
+    color: colors.text.disabled,
+  },
+};
 
 // ---------------------------------------------------------------------------
 // Reconnect overlay

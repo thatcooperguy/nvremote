@@ -1,11 +1,12 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { TitleBar } from './components/TitleBar';
 import { Sidebar } from './components/Sidebar';
 import { Toast } from './components/Toast';
 import { ConnectionOverlay } from './components/ConnectionOverlay';
 import { StreamView } from './components/StreamView';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { HostDetailPage } from './pages/HostDetailPage';
@@ -30,6 +31,58 @@ function ProtectedRoute({ children }: ProtectedRouteProps): React.ReactElement {
 }
 
 function AuthenticatedLayout(): React.ReactElement {
+  const navigate = useNavigate();
+  const [showShortcuts, setShowShortcuts] = useState(false);
+
+  const handleGlobalKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      // Don't trigger shortcuts when typing in inputs
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      // ? to show shortcuts help
+      if (e.key === '?' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        setShowShortcuts(true);
+        return;
+      }
+
+      // Ctrl+D → Dashboard
+      if (e.key === 'd' && e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        navigate('/dashboard');
+        return;
+      }
+
+      // Ctrl+S → Sessions (only when not streaming)
+      if (e.key === 's' && e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        navigate('/sessions');
+        return;
+      }
+
+      // Ctrl+, → Settings
+      if (e.key === ',' && e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        navigate('/settings');
+        return;
+      }
+    },
+    [navigate]
+  );
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [handleGlobalKeyDown]);
+
   return (
     <div style={styles.authenticatedLayout}>
       <Sidebar />
@@ -43,6 +96,10 @@ function AuthenticatedLayout(): React.ReactElement {
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </main>
+      <KeyboardShortcutsModal
+        open={showShortcuts}
+        onClose={() => setShowShortcuts(false)}
+      />
     </div>
   );
 }

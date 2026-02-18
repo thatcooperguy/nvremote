@@ -113,6 +113,17 @@ export const layout = {
   sidebarWidth: 240,
   sidebarWidthCollapsed: 64,
   titlebarHeight: 40,
+  topBarHeight: 48,
+  statusBarHeight: 28,
+} as const;
+
+export const statusColors = {
+  disconnected: '#6B7280',
+  connecting: '#F59E0B',
+  connected: '#76B900',
+  hosting: '#3B82F6',
+  error: '#EF4444',
+  streaming: '#8B5CF6',
 } as const;
 
 const theme = {

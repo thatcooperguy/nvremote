@@ -11,13 +11,15 @@ export default defineConfig({
       {
         entry: path.resolve(__dirname, 'src/main/main.ts'),
         onstart(args) {
-          args.startup();
+          args.startup(['.']).catch((err: Error) => {
+            console.error('Failed to start Electron:', err.message);
+          });
         },
         vite: {
           build: {
             outDir: path.resolve(__dirname, 'dist-electron/main'),
             rollupOptions: {
-              external: ['electron', 'electron-store'],
+              external: ['electron', 'electron-store', 'bufferutil', 'utf-8-validate'],
             },
           },
         },

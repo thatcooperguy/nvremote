@@ -1,6 +1,7 @@
 appId: com.nvremote.client
 productName: NVRemote
 copyright: Copyright (c) NVRemote
+electronVersion: 33.3.1
 
 # Prevent electron-builder from running its own npm install during packaging.
 # In npm workspace setups, this step restructures node_modules and deletes
@@ -78,7 +79,7 @@ mac:
   entitlementsInherit: build/entitlements.mac.plist
   # Notarize after signing (requires APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID)
   notarize: false
-  afterSign: build/notarize.cjs
+  # afterSign: build/notarize.cjs  # Requires electron-builder v25+
   # Allow shared native resources in universal builds (FFmpeg dylibs,
   # N-API addons are arch-specific but bundled from a single CI build)
   x64ArchFiles: "Contents/Resources/resources/**"

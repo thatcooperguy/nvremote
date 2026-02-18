@@ -20,6 +20,7 @@ apps/gateway/gateway-linux
 
 # Electron
 apps/client-desktop/release/
+apps/client-desktop/dist-electron/
 
 # Environment files
 .env

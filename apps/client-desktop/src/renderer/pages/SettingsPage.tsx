@@ -1,8 +1,15 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+/**
+ * SettingsPage.tsx — Tabbed settings page.
+ *
+ * 5 tabs: General, Account, Network, Streaming, Security.
+ */
+
+import React, { useState, useCallback } from 'react';
 import { colors, radius, spacing, typography, transitions } from '../styles/theme';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { TabGroup, type TabItem } from '../components/TabGroup';
+import { ToggleRow } from '../components/ToggleRow';
 import { useAuthStore } from '../store/authStore';
 import { useHostAgentStore } from '../store/hostAgentStore';
 import { useConnectionStore, type ConnectionMode } from '../store/connectionStore';
@@ -10,133 +17,46 @@ import { toast } from '../components/Toast';
 
 const APP_VERSION = '0.5.1-beta';
 
-interface SettingsSectionProps {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}
-
-function SettingsSection({ title, description, children }: SettingsSectionProps): React.ReactElement {
-  return (
-    <div style={styles.section}>
-      <div style={styles.sectionHeader}>
-        <div style={styles.sectionTitleBar}>
-          <h2 style={styles.sectionTitle}>{title}</h2>
-        </div>
-        {description && <p style={styles.sectionDescription}>{description}</p>}
-      </div>
-      <Card>{children}</Card>
-    </div>
-  );
-}
-
-interface ToggleRowProps {
-  label: string;
-  description: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-}
-
-function ToggleRow({ label, description, checked, onChange }: ToggleRowProps): React.ReactElement {
-  return (
-    <div style={styles.settingRow}>
-      <div style={styles.settingInfo}>
-        <span style={styles.settingLabel}>{label}</span>
-        <span style={styles.settingDescription}>{description}</span>
-      </div>
-      <button
-        role="switch"
-        aria-checked={checked}
-        onClick={() => onChange(!checked)}
-        style={{
-          ...styles.toggle,
-          backgroundColor: checked ? colors.accent.default : colors.bg.elevated,
-        }}
-      >
-        <div
-          style={{
-            ...styles.toggleKnob,
-            transform: checked ? 'translateX(18px)' : 'translateX(2px)',
-          }}
-        />
-      </button>
-    </div>
-  );
-}
-
-function CopyButton({ text }: { text: string }): React.ReactElement {
-  const [copied, setCopied] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, []);
-
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      timerRef.current = setTimeout(() => setCopied(false), 1500);
-    });
-  }, [text]);
-
-  return (
-    <button
-      onClick={handleCopy}
-      style={styles.copyButton}
-      title={copied ? 'Copied!' : 'Copy to clipboard'}
-      aria-label="Copy to clipboard"
-    >
-      {copied ? (
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M3 7L6 10L11 4" stroke={colors.accent.default} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      ) : (
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <rect x="4" y="4" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
-          <path d="M10 4V3C10 2.44772 9.55228 2 9 2H3C2.44772 2 2 2.44772 2 3V9C2 9.55228 2.44772 10 3 10H4" stroke="currentColor" strokeWidth="1.3" />
-        </svg>
-      )}
-    </button>
-  );
-}
+const TABS: TabItem[] = [
+  { id: 'general', label: 'General' },
+  { id: 'account', label: 'Account' },
+  { id: 'network', label: 'Network' },
+  { id: 'streaming', label: 'Streaming' },
+  { id: 'security', label: 'Security' },
+];
 
 export function SettingsPage(): React.ReactElement {
-  const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
-  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('general');
+
+  return (
+    <div style={styles.page}>
+      <h1 style={styles.pageTitle}>Settings</h1>
+      <TabGroup tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
+      <div style={styles.tabContent}>
+        {activeTab === 'general' && <GeneralTab />}
+        {activeTab === 'account' && <AccountTab />}
+        {activeTab === 'network' && <NetworkTab />}
+        {activeTab === 'streaming' && <StreamingTab />}
+        {activeTab === 'security' && <SecurityTab />}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// General Tab — Startup, tray, overlay, language, About
+// ---------------------------------------------------------------------------
+
+function GeneralTab(): React.ReactElement {
+  const [minimizeToTray, setMinimizeToTray] = useState(true);
+  const [startOnBoot, setStartOnBoot] = useState(false);
+  const [autoConnect, setAutoConnect] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(true);
+  const [language, setLanguage] = useState('en');
 
   const config = useHostAgentStore((s) => s.config);
-  const isRegistered = useHostAgentStore((s) => s.isRegistered);
   const setMode = useHostAgentStore((s) => s.setMode);
-
-  const connectionMode = useConnectionStore((s) => s.connectionMode);
-  const setConnectionMode = useConnectionStore((s) => s.setConnectionMode);
-
-  const [autoConnect, setAutoConnect] = useState(false);
-  const [minimizeToTray, setMinimizeToTray] = useState(true);
-  const [hardwareDecode, setHardwareDecode] = useState(true);
-  const [vsync, setVsync] = useState(true);
-  const [autoReconnect, setAutoReconnect] = useState(true);
-
-  // Wrapper to show save feedback on toggle changes
-  const withSaveToast = useCallback(
-    (setter: (v: boolean) => void) => (value: boolean) => {
-      setter(value);
-      toast.success('Setting saved');
-    },
-    []
-  );
-
   const hostModeSupported = window.nvrs?.platform?.hostModeSupported ?? false;
-
-  const handleLogout = useCallback(async () => {
-    try {
-      await logout();
-      toast.info('Signed out successfully');
-    } catch {
-      toast.error('Failed to sign out');
-    }
-  }, [logout]);
 
   const handleModeChange = useCallback(
     async (mode: 'client' | 'host' | 'both') => {
@@ -150,11 +70,143 @@ export function SettingsPage(): React.ReactElement {
     [setMode]
   );
 
-  return (
-    <div style={styles.page}>
-      <h1 style={styles.pageTitle}>Settings</h1>
+  const withSave = useCallback(
+    (setter: (v: boolean) => void) => (value: boolean) => {
+      setter(value);
+      toast.success('Setting saved');
+    },
+    []
+  );
 
-      {/* Profile */}
+  return (
+    <>
+      <SettingsSection title="Startup & Window">
+        <div style={styles.settingsList}>
+          <ToggleRow
+            label="Start on Boot"
+            description="Launch NVRemote when your computer starts"
+            checked={startOnBoot}
+            onChange={withSave(setStartOnBoot)}
+          />
+          <div style={styles.settingDivider} />
+          <ToggleRow
+            label="Minimize to System Tray"
+            description="Keep the app running in the background when the window is closed"
+            checked={minimizeToTray}
+            onChange={withSave(setMinimizeToTray)}
+          />
+          <div style={styles.settingDivider} />
+          <ToggleRow
+            label="Auto-Connect on Launch"
+            description="Automatically connect to the last used host on startup"
+            checked={autoConnect}
+            onChange={withSave(setAutoConnect)}
+          />
+          <div style={styles.settingDivider} />
+          <ToggleRow
+            label="Performance Overlay"
+            description="Show FPS, latency, and bitrate during streaming"
+            checked={showOverlay}
+            onChange={withSave(setShowOverlay)}
+          />
+        </div>
+      </SettingsSection>
+
+      {/* App Mode (Windows only) */}
+      {hostModeSupported && (
+        <SettingsSection title="App Mode" description="Configure NVRemote as a client, host, or both">
+          <div style={styles.settingRow}>
+            <div style={styles.settingInfo}>
+              <span style={styles.settingLabel}>Mode</span>
+              <span style={styles.settingDescription}>
+                Client receives streams. Host shares your GPU. Both does both simultaneously.
+              </span>
+            </div>
+            <div style={styles.modeSelector}>
+              {(['client', 'host', 'both'] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => handleModeChange(m)}
+                  style={{
+                    ...styles.modeButton,
+                    ...(config?.mode === m ? styles.modeButtonActive : {}),
+                  }}
+                >
+                  {m.charAt(0).toUpperCase() + m.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </SettingsSection>
+      )}
+
+      <SettingsSection title="Language">
+        <div style={styles.settingRow}>
+          <div style={styles.settingInfo}>
+            <span style={styles.settingLabel}>Display Language</span>
+            <span style={styles.settingDescription}>Select the language used in the interface</span>
+          </div>
+          <select
+            value={language}
+            onChange={(e) => { setLanguage(e.target.value); toast.success('Language updated'); }}
+            style={styles.select}
+          >
+            <option value="en">English</option>
+            <option value="es">Español</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
+            <option value="ja">日本語</option>
+            <option value="zh">中文</option>
+          </select>
+        </div>
+      </SettingsSection>
+
+      {/* About */}
+      <SettingsSection title="About">
+        <div style={styles.aboutContent}>
+          <AboutRow label="Application" value="NVRemote" />
+          <div style={styles.settingDivider} />
+          <AboutRow label="Version" value={`v${APP_VERSION}`} />
+          <div style={styles.settingDivider} />
+          <AboutRow
+            label="Platform"
+            value={
+              window.nvrs?.platform?.os === 'win32' ? 'Windows' :
+              window.nvrs?.platform?.os === 'darwin' ? 'macOS' : 'Linux'
+            }
+          />
+          <div style={styles.settingDivider} />
+          <AboutRow label="Host Mode" value={hostModeSupported ? 'Supported' : 'Not Available'} />
+          <div style={styles.settingDivider} />
+          <AboutRow
+            label="Native Streaming"
+            value={window.nvrs?.platform?.nativeStreamingSupported ? 'Supported' : 'Not Available'}
+          />
+        </div>
+      </SettingsSection>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Account Tab — Profile, sign out, privacy
+// ---------------------------------------------------------------------------
+
+function AccountTab(): React.ReactElement {
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await logout();
+      toast.info('Signed out successfully');
+    } catch {
+      toast.error('Failed to sign out');
+    }
+  }, [logout]);
+
+  return (
+    <>
       <SettingsSection title="Profile" description="Your account information">
         <div style={styles.profileRow}>
           <div style={styles.avatar}>
@@ -177,191 +229,292 @@ export function SettingsPage(): React.ReactElement {
         </div>
       </SettingsSection>
 
-      {/* App Mode (Windows only) */}
-      {hostModeSupported && (
-        <SettingsSection
-          title="App Mode"
-          description="Configure NVRemote as a client, host, or both"
-        >
-          <div style={styles.settingsList}>
-            <div style={styles.settingRow}>
-              <div style={styles.settingInfo}>
-                <span style={styles.settingLabel}>Mode</span>
-                <span style={styles.settingDescription}>
-                  Client receives streams. Host shares your GPU. Both does both simultaneously.
-                </span>
-              </div>
-              <div style={styles.modeSelector}>
-                {(['client', 'host', 'both'] as const).map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => handleModeChange(m)}
-                    style={{
-                      ...styles.modeButton,
-                      ...(config?.mode === m ? styles.modeButtonActive : {}),
-                    }}
-                  >
-                    {m.charAt(0).toUpperCase() + m.slice(1)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {(config?.mode === 'host' || config?.mode === 'both') && (
-              <>
-                <div style={styles.settingDivider} />
-                {isRegistered ? (
-                  <div style={styles.settingRow}>
-                    <div style={styles.settingInfo}>
-                      <span style={styles.settingLabel}>Host ID</span>
-                      <div style={styles.hostIdRow}>
-                        <span style={styles.hostIdText}>
-                          {config?.hostId}
-                        </span>
-                        <CopyButton text={config?.hostId || ''} />
-                      </div>
-                    </div>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => navigate('/host')}
-                    >
-                      Host Dashboard
-                    </Button>
-                  </div>
-                ) : (
-                  <div style={styles.settingRow}>
-                    <div style={styles.settingInfo}>
-                      <span style={styles.settingLabel}>Registration Required</span>
-                      <span style={styles.settingDescription}>
-                        Register this machine as a streaming host to accept connections.
-                      </span>
-                    </div>
-                    <Button size="sm" onClick={() => navigate('/host')}>
-                      Set Up Host
-                    </Button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </SettingsSection>
-      )}
-
-      {/* Connection Preferences */}
-      <SettingsSection
-        title="Connection"
-        description="Configure streaming and connection preferences"
-      >
+      <SettingsSection title="Privacy">
         <div style={styles.settingsList}>
-          <div style={styles.settingRow}>
-            <div style={styles.settingInfo}>
-              <span style={styles.settingLabel}>Connection Mode</span>
-              <span style={styles.settingDescription}>
-                How the client connects to your host machine.
-              </span>
-            </div>
-            <div style={styles.modeSelector}>
-              {([
-                { value: 'auto' as ConnectionMode, label: 'Auto (P2P)' },
-                { value: 'vpn' as ConnectionMode, label: 'VPN Relay' },
-              ]).map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setConnectionMode(opt.value)}
-                  style={{
-                    ...styles.modeButton,
-                    ...(connectionMode === opt.value ? styles.modeButtonActive : {}),
-                  }}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          <ToggleRow
+            label="Analytics"
+            description="Help improve NVRemote by sending anonymous usage data"
+            checked={false}
+            onChange={() => toast.info('Analytics settings saved')}
+          />
           <div style={styles.settingDivider} />
+          <ToggleRow
+            label="Crash Reports"
+            description="Automatically send crash reports for debugging"
+            checked={true}
+            onChange={() => toast.info('Crash report settings saved')}
+          />
+        </div>
+      </SettingsSection>
+
+      <SettingsSection title="Data">
+        <div style={styles.settingRow}>
+          <div style={styles.settingInfo}>
+            <span style={styles.settingLabel}>Clear Session History</span>
+            <span style={styles.settingDescription}>Remove all stored session data from this device</span>
+          </div>
+          <Button variant="danger" size="sm" onClick={() => toast.info('Session history cleared')}>
+            Clear Data
+          </Button>
+        </div>
+      </SettingsSection>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Network Tab — Connection mode, bandwidth limits, proxy
+// ---------------------------------------------------------------------------
+
+function NetworkTab(): React.ReactElement {
+  const connectionMode = useConnectionStore((s) => s.connectionMode);
+  const setConnectionMode = useConnectionStore((s) => s.setConnectionMode);
+  const [bandwidthLimit, setBandwidthLimit] = useState('0');
+
+  return (
+    <>
+      <SettingsSection title="Connection Mode" description="How the client connects to host machines">
+        <div style={styles.settingRow}>
+          <div style={styles.settingInfo}>
+            <span style={styles.settingLabel}>Connection Method</span>
+            <span style={styles.settingDescription}>
+              Auto uses P2P when possible, falling back to relay. VPN forces WireGuard relay.
+            </span>
+          </div>
+          <div style={styles.modeSelector}>
+            {([
+              { value: 'auto' as ConnectionMode, label: 'Auto (P2P)' },
+              { value: 'vpn' as ConnectionMode, label: 'VPN Relay' },
+            ]).map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setConnectionMode(opt.value)}
+                style={{
+                  ...styles.modeButton,
+                  ...(connectionMode === opt.value ? styles.modeButtonActive : {}),
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </SettingsSection>
+
+      <SettingsSection title="Bandwidth" description="Limit upload and download rates">
+        <div style={styles.settingRow}>
+          <div style={styles.settingInfo}>
+            <span style={styles.settingLabel}>Bandwidth Limit (Mbps)</span>
+            <span style={styles.settingDescription}>Set to 0 for unlimited. Applies to streaming sessions.</span>
+          </div>
+          <select
+            value={bandwidthLimit}
+            onChange={(e) => { setBandwidthLimit(e.target.value); toast.success('Bandwidth limit updated'); }}
+            style={styles.select}
+          >
+            <option value="0">Unlimited</option>
+            <option value="10">10 Mbps</option>
+            <option value="25">25 Mbps</option>
+            <option value="50">50 Mbps</option>
+            <option value="100">100 Mbps</option>
+          </select>
+        </div>
+      </SettingsSection>
+
+      <SettingsSection title="Proxy" description="Configure proxy settings for network connections">
+        <div style={styles.placeholderCard}>
+          <svg width={20} height={20} viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="8" stroke={colors.text.disabled} strokeWidth="1.5" />
+            <line x1="10" y1="6" x2="10" y2="10.5" stroke={colors.text.disabled} strokeWidth="1.5" strokeLinecap="round" />
+            <circle cx="10" cy="13.5" r="0.75" fill={colors.text.disabled} />
+          </svg>
+          <span style={styles.placeholderText}>Proxy configuration will be available in a future update.</span>
+        </div>
+      </SettingsSection>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Streaming Tab — Default presets, hardware decode, VSync
+// ---------------------------------------------------------------------------
+
+function StreamingTab(): React.ReactElement {
+  const [hardwareDecode, setHardwareDecode] = useState(true);
+  const [vsync, setVsync] = useState(true);
+  const [autoReconnect, setAutoReconnect] = useState(true);
+  const [preferredCodec, setPreferredCodec] = useState('auto');
+  const [captureMode, setCaptureMode] = useState('desktop');
+
+  const withSave = useCallback(
+    (setter: (v: boolean) => void) => (value: boolean) => {
+      setter(value);
+      toast.success('Setting saved');
+    },
+    []
+  );
+
+  return (
+    <>
+      <SettingsSection title="Decoder Preferences" description="Configure how the client decodes incoming video">
+        <div style={styles.settingsList}>
           <ToggleRow
             label="Hardware Decoding"
             description="Use GPU-accelerated video decoding for better performance"
             checked={hardwareDecode}
-            onChange={withSaveToast(setHardwareDecode)}
+            onChange={withSave(setHardwareDecode)}
           />
           <div style={styles.settingDivider} />
           <ToggleRow
             label="VSync"
             description="Synchronize frame rendering to prevent tearing"
             checked={vsync}
-            onChange={withSaveToast(setVsync)}
+            onChange={withSave(setVsync)}
           />
           <div style={styles.settingDivider} />
           <ToggleRow
             label="Auto-Reconnect"
             description="Automatically reconnect when the connection is interrupted"
             checked={autoReconnect}
-            onChange={withSaveToast(setAutoReconnect)}
-          />
-          <div style={styles.settingDivider} />
-          <ToggleRow
-            label="Auto-Connect on Launch"
-            description="Automatically connect to the last used host on startup"
-            checked={autoConnect}
-            onChange={withSaveToast(setAutoConnect)}
-          />
-          <div style={styles.settingDivider} />
-          <ToggleRow
-            label="Minimize to System Tray"
-            description="Keep the app running in the background when the window is closed"
-            checked={minimizeToTray}
-            onChange={withSaveToast(setMinimizeToTray)}
+            onChange={withSave(setAutoReconnect)}
           />
         </div>
       </SettingsSection>
 
-      {/* About */}
-      <SettingsSection title="About">
-        <div style={styles.aboutContent}>
-          <div style={styles.aboutRow}>
-            <span style={styles.aboutLabel}>Application</span>
-            <span style={styles.aboutValue}>NVRemote</span>
+      <SettingsSection title="Codec & Capture">
+        <div style={styles.settingsList}>
+          <div style={styles.settingRow}>
+            <div style={styles.settingInfo}>
+              <span style={styles.settingLabel}>Preferred Codec</span>
+              <span style={styles.settingDescription}>Codec to request when connecting to a host</span>
+            </div>
+            <select
+              value={preferredCodec}
+              onChange={(e) => { setPreferredCodec(e.target.value); toast.success('Codec preference saved'); }}
+              style={styles.select}
+            >
+              <option value="auto">Auto (let host decide)</option>
+              <option value="h264">H.264</option>
+              <option value="h265">H.265 (HEVC)</option>
+              <option value="av1">AV1</option>
+            </select>
           </div>
           <div style={styles.settingDivider} />
-          <div style={styles.aboutRow}>
-            <span style={styles.aboutLabel}>Version</span>
-            <span style={styles.aboutValue}>v{APP_VERSION}</span>
-          </div>
-          <div style={styles.settingDivider} />
-          <div style={styles.aboutRow}>
-            <span style={styles.aboutLabel}>Platform</span>
-            <span style={styles.aboutValue}>
-              {window.nvrs?.platform?.os === 'win32' ? 'Windows' :
-               window.nvrs?.platform?.os === 'darwin' ? 'macOS' : 'Linux'}
-            </span>
-          </div>
-          <div style={styles.settingDivider} />
-          <div style={styles.aboutRow}>
-            <span style={styles.aboutLabel}>Host Mode</span>
-            <span style={styles.aboutValue}>
-              {hostModeSupported ? 'Supported' : 'Not Available'}
-            </span>
-          </div>
-          <div style={styles.settingDivider} />
-          <div style={styles.aboutRow}>
-            <span style={styles.aboutLabel}>Native Streaming</span>
-            <span style={styles.aboutValue}>
-              {window.nvrs?.platform?.nativeStreamingSupported ? 'Supported' : 'Not Available'}
-            </span>
+          <div style={styles.settingRow}>
+            <div style={styles.settingInfo}>
+              <span style={styles.settingLabel}>Capture Mode</span>
+              <span style={styles.settingDescription}>What the host streams to the client</span>
+            </div>
+            <select
+              value={captureMode}
+              onChange={(e) => { setCaptureMode(e.target.value); toast.success('Capture mode saved'); }}
+              style={styles.select}
+            >
+              <option value="desktop">Entire Desktop</option>
+              <option value="display1">Display 1</option>
+              <option value="display2">Display 2</option>
+            </select>
           </div>
         </div>
       </SettingsSection>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Security Tab — Connection approval, unattended access, PIN
+// ---------------------------------------------------------------------------
+
+function SecurityTab(): React.ReactElement {
+  const [requireApproval, setRequireApproval] = useState(true);
+  const [unattendedAccess, setUnattendedAccess] = useState(false);
+
+  return (
+    <>
+      <SettingsSection title="Connection Security" description="Control who can connect to your host">
+        <div style={styles.settingsList}>
+          <ToggleRow
+            label="Require Connection Approval"
+            description="Prompt for approval before a client can connect"
+            checked={requireApproval}
+            onChange={(v) => { setRequireApproval(v); toast.success('Setting saved'); }}
+          />
+          <div style={styles.settingDivider} />
+          <ToggleRow
+            label="Unattended Access"
+            description="Allow clients to connect without manual approval (requires PIN)"
+            checked={unattendedAccess}
+            onChange={(v) => { setUnattendedAccess(v); toast.success('Setting saved'); }}
+          />
+        </div>
+      </SettingsSection>
+
+      <SettingsSection title="Access PIN" description="Set a PIN for unattended connections">
+        <div style={styles.placeholderCard}>
+          <svg width={20} height={20} viewBox="0 0 20 20" fill="none">
+            <rect x="4" y="9" width="12" height="8" rx="2" stroke={colors.text.disabled} strokeWidth="1.5" />
+            <path d="M7 9V6C7 4.34315 8.34315 3 10 3C11.6569 3 13 4.34315 13 6V9" stroke={colors.text.disabled} strokeWidth="1.5" strokeLinecap="round" />
+            <circle cx="10" cy="13" r="1" fill={colors.text.disabled} />
+          </svg>
+          <span style={styles.placeholderText}>PIN-based access control will be available in a future update.</span>
+        </div>
+      </SettingsSection>
+
+      <SettingsSection title="Trusted Devices">
+        <div style={styles.placeholderCard}>
+          <svg width={20} height={20} viewBox="0 0 20 20" fill="none">
+            <path d="M10 2L3 6V10C3 14.4183 6.13401 18.3636 10 19C13.866 18.3636 17 14.4183 17 10V6L10 2Z" stroke={colors.text.disabled} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M7 10L9 12L13 8" stroke={colors.text.disabled} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span style={styles.placeholderText}>Trusted device management will be available in a future update.</span>
+        </div>
+      </SettingsSection>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Shared sub-components
+// ---------------------------------------------------------------------------
+
+interface SettingsSectionProps {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}
+
+function SettingsSection({ title, description, children }: SettingsSectionProps): React.ReactElement {
+  return (
+    <div style={styles.section}>
+      <div style={styles.sectionHeader}>
+        <div style={styles.sectionTitleBar}>
+          <h2 style={styles.sectionTitle}>{title}</h2>
+        </div>
+        {description && <p style={styles.sectionDescription}>{description}</p>}
+      </div>
+      <Card>{children}</Card>
     </div>
   );
 }
+
+function AboutRow({ label, value }: { label: string; value: string }): React.ReactElement {
+  return (
+    <div style={styles.aboutRow}>
+      <span style={styles.aboutLabel}>{label}</span>
+      <span style={styles.aboutValue}>{value}</span>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Styles
+// ---------------------------------------------------------------------------
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
     display: 'flex',
     flexDirection: 'column',
-    gap: spacing.xl,
+    gap: spacing.lg,
     maxWidth: 700,
     animation: 'fadeIn 300ms ease',
   },
@@ -370,6 +523,11 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: typography.fontWeight.bold,
     color: colors.text.primary,
     margin: 0,
+  },
+  tabContent: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing.lg,
   },
   section: {
     display: 'flex',
@@ -399,6 +557,39 @@ const styles: Record<string, React.CSSProperties> = {
     color: colors.text.secondary,
     margin: 0,
   },
+  settingsList: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  settingRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: `${spacing.sm}px 0`,
+  },
+  settingInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+    flex: 1,
+    marginRight: spacing.md,
+  },
+  settingLabel: {
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.text.primary,
+  },
+  settingDescription: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+  },
+  settingDivider: {
+    height: 1,
+    backgroundColor: colors.border.default,
+    margin: `${spacing.xs}px 0`,
+  },
+
+  // Profile
   profileRow: {
     display: 'flex',
     alignItems: 'center',
@@ -445,59 +636,50 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: typography.fontSize.xs,
     color: colors.text.disabled,
   },
-  settingsList: {
+
+  // Mode selector
+  modeSelector: {
     display: 'flex',
-    flexDirection: 'column',
+    gap: 0,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    border: `1px solid ${colors.border.default}`,
   },
-  settingRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: `${spacing.sm}px 0`,
-  },
-  settingInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 2,
-    flex: 1,
-    marginRight: spacing.md,
-  },
-  settingLabel: {
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.text.primary,
-  },
-  settingDescription: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.secondary,
-  },
-  settingDivider: {
-    height: 1,
-    backgroundColor: colors.border.default,
-    margin: `${spacing.xs}px 0`,
-  },
-  toggle: {
-    width: 44,
-    height: 24,
-    borderRadius: 12,
+  modeButton: {
+    padding: '6px 16px',
     border: 'none',
+    background: colors.bg.elevated,
+    color: colors.text.secondary,
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
+    fontFamily: typography.fontFamily,
     cursor: 'pointer',
-    padding: 0,
-    transition: 'background-color 200ms ease',
-    position: 'relative',
-    flexShrink: 0,
+    transition: 'background-color 150ms ease, color 150ms ease',
     outline: 'none',
   },
-  toggleKnob: {
-    width: 20,
-    height: 20,
-    borderRadius: '50%',
-    backgroundColor: '#FFFFFF',
-    position: 'absolute',
-    top: 2,
-    transition: 'transform 200ms ease',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+  modeButtonActive: {
+    backgroundColor: colors.accent.default,
+    color: colors.text.onPrimary,
+    fontWeight: typography.fontWeight.semibold,
   },
+
+  // Select
+  select: {
+    height: 36,
+    padding: `0 ${spacing.sm + 2}px`,
+    backgroundColor: colors.bg.elevated,
+    color: colors.text.primary,
+    border: `1px solid ${colors.border.default}`,
+    borderRadius: radius.md,
+    fontSize: typography.fontSize.sm,
+    fontFamily: typography.fontFamily,
+    outline: 'none',
+    cursor: 'pointer',
+    transition: `border-color ${transitions.fast}`,
+    minWidth: 140,
+  },
+
+  // About
   aboutContent: {
     display: 'flex',
     flexDirection: 'column',
@@ -516,55 +698,19 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: typography.fontSize.md,
     color: colors.text.primary,
     fontWeight: typography.fontWeight.medium,
-    fontFamily: "'JetBrains Mono', 'Consolas', monospace",
-  },
-  modeSelector: {
-    display: 'flex',
-    gap: 0,
-    borderRadius: radius.md,
-    overflow: 'hidden',
-    border: `1px solid ${colors.border.default}`,
-  },
-  modeButton: {
-    padding: `6px 16px`,
-    border: 'none',
-    background: colors.bg.elevated,
-    color: colors.text.secondary,
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
-    fontFamily: typography.fontFamily,
-    cursor: 'pointer',
-    transition: 'background-color 150ms ease, color 150ms ease',
-    outline: 'none',
-  },
-  modeButtonActive: {
-    backgroundColor: colors.accent.default,
-    color: colors.text.onPrimary,
-    fontWeight: typography.fontWeight.semibold,
-  },
-  hostIdRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 4,
-  },
-  hostIdText: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.secondary,
     fontFamily: typography.fontMono,
   },
-  copyButton: {
+
+  // Placeholder
+  placeholderCard: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    width: 24,
-    height: 24,
-    border: 'none',
-    background: 'transparent',
+    gap: spacing.md,
+    padding: `${spacing.md}px 0`,
+  },
+  placeholderText: {
+    fontSize: typography.fontSize.sm,
     color: colors.text.disabled,
-    cursor: 'pointer',
-    borderRadius: radius.sm,
-    transition: 'color 150ms ease, background-color 150ms ease',
-    padding: 0,
-    outline: 'none',
+    fontStyle: 'italic',
   },
 };

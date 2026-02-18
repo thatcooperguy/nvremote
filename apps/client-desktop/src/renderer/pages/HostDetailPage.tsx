@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { colors, radius, spacing, typography, transitions } from '../styles/theme';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { StatusBadge } from '../components/StatusBadge';
+import { ErrorState } from '../components/ErrorState';
 import { useHostStore } from '../store/hostStore';
 import { useConnectionStore } from '../store/connectionStore';
 import { useSessionStore } from '../store/sessionStore';
@@ -18,6 +19,7 @@ export function HostDetailPage(): React.ReactElement {
   const connectionStatus = useConnectionStore((s) => s.status);
   const sessions = useSessionStore((s) => s.sessions);
 
+  const fetchHosts = useHostStore((s) => s.fetchHosts);
   const [connecting, setConnecting] = useState(false);
 
   const host = hosts.find((h) => h.id === id) ?? null;
@@ -25,14 +27,6 @@ export function HostDetailPage(): React.ReactElement {
   const hostSessions = sessions.filter(
     (s) => s.hostId === id
   ).slice(0, 10);
-
-  useEffect(() => {
-    if (!host && id) {
-      // Host not found, navigate back
-      toast.error('Host not found');
-      navigate('/dashboard');
-    }
-  }, [host, id, navigate]);
 
   const handleConnect = useCallback(async () => {
     if (!host) return;
@@ -51,7 +45,23 @@ export function HostDetailPage(): React.ReactElement {
   }, [host, selectHost, connect]);
 
   if (!host) {
-    return <div style={styles.loading}>Loading...</div>;
+    return (
+      <div style={styles.page}>
+        <ErrorState
+          title="Host not found"
+          description={`No host with ID "${id || 'unknown'}" was found in your paired devices.`}
+          causes={[
+            'The host may have been removed or unpaired',
+            'The link may be outdated or incorrect',
+          ]}
+          fixes={[
+            'Go back to the Dashboard and select a host',
+            'Refresh the host list to check for updates',
+          ]}
+          onRetry={() => { fetchHosts().catch(() => {}); }}
+        />
+      </div>
+    );
   }
 
   const isOnline = host.status === 'online';

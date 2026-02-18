@@ -145,6 +145,14 @@ export function LoginPage(): React.ReactElement {
         </div>
       </div>
 
+      {/* Offline link */}
+      <button
+        style={styles.offlineLink}
+        onClick={() => toast.info('Offline mode is not yet available. Stay tuned!')}
+      >
+        Offline / Local Test Mode
+      </button>
+
       {/* Version */}
       <span
         style={{
@@ -369,6 +377,20 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: 6,
     justifyContent: 'center',
+  },
+  offlineLink: {
+    background: 'none',
+    border: 'none',
+    color: colors.text.disabled,
+    fontSize: typography.fontSize.xs,
+    fontFamily: typography.fontFamily,
+    cursor: 'pointer',
+    textDecoration: 'underline',
+    padding: 0,
+    outline: 'none',
+    zIndex: 1,
+    marginTop: spacing.md,
+    transition: `color ${transitions.fast}`,
   },
   version: {
     position: 'absolute',

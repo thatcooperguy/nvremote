@@ -33,6 +33,23 @@ export class ErrorBoundary extends React.Component<
     window.location.reload();
   };
 
+  handleCopyError = (): void => {
+    const text = [
+      'NVRemote Crash Report',
+      `Error: ${this.state.error?.message || 'Unknown'}`,
+      `Stack: ${this.state.error?.stack || 'N/A'}`,
+      `Timestamp: ${new Date().toISOString()}`,
+      `Platform: ${window.nvrs?.platform?.os || 'unknown'}`,
+    ].join('\n');
+    navigator.clipboard.writeText(text);
+  };
+
+  handleOpenDiagnostics = (): void => {
+    this.setState({ hasError: false, error: null });
+    // Navigate after reset
+    window.location.hash = '#/diagnostics';
+  };
+
   render(): React.ReactNode {
     if (!this.state.hasError) {
       return this.props.children;
@@ -59,7 +76,7 @@ export class ErrorBoundary extends React.Component<
           </div>
           <h2 style={styles.title}>Something went wrong</h2>
           <p style={styles.message}>
-            An unexpected error occurred. You can try again or reload the app.
+            An unexpected error occurred. You can try again, reload, or run diagnostics.
           </p>
           {this.state.error && (
             <pre style={styles.errorDetail}>
@@ -90,6 +107,20 @@ export class ErrorBoundary extends React.Component<
               }}
             >
               Reload App
+            </button>
+          </div>
+          <div style={styles.secondaryActions}>
+            <button
+              onClick={this.handleOpenDiagnostics}
+              style={styles.linkBtn}
+            >
+              Open Diagnostics
+            </button>
+            <button
+              onClick={this.handleCopyError}
+              style={styles.linkBtn}
+            >
+              Copy Error Details
             </button>
           </div>
         </div>
@@ -181,5 +212,21 @@ const styles: Record<string, React.CSSProperties> = {
     color: colors.text.secondary,
     cursor: 'pointer',
     transition: 'background-color 0.2s',
+  },
+  secondaryActions: {
+    display: 'flex',
+    gap: spacing.md,
+    marginTop: spacing.sm,
+  },
+  linkBtn: {
+    background: 'none',
+    border: 'none',
+    color: colors.text.disabled,
+    fontSize: typography.fontSize.xs,
+    fontFamily: typography.fontFamily,
+    cursor: 'pointer',
+    textDecoration: 'underline',
+    padding: 0,
+    outline: 'none',
   },
 };

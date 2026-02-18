@@ -92,6 +92,18 @@ async function getStore(): Promise<any> {
       'window.x': { type: 'number' },
       'window.y': { type: 'number' },
       'window.isMaximized': { type: 'boolean', default: false },
+      // User settings
+      'settings.startOnBoot': { type: 'boolean', default: false },
+      'settings.minimizeToTray': { type: 'boolean', default: true },
+      'settings.autoConnect': { type: 'boolean', default: false },
+      'settings.showOverlay': { type: 'boolean', default: true },
+      'settings.hardwareDecode': { type: 'boolean', default: true },
+      'settings.vsync': { type: 'boolean', default: false },
+      'settings.autoReconnect': { type: 'boolean', default: true },
+      'settings.codecPreference': { type: 'string', default: 'auto' },
+      'settings.captureMode': { type: 'string', default: 'auto' },
+      'settings.connectionMode': { type: 'string', default: 'auto' },
+      'settings.maxBandwidth': { type: 'number', default: 0 },
     },
   });
   return store;
@@ -636,6 +648,44 @@ function setupIpcHandlers(): void {
       signalingConnected: isSignalingConnected(),
       sessionId: getCurrentSessionId(),
     };
+  });
+
+  // ── Settings persistence ─────────────────────────────────────────────
+  ipcMain.handle('settings:get', async () => {
+    const s = await getStore();
+    return {
+      startOnBoot: s.get('settings.startOnBoot', false) as boolean,
+      minimizeToTray: s.get('settings.minimizeToTray', true) as boolean,
+      autoConnect: s.get('settings.autoConnect', false) as boolean,
+      showOverlay: s.get('settings.showOverlay', true) as boolean,
+      hardwareDecode: s.get('settings.hardwareDecode', true) as boolean,
+      vsync: s.get('settings.vsync', false) as boolean,
+      autoReconnect: s.get('settings.autoReconnect', true) as boolean,
+      codecPreference: s.get('settings.codecPreference', 'auto') as string,
+      captureMode: s.get('settings.captureMode', 'auto') as string,
+      connectionMode: s.get('settings.connectionMode', 'auto') as string,
+      maxBandwidth: s.get('settings.maxBandwidth', 0) as number,
+    };
+  });
+
+  ipcMain.handle('settings:set', async (_event, key: string, value: unknown) => {
+    try {
+      const s = await getStore();
+      s.set(`settings.${key}`, value);
+
+      // Special handling for startOnBoot — also update OS login items
+      if (key === 'startOnBoot') {
+        app.setLoginItemSettings({
+          openAtLogin: value as boolean,
+          path: app.getPath('exe'),
+        });
+      }
+
+      return { success: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save setting';
+      return { success: false, error: message };
+    }
   });
 
   // ── Tray updates ─────────────────────────────────────────────────────

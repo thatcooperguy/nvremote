@@ -505,7 +505,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: host-bundle
-          path: "NVRemoteHost-${{ github.ref_name }}-win64.zip"
+          path: |
+            NVRemoteHost-${{ github.ref_name }}-win64.zip
+            NVRemoteHost-${{ github.ref_name }}-win64/NVRemoteAgent.exe
           if-no-files-found: error
           retention-days: 5
 
@@ -1160,6 +1162,15 @@ jobs:
           cp release-artifacts/host-bundle/*.zip release-files/ 2>/dev/null && \
             echo "Collected Windows host bundle zip" || echo "Warning: Windows host bundle zip not found"
 
+          # Standalone Windows host agent exe (for easy single-file download)
+          TAG="${{ github.ref_name }}"
+          if [ -f "release-artifacts/host-bundle/NVRemoteAgent.exe" ]; then
+            cp release-artifacts/host-bundle/NVRemoteAgent.exe "release-files/NVRemoteAgent-${TAG}.exe"
+            echo "Collected standalone NVRemoteAgent exe"
+          else
+            echo "Warning: Standalone NVRemoteAgent.exe not found"
+          fi
+
           # Linux host bundle tarball (x86_64)
           cp release-artifacts/host-bundle-linux/*.tar.gz release-files/ 2>/dev/null && \
             echo "Collected Linux host bundle tarball (x86_64)" || echo "Warning: Linux host bundle tarball not found"
@@ -1238,7 +1249,8 @@ jobs:
 
             | Platform | Artifact | Description |
             |----------|----------|-------------|
-            | Windows (Host) | `NVRemoteHost-${{ github.ref_name }}-win64.zip` | Streaming host + agent bundle |
+            | Windows (Host) | `NVRemoteAgent-${{ github.ref_name }}.exe` | **Recommended** — download and double-click |
+            | Windows (Host Bundle) | `NVRemoteHost-${{ github.ref_name }}-win64.zip` | Full bundle (agent + streamer + DLLs + install script) |
             | Linux x86_64 (Host) | `NVRemoteHost-${{ github.ref_name }}-linux-amd64.tar.gz` | Host agent (Go) |
             | Linux ARM64 (Host) | `NVRemoteHost-${{ github.ref_name }}-linux-arm64.tar.gz` | Host agent for Jetson/Orin/DGX Spark |
             | Windows (Client) | `NVRemote-*-Setup.exe` | Desktop viewer (Electron) installer |

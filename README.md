@@ -44,7 +44,8 @@ Grab the latest release for your platform. No account required — just download
 
 | Platform | Download | Notes |
 |----------|----------|-------|
-| **Windows** | [NVRemoteHost-v0.5.1-beta-win64.zip](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteHost-v0.5.1-beta-win64.zip) | Extract and run — requires NVIDIA GPU |
+| **Windows** | [**NVRemoteAgent.exe**](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteAgent-v0.5.1-beta.exe) | Download, double-click, done — requires NVIDIA GPU |
+| Windows (full bundle) | [NVRemoteHost-v0.5.1-beta-win64.zip](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteHost-v0.5.1-beta-win64.zip) | Agent + streamer + DLLs + install script |
 | **Linux x86_64** | [NVRemoteHost-v0.5.1-beta-linux-amd64.tar.gz](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteHost-v0.5.1-beta-linux-amd64.tar.gz) | GPG signed ([.asc](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteHost-v0.5.1-beta-linux-amd64.tar.gz.asc)) |
 | **Linux ARM64** | [NVRemoteHost-v0.5.1-beta-linux-arm64.tar.gz](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteHost-v0.5.1-beta-linux-arm64.tar.gz) | Jetson / DGX Spark — GPG signed ([.asc](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteHost-v0.5.1-beta-linux-arm64.tar.gz.asc)) |
 
@@ -237,11 +238,10 @@ Stream your GPU desktop in 3 steps. Your host and sessions are private to your a
 Download the host agent for your platform from the [Downloads](#downloads) section above.
 
 **Windows:**
-1. Download [NVRemoteHost-v0.5.1-beta-win64.zip](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteHost-v0.5.1-beta-win64.zip)
-2. Extract the zip
-3. Double-click **`NVRemoteAgent.exe`** &mdash; a setup wizard walks you through first-time configuration
-4. Enter your bootstrap token (get one from [nvremote.com/dashboard/devices](https://nvremote.com/dashboard/devices))
-5. The agent registers your machine and starts streaming in the background
+1. Download [**NVRemoteAgent.exe**](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteAgent-v0.5.1-beta.exe)
+2. Double-click it &mdash; a setup wizard walks you through first-time configuration
+3. Enter your bootstrap token (get one from [nvremote.com/dashboard/devices](https://nvremote.com/dashboard/devices))
+4. The agent registers your machine and starts streaming in the background
 
 **Linux:**
 ```bash

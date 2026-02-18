@@ -1134,7 +1134,10 @@ jobs:
         working-directory: apps/android
         env:
           VERSION_NAME: ${{ github.ref_name }}
+          # Auto-increment versionCode from GitHub run number (monotonically increasing)
+          VERSION_CODE: ${{ github.run_number }}
         run: |
+          echo "Building with versionName=$VERSION_NAME versionCode=$VERSION_CODE"
           ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Rename APK with version tag

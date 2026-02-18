@@ -7,14 +7,16 @@ plugins {
 
 android {
     namespace = "com.nvremote.app"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.nvremote.app"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 1
-        versionName = System.getenv("VERSION_NAME") ?: "0.4.0-alpha"
+        targetSdk = 35
+        // Auto-increment from CI: VERSION_CODE env var (derived from GitHub run number)
+        // Falls back to 1 for local dev builds
+        versionCode = (System.getenv("VERSION_CODE")?.toIntOrNull()) ?: 1
+        versionName = System.getenv("VERSION_NAME") ?: "0.5.1-beta"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

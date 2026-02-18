@@ -55,6 +55,12 @@ async function getStore(): Promise<any> {
       'host.hostName': { type: 'string', default: '' },
       'host.stunServers': { type: 'string', default: 'stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302' },
       'host.registeredAt': { type: 'string', default: '' },
+      // Window state persistence
+      'window.width': { type: 'number', default: 1280 },
+      'window.height': { type: 'number', default: 800 },
+      'window.x': { type: 'number' },
+      'window.y': { type: 'number' },
+      'window.isMaximized': { type: 'boolean', default: false },
     },
   });
   return store;
@@ -137,10 +143,19 @@ async function saveHostConfig(cfg: Partial<HostAgentConfig>): Promise<void> {
 // Window creation
 // ---------------------------------------------------------------------------
 
-function createWindow(): void {
+async function createWindow(): Promise<void> {
+  // Restore saved window bounds (or use defaults)
+  const s = await getStore();
+  const savedWidth = s.get('window.width', 1280) as number;
+  const savedHeight = s.get('window.height', 800) as number;
+  const savedX = s.get('window.x') as number | undefined;
+  const savedY = s.get('window.y') as number | undefined;
+  const wasMaximized = s.get('window.isMaximized', false) as boolean;
+
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: savedWidth,
+    height: savedHeight,
+    ...(savedX !== undefined && savedY !== undefined ? { x: savedX, y: savedY } : {}),
     minWidth: 960,
     minHeight: 600,
     frame: false,
@@ -164,8 +179,32 @@ function createWindow(): void {
   mainWindow.loadURL(getRendererUrl());
 
   mainWindow.once('ready-to-show', () => {
+    if (wasMaximized) {
+      mainWindow?.maximize();
+    }
     mainWindow?.show();
   });
+
+  // Save window state on resize/move (debounced)
+  let saveTimeout: NodeJS.Timeout | null = null;
+  const saveWindowState = () => {
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(async () => {
+      if (!mainWindow || mainWindow.isDestroyed()) return;
+      const isMax = mainWindow.isMaximized();
+      const st = await getStore();
+      st.set('window.isMaximized', isMax);
+      if (!isMax) {
+        const bounds = mainWindow.getBounds();
+        st.set('window.width', bounds.width);
+        st.set('window.height', bounds.height);
+        st.set('window.x', bounds.x);
+        st.set('window.y', bounds.y);
+      }
+    }, 500);
+  };
+  mainWindow.on('resize', saveWindowState);
+  mainWindow.on('move', saveWindowState);
 
   mainWindow.on('close', (event) => {
     if (!isQuitting) {

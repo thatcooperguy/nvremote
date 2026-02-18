@@ -45,6 +45,11 @@ export default defineConfig({
       '@main': path.resolve(__dirname, 'src/main'),
     },
   },
+  // Use relative paths ('./') so assets resolve correctly when loaded
+  // from file:// in production Electron builds. The default '/' would
+  // produce absolute paths like /assets/index.js which resolve to the
+  // filesystem root under file:// — causing a blank window.
+  base: './',
   root: 'src/renderer',
   build: {
     outDir: path.resolve(__dirname, 'dist'),

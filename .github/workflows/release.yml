@@ -1183,11 +1183,12 @@ jobs:
 
           # Standalone Windows host agent exe (for easy single-file download)
           TAG="${{ github.ref_name }}"
-          if [ -f "release-artifacts/host-bundle/NVRemoteAgent.exe" ]; then
-            cp release-artifacts/host-bundle/NVRemoteAgent.exe "release-files/NVRemoteAgent-${TAG}.exe"
-            echo "Collected standalone NVRemoteAgent exe"
+          AGENT_EXE=$(find release-artifacts/host-bundle -name "NVRemoteAgent.exe" -type f | head -1)
+          if [ -n "$AGENT_EXE" ]; then
+            cp "$AGENT_EXE" "release-files/NVRemoteAgent-${TAG}.exe"
+            echo "Collected standalone NVRemoteAgent exe from $AGENT_EXE"
           else
-            echo "Warning: Standalone NVRemoteAgent.exe not found"
+            echo "Warning: Standalone NVRemoteAgent.exe not found in host-bundle artifact"
           fi
 
           # Linux host bundle tarball (x86_64)
@@ -1266,27 +1267,39 @@ jobs:
 
             ### Downloads
 
+            #### Windows — One App (Client + Host)
+            | Artifact | Description |
+            |----------|-------------|
+            | `NVRemote-*-Setup.exe` | **Recommended** — unified app with Client, Host, or Both mode |
+
+            > On Windows, one app does everything. Go to Settings to switch between Client, Host, or Both mode.
+
+            #### Other Client Platforms
             | Platform | Artifact | Description |
             |----------|----------|-------------|
-            | Windows (Host) | `NVRemoteAgent-${{ github.ref_name }}.exe` | **Recommended** — download and double-click |
-            | Windows (Host Bundle) | `NVRemoteHost-${{ github.ref_name }}-win64.zip` | Full bundle (agent + streamer + DLLs + install script) |
-            | Linux x86_64 (Host) | `NVRemoteHost-${{ github.ref_name }}-linux-amd64.tar.gz` | Host agent (Go) |
-            | Linux ARM64 (Host) | `NVRemoteHost-${{ github.ref_name }}-linux-arm64.tar.gz` | Host agent for Jetson/Orin/DGX Spark |
-            | Windows (Client) | `NVRemote-*-Setup.exe` | Desktop viewer (Electron) installer |
-            | Linux x86_64 (Client) | `NVRemote-*-x86_64.AppImage` | Desktop client (Electron AppImage) |
-            | Linux ARM64 (Client) | `NVRemote-*-arm64.AppImage` | Desktop client for Jetson/ARM64 |
-            | macOS (Client) | `NVRemote-*-universal.dmg` | Desktop client (Electron DMG) |
-            | Android | `NVRemote-${{ github.ref_name }}.apk` | Android mobile client |
+            | macOS | `NVRemote-*-universal.dmg` | Universal binary (Intel + Apple Silicon) |
+            | Linux x86_64 | `NVRemote-*-x86_64.AppImage` | AppImage — chmod +x and run |
+            | Linux ARM64 | `NVRemote-*-arm64.AppImage` | Jetson / Pi / ARM64 Linux |
+            | Android | `NVRemote-${{ github.ref_name }}.apk` | Android 7.0+ sideload APK |
+
+            #### Linux Host Agent (headless servers)
+            | Platform | Artifact | Description |
+            |----------|----------|-------------|
+            | Linux x86_64 | `NVRemoteHost-${{ github.ref_name }}-linux-amd64.tar.gz` | GPG signed |
+            | Linux ARM64 | `NVRemoteHost-${{ github.ref_name }}-linux-arm64.tar.gz` | Jetson / DGX Spark — GPG signed |
+
+            #### Advanced (Windows standalone agent)
+            | Artifact | Description |
+            |----------|-------------|
+            | `NVRemoteAgent-${{ github.ref_name }}.exe` | Standalone host agent (no GUI) |
+            | `NVRemoteHost-${{ github.ref_name }}-win64.zip` | Full bundle (agent + streamer + DLLs + install script) |
 
             ### Requirements
-            - **Host (Windows)**: NVIDIA GPU with NVENC support, Windows 10/11 x64
-            - **Host (Linux x86_64)**: Agent-only (GPU streaming requires Windows host for now)
-            - **Host (Linux ARM64)**: NVIDIA Jetson Orin / DGX Spark with JetPack 5.0+ (agent-only, GPU streaming TBD)
-            - **Desktop Client (Windows)**: Windows 10/11 x64 (D3D11VA/NVDEC decode)
-            - **Desktop Client (macOS)**: macOS 13+ Apple Silicon (VideoToolbox decode, Metal render)
-            - **Desktop Client (Linux x86_64)**: Linux x86_64 (signaling + host management only)
-            - **Desktop Client (Linux ARM64)**: Linux ARM64 / Jetson (signaling + host management only)
-            - **Android Client**: Android 7.0+ (API 24)
+            - **Windows**: Windows 10/11 x64 with NVIDIA GPU (for host mode: NVENC support required)
+            - **macOS**: macOS 13+ (client only)
+            - **Linux**: x86_64 or ARM64 (client: AppImage; host: standalone Go agent)
+            - **Android**: Android 7.0+ (API 24)
+            - **Jetson/DGX**: JetPack 5.0+ with NVIDIA GPU (host agent)
 
             ### Verify GPG Signatures (Linux)
             Linux artifacts are GPG-signed. To verify:

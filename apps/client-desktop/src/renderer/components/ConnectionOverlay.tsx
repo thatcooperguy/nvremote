@@ -101,8 +101,12 @@ function StatCard({ label, value, status }: StatCardProps): React.ReactElement {
       ? colors.semantic.error
       : colors.text.secondary;
 
+  const borderHighlight = status === 'warning' || status === 'bad'
+    ? { borderColor: `${statusColor}40` }
+    : {};
+
   return (
-    <div style={styles.statCard}>
+    <div style={{ ...styles.statCard, ...borderHighlight }}>
       <span style={styles.statLabel}>{label}</span>
       <span style={{ ...styles.statValue, color: statusColor }}>{value}</span>
     </div>
@@ -171,7 +175,7 @@ const styles: Record<string, React.CSSProperties> = {
   hostAddress: {
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
-    fontFamily: "'JetBrains Mono', 'Consolas', monospace",
+    fontFamily: typography.fontMono,
     marginTop: -spacing.sm,
   },
   statsGrid: {
@@ -199,11 +203,15 @@ const styles: Record<string, React.CSSProperties> = {
   statValue: {
     fontSize: typography.fontSize.xl,
     fontWeight: typography.fontWeight.bold,
-    fontFamily: "'JetBrains Mono', 'Consolas', monospace",
+    fontFamily: typography.fontMono,
   },
   actions: {
     display: 'flex',
     gap: spacing.sm,
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTop: `1px solid ${colors.border.default}`,
+    width: '100%',
+    justifyContent: 'center',
   },
 };

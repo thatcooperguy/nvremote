@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { create } from 'zustand';
 import { colors, radius, shadows, spacing, typography, zIndex } from '../styles/theme';
 
@@ -48,6 +48,18 @@ export const toast = {
 
 export function Toast(): React.ReactElement {
   const toasts = useToastStore((s) => s.toasts);
+  const removeToast = useToastStore((s) => s.removeToast);
+
+  // Escape key dismisses the most recent toast
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && toasts.length > 0) {
+        removeToast(toasts[toasts.length - 1].id);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toasts, removeToast]);
 
   return (
     <div style={styles.container}>
@@ -65,6 +77,7 @@ interface ToastItemProps {
 
 function ToastItem({ item, index }: ToastItemProps): React.ReactElement {
   const removeToast = useToastStore((s) => s.removeToast);
+  const [dismissHovered, setDismissHovered] = useState(false);
 
   const handleDismiss = useCallback(() => {
     removeToast(item.id);
@@ -94,7 +107,12 @@ function ToastItem({ item, index }: ToastItemProps): React.ReactElement {
       <span style={styles.toastMessage}>{item.message}</span>
       <button
         onClick={handleDismiss}
-        style={styles.dismissButton}
+        onMouseEnter={() => setDismissHovered(true)}
+        onMouseLeave={() => setDismissHovered(false)}
+        style={{
+          ...styles.dismissButton,
+          ...(dismissHovered ? styles.dismissButtonHovered : {}),
+        }}
         aria-label="Dismiss notification"
       >
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -205,7 +223,11 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     borderRadius: radius.sm,
     flexShrink: 0,
-    transition: 'color 150ms ease',
+    transition: 'color 150ms ease, background-color 150ms ease',
     outline: 'none',
+  },
+  dismissButtonHovered: {
+    color: colors.text.primary,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
 };

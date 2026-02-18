@@ -74,13 +74,16 @@ export function HostCard({
       {/* Info Row */}
       <div style={styles.infoRow}>
         {host.gpuModel && (
-          <div style={styles.gpuBadge}>
+          <div style={styles.gpuBadge} title={`${host.gpuModel}${host.gpuVram ? ` (${host.gpuVram})` : ''}`}>
             <GpuIcon />
             <span>{host.gpuModel}</span>
             {host.gpuVram && (
               <span style={styles.vram}>{host.gpuVram}</span>
             )}
           </div>
+        )}
+        {host.os && (
+          <span style={styles.osBadge}>{host.os}</span>
         )}
       </div>
 
@@ -98,7 +101,7 @@ export function HostCard({
             </span>
           </div>
         )}
-        <div style={styles.footerRight}>
+        <div style={styles.footerRight} title={!isOnline ? 'Host is offline' : undefined}>
           <Button
             variant="primary"
             size="sm"
@@ -155,7 +158,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   cardHovered: {
     borderColor: colors.border.hover,
-    boxShadow: `${shadows.md}, 0 0 24px rgba(118, 185, 0, 0.08)`,
+    boxShadow: `${shadows.md}, ${shadows.glow}`,
     transform: 'translateY(-2px)',
   },
   header: {
@@ -177,7 +180,7 @@ const styles: Record<string, React.CSSProperties> = {
   hostname: {
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
-    fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace",
+    fontFamily: typography.fontMono,
   },
   infoRow: {
     display: 'flex',
@@ -195,10 +198,24 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: typography.fontSize.xs,
     color: colors.accent.default,
     fontWeight: typography.fontWeight.medium,
+    maxWidth: '100%',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
   vram: {
     color: colors.text.secondary,
     fontSize: typography.fontSize.xs,
+  },
+  osBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '3px 8px',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: radius.full,
+    fontSize: typography.fontSize.xs,
+    color: colors.text.secondary,
+    fontWeight: typography.fontWeight.medium,
   },
   footer: {
     display: 'flex',

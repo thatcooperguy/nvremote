@@ -16,6 +16,7 @@ export function LoginPage(): React.ReactElement {
       const result = await window.nvrs.auth.googleSignIn();
       if (!result.success) {
         toast.error(result.error || 'Failed to initiate sign-in');
+        setLoading(false);
       }
       // The actual auth callback will come through the deep link handler.
       // We keep loading state until that fires or a timeout is reached.
@@ -29,12 +30,19 @@ export function LoginPage(): React.ReactElement {
 
   return (
     <div style={styles.page}>
+      {/* Background decoration */}
+      <div style={styles.bgGlow} />
+
       <div style={styles.card}>
         {/* Logo */}
         <div style={styles.logoSection}>
-          <NvidiaLogo />
-          <h1 style={styles.title}>NVIDIA Remote Stream</h1>
-          <p style={styles.subtitle}>Secure, low-latency remote streaming</p>
+          <NVRemoteLogo />
+          <h1 style={styles.title}>NVRemote</h1>
+          <p style={styles.subtitle}>
+            Stream your GPU desktop anywhere. Low-latency,
+            <br />
+            secure, peer-to-peer.
+          </p>
         </div>
 
         {/* Divider */}
@@ -50,11 +58,20 @@ export function LoginPage(): React.ReactElement {
             loading={loading}
           >
             <GoogleIcon />
-            Sign in with Google
+            {loading ? 'Opening browser...' : 'Sign in with Google'}
           </Button>
           <p style={styles.signInHint}>
-            Use your organization Google account to continue
+            {loading
+              ? 'Complete sign-in in your browser, then return here.'
+              : 'Use your Google account to continue'}
           </p>
+        </div>
+
+        {/* Feature bullets */}
+        <div style={styles.features}>
+          <FeatureItem icon={<StreamIcon />} text="Stream any game or desktop" />
+          <FeatureItem icon={<P2PIcon />} text="Peer-to-peer, encrypted end-to-end" />
+          <FeatureItem icon={<GPUIcon />} text="NVIDIA NVENC hardware encoding" />
         </div>
       </div>
 
@@ -64,21 +81,30 @@ export function LoginPage(): React.ReactElement {
   );
 }
 
-function NvidiaLogo(): React.ReactElement {
+function FeatureItem({ icon, text }: { icon: React.ReactNode; text: string }): React.ReactElement {
+  return (
+    <div style={styles.featureItem}>
+      <span style={styles.featureIcon}>{icon}</span>
+      <span style={styles.featureText}>{text}</span>
+    </div>
+  );
+}
+
+function NVRemoteLogo(): React.ReactElement {
   return (
     <div style={styles.logoContainer}>
-      <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-        <rect width="64" height="64" rx="16" fill={colors.accent.default} />
+      <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+        <rect width="72" height="72" rx="18" fill={colors.accent.default} />
         <text
-          x="32"
-          y="44"
+          x="36"
+          y="48"
           textAnchor="middle"
           fill="white"
-          fontSize="36"
+          fontSize="32"
           fontWeight="bold"
           fontFamily={typography.fontFamily}
         >
-          N
+          NV
         </text>
       </svg>
     </div>
@@ -108,6 +134,35 @@ function GoogleIcon(): React.ReactElement {
   );
 }
 
+function StreamIcon(): React.ReactElement {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect x="1" y="3" width="14" height="10" rx="2" stroke={colors.accent.default} strokeWidth="1.3" />
+      <path d="M6.5 6L10.5 8L6.5 10V6Z" fill={colors.accent.default} />
+    </svg>
+  );
+}
+
+function P2PIcon(): React.ReactElement {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <circle cx="4" cy="8" r="2.5" stroke={colors.accent.default} strokeWidth="1.3" />
+      <circle cx="12" cy="8" r="2.5" stroke={colors.accent.default} strokeWidth="1.3" />
+      <path d="M6.5 8H9.5" stroke={colors.accent.default} strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function GPUIcon(): React.ReactElement {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect x="1" y="4" width="14" height="8" rx="1.5" stroke={colors.accent.default} strokeWidth="1.3" />
+      <rect x="3" y="6" width="3" height="4" rx="0.5" fill={colors.accent.default} opacity="0.5" />
+      <rect x="7" y="6" width="3" height="4" rx="0.5" fill={colors.accent.default} opacity="0.5" />
+    </svg>
+  );
+}
+
 const styles: Record<string, React.CSSProperties> = {
   page: {
     display: 'flex',
@@ -118,19 +173,32 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: colors.bg.primary,
     padding: spacing.xl,
     position: 'relative',
+    overflow: 'hidden',
+  },
+  bgGlow: {
+    position: 'absolute',
+    top: '-30%',
+    left: '50%',
+    width: 600,
+    height: 600,
+    borderRadius: '50%',
+    background: `radial-gradient(circle, rgba(118, 185, 0, 0.06) 0%, transparent 70%)`,
+    transform: 'translateX(-50%)',
+    pointerEvents: 'none',
   },
   card: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 420,
     padding: spacing['2xl'],
     backgroundColor: colors.bg.card,
     border: `1px solid ${colors.border.default}`,
     borderRadius: radius.xl,
-    boxShadow: shadows.lg,
+    boxShadow: `${shadows.lg}, 0 0 80px rgba(118, 185, 0, 0.04)`,
     animation: 'slideUp 400ms ease',
+    zIndex: 1,
   },
   logoSection: {
     display: 'flex',
@@ -139,20 +207,22 @@ const styles: Record<string, React.CSSProperties> = {
     gap: spacing.md,
   },
   logoContainer: {
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   title: {
-    fontSize: typography.fontSize['2xl'],
+    fontSize: 28,
     fontWeight: typography.fontWeight.bold,
     color: colors.text.primary,
     margin: 0,
     textAlign: 'center',
+    letterSpacing: '-0.5px',
   },
   subtitle: {
     fontSize: typography.fontSize.md,
     color: colors.text.secondary,
     margin: 0,
     textAlign: 'center',
+    lineHeight: 1.5,
   },
   divider: {
     width: '100%',
@@ -164,7 +234,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.sm,
     width: '100%',
   },
   signInHint: {
@@ -173,10 +243,39 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
     textAlign: 'center',
   },
+  features: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing.sm,
+    width: '100%',
+    marginTop: spacing.lg,
+    paddingTop: spacing.lg,
+    borderTop: `1px solid ${colors.border.default}`,
+  },
+  featureItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.sm + 2,
+  },
+  featureIcon: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 28,
+    height: 28,
+    borderRadius: radius.md,
+    backgroundColor: colors.accent.muted,
+    flexShrink: 0,
+  },
+  featureText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+  },
   version: {
     position: 'absolute',
     bottom: spacing.md,
     fontSize: typography.fontSize.xs,
     color: colors.text.disabled,
+    zIndex: 1,
   },
 };

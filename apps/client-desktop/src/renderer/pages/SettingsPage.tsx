@@ -5,6 +5,7 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useAuthStore } from '../store/authStore';
 import { useHostAgentStore } from '../store/hostAgentStore';
+import { useConnectionStore, type ConnectionMode } from '../store/connectionStore';
 import { toast } from '../components/Toast';
 
 const APP_VERSION = '0.5.1-beta';
@@ -69,6 +70,9 @@ export function SettingsPage(): React.ReactElement {
   const config = useHostAgentStore((s) => s.config);
   const isRegistered = useHostAgentStore((s) => s.isRegistered);
   const setMode = useHostAgentStore((s) => s.setMode);
+
+  const connectionMode = useConnectionStore((s) => s.connectionMode);
+  const setConnectionMode = useConnectionStore((s) => s.setConnectionMode);
 
   const [autoConnect, setAutoConnect] = useState(false);
   const [minimizeToTray, setMinimizeToTray] = useState(true);
@@ -200,6 +204,32 @@ export function SettingsPage(): React.ReactElement {
         description="Configure streaming and connection preferences"
       >
         <div style={styles.settingsList}>
+          <div style={styles.settingRow}>
+            <div style={styles.settingInfo}>
+              <span style={styles.settingLabel}>Connection Mode</span>
+              <span style={styles.settingDescription}>
+                How the client connects to your host machine.
+              </span>
+            </div>
+            <div style={styles.modeSelector}>
+              {([
+                { value: 'auto' as ConnectionMode, label: 'Auto (P2P)' },
+                { value: 'vpn' as ConnectionMode, label: 'VPN Relay' },
+              ]).map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setConnectionMode(opt.value)}
+                  style={{
+                    ...styles.modeButton,
+                    ...(connectionMode === opt.value ? styles.modeButtonActive : {}),
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={styles.settingDivider} />
           <ToggleRow
             label="Hardware Decoding"
             description="Use GPU-accelerated video decoding for better performance"
@@ -251,13 +281,25 @@ export function SettingsPage(): React.ReactElement {
           </div>
           <div style={styles.settingDivider} />
           <div style={styles.aboutRow}>
-            <span style={styles.aboutLabel}>Electron</span>
-            <span style={styles.aboutValue}>{process.versions?.electron || 'N/A'}</span>
+            <span style={styles.aboutLabel}>Platform</span>
+            <span style={styles.aboutValue}>
+              {window.nvrs?.platform?.os === 'win32' ? 'Windows' :
+               window.nvrs?.platform?.os === 'darwin' ? 'macOS' : 'Linux'}
+            </span>
           </div>
           <div style={styles.settingDivider} />
           <div style={styles.aboutRow}>
-            <span style={styles.aboutLabel}>Chrome</span>
-            <span style={styles.aboutValue}>{process.versions?.chrome || 'N/A'}</span>
+            <span style={styles.aboutLabel}>Host Mode</span>
+            <span style={styles.aboutValue}>
+              {hostModeSupported ? 'Supported' : 'Not Available'}
+            </span>
+          </div>
+          <div style={styles.settingDivider} />
+          <div style={styles.aboutRow}>
+            <span style={styles.aboutLabel}>Native Streaming</span>
+            <span style={styles.aboutValue}>
+              {window.nvrs?.platform?.nativeStreamingSupported ? 'Supported' : 'Not Available'}
+            </span>
           </div>
         </div>
       </SettingsSection>

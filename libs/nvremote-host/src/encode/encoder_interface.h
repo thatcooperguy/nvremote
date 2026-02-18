@@ -91,6 +91,9 @@ public:
     /// Release all encoder resources.
     virtual void release() = 0;
 
+    /// Query whether a given codec is supported by this encoder / GPU.
+    virtual bool isCodecSupported(CodecType codec) = 0;
+
     /// Human-readable codec name (e.g. "NVENC H.264").
     virtual std::string getCodecName() const = 0;
 };

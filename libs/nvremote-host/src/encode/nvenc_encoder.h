@@ -466,7 +466,7 @@ public:
     std::string getCodecName() const override;
 
     /// Check if a specific codec is supported by the GPU.
-    bool isCodecSupported(CodecType codec);
+    bool isCodecSupported(CodecType codec) override;
 
 private:
     bool loadLibrary();

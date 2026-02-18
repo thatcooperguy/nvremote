@@ -239,15 +239,18 @@ Download the host agent for your platform from the [Downloads](#downloads) secti
 **Windows:**
 1. Download [NVRemoteHost-v0.5.0-beta-win64.zip](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemoteHost-v0.5.0-beta-win64.zip)
 2. Extract the zip
-3. Run `NVRemoteAgent.exe`
-4. Sign in with your Google account — the agent registers your machine
+3. Double-click **`NVRemoteAgent.exe`** &mdash; a setup wizard walks you through first-time configuration
+4. Enter your bootstrap token (get one from [nvremote.com/dashboard/devices](https://nvremote.com/dashboard/devices))
+5. The agent registers your machine and starts streaming in the background
 
 **Linux:**
 ```bash
 tar xzf NVRemoteHost-v0.5.0-beta-linux-amd64.tar.gz
-cd nvremote-host
-./NVRemoteAgent
+cd NVRemoteHost-v0.5.0-beta-linux-amd64
+sudo ./install.sh    # Installs as systemd service, prompts for token
 ```
+
+Or run directly without installing: `./NVRemoteAgent` (interactive setup on first run)
 
 ### Step 2: Install the Client (on the device you want to stream TO)
 

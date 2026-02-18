@@ -444,6 +444,9 @@ jobs:
     needs: [build-native-libs, build-host-agent]
 
     steps:
+      - name: Checkout source (for install script)
+        uses: actions/checkout@v4
+
       - name: Download native libs artifact
         uses: actions/download-artifact@v4
         with:
@@ -489,6 +492,9 @@ jobs:
           # Copy all runtime DLLs
           cp native-libs/*.dll "$BUNDLE_NAME/" 2>/dev/null || echo "Note: no runtime DLLs found (may be statically linked)"
 
+          # Include install script
+          cp apps/host-agent/scripts/install.ps1 "$BUNDLE_NAME/"
+
           echo "=== Bundle contents ==="
           ls -lh "$BUNDLE_NAME/"
 
@@ -514,6 +520,9 @@ jobs:
       HAS_GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY != '' }}
 
     steps:
+      - name: Checkout source (for install script)
+        uses: actions/checkout@v4
+
       - name: Download host agent artifact
         uses: actions/download-artifact@v4
         with:
@@ -528,6 +537,10 @@ jobs:
 
           cp host-agent-linux/NVRemoteAgent "$BUNDLE_NAME/"
           chmod +x "$BUNDLE_NAME/NVRemoteAgent"
+
+          # Include install script
+          cp apps/host-agent/scripts/install.sh "$BUNDLE_NAME/"
+          chmod +x "$BUNDLE_NAME/install.sh"
 
           echo "=== Bundle contents ==="
           ls -lh "$BUNDLE_NAME/"
@@ -564,6 +577,9 @@ jobs:
       HAS_GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY != '' }}
 
     steps:
+      - name: Checkout source (for install script)
+        uses: actions/checkout@v4
+
       - name: Download host agent artifact (ARM64)
         uses: actions/download-artifact@v4
         with:
@@ -578,6 +594,10 @@ jobs:
 
           cp host-agent-linux-arm64/NVRemoteAgent-arm64 "$BUNDLE_NAME/NVRemoteAgent"
           chmod +x "$BUNDLE_NAME/NVRemoteAgent"
+
+          # Include install script
+          cp apps/host-agent/scripts/install.sh "$BUNDLE_NAME/"
+          chmod +x "$BUNDLE_NAME/install.sh"
 
           echo "=== Bundle contents ==="
           ls -lh "$BUNDLE_NAME/"

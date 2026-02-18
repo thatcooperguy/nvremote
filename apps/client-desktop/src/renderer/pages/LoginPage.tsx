@@ -1,32 +1,79 @@
-import React, { useState, useCallback } from 'react';
-import { colors, radius, shadows, spacing, typography } from '../styles/theme';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { colors, radius, shadows, spacing, typography, transitions } from '../styles/theme';
 import { Button } from '../components/Button';
 import { useAuthStore } from '../store/authStore';
 import { toast } from '../components/Toast';
 
 const APP_VERSION = '0.5.1-beta';
+const SIGN_IN_TIMEOUT = 30000; // 30s
+
+type LoginStep = 'idle' | 'opening' | 'waiting' | 'completing';
+
+const stepLabels: Record<LoginStep, string> = {
+  idle: 'Sign in with Google',
+  opening: 'Opening browser...',
+  waiting: 'Waiting for sign-in...',
+  completing: 'Completing...',
+};
 
 export function LoginPage(): React.ReactElement {
   const [loading, setLoading] = useState(false);
+  const [loginStep, setLoginStep] = useState<LoginStep>('idle');
+  const [timedOut, setTimedOut] = useState(false);
+  const [versionHovered, setVersionHovered] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const login = useAuthStore((s) => s.login);
+
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (stepTimerRef.current) clearTimeout(stepTimerRef.current);
+    };
+  }, []);
 
   const handleGoogleSignIn = useCallback(async () => {
     setLoading(true);
+    setTimedOut(false);
+    setLoginStep('opening');
+
+    // Progress through steps for visual feedback
+    stepTimerRef.current = setTimeout(() => setLoginStep('waiting'), 2000);
+
     try {
       const result = await window.nvrs.auth.googleSignIn();
       if (!result.success) {
         toast.error(result.error || 'Failed to initiate sign-in');
         setLoading(false);
+        setLoginStep('idle');
+        return;
       }
       // The actual auth callback will come through the deep link handler.
       // We keep loading state until that fires or a timeout is reached.
-      setTimeout(() => setLoading(false), 30000);
+      timeoutRef.current = setTimeout(() => {
+        setLoading(false);
+        setLoginStep('idle');
+        setTimedOut(true);
+      }, SIGN_IN_TIMEOUT);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Sign-in failed';
       toast.error(message);
       setLoading(false);
+      setLoginStep('idle');
     }
   }, [login]);
+
+  // Enter key triggers sign-in
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && !loading) {
+        handleGoogleSignIn();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleGoogleSignIn, loading]);
 
   return (
     <div style={styles.page}>
@@ -58,13 +105,36 @@ export function LoginPage(): React.ReactElement {
             loading={loading}
           >
             <GoogleIcon />
-            {loading ? 'Opening browser...' : 'Sign in with Google'}
+            {stepLabels[loginStep]}
           </Button>
+
+          {/* Step progress indicator */}
+          {loading && (
+            <div style={styles.progressSteps}>
+              <StepDot active={loginStep === 'opening' || loginStep === 'waiting' || loginStep === 'completing'} />
+              <StepDot active={loginStep === 'waiting' || loginStep === 'completing'} />
+              <StepDot active={loginStep === 'completing'} />
+            </div>
+          )}
+
           <p style={styles.signInHint}>
             {loading
               ? 'Complete sign-in in your browser, then return here.'
+              : timedOut
+              ? "Browser didn't open? Click to retry."
               : 'Use your Google account to continue'}
           </p>
+
+          {/* Timeout retry prompt */}
+          {timedOut && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleGoogleSignIn}
+            >
+              Try Again
+            </Button>
+          )}
         </div>
 
         {/* Feature bullets */}
@@ -76,8 +146,31 @@ export function LoginPage(): React.ReactElement {
       </div>
 
       {/* Version */}
-      <span style={styles.version}>v{APP_VERSION}</span>
+      <span
+        style={{
+          ...styles.version,
+          opacity: versionHovered ? 1 : 0.5,
+        }}
+        onMouseEnter={() => setVersionHovered(true)}
+        onMouseLeave={() => setVersionHovered(false)}
+      >
+        v{APP_VERSION}
+      </span>
     </div>
+  );
+}
+
+function StepDot({ active }: { active: boolean }): React.ReactElement {
+  return (
+    <div
+      style={{
+        width: 6,
+        height: 6,
+        borderRadius: '50%',
+        backgroundColor: active ? colors.accent.default : colors.border.default,
+        transition: 'background-color 300ms ease',
+      }}
+    />
   );
 }
 
@@ -271,11 +364,20 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
   },
+  progressSteps: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    justifyContent: 'center',
+  },
   version: {
     position: 'absolute',
     bottom: spacing.md,
-    fontSize: typography.fontSize.xs,
+    right: spacing.lg,
+    fontSize: 12,
     color: colors.text.disabled,
     zIndex: 1,
+    transition: 'opacity 200ms ease',
+    cursor: 'default',
   },
 };

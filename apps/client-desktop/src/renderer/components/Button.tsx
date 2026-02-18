@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { colors, radius, typography, spacing } from '../styles/theme';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
@@ -58,7 +58,7 @@ function getVariantStyles(
           ? `1px solid ${colors.border.default}`
           : '1px solid transparent',
       cursor: 'not-allowed',
-      opacity: 0.6,
+      opacity: 0.5,
     };
   }
 
@@ -70,7 +70,7 @@ function getVariantStyles(
           : isHovered
           ? colors.accent.hover
           : colors.accent.default,
-        color: '#000000',
+        color: colors.text.onPrimary,
         border: '1px solid transparent',
         boxShadow: isHovered ? '0 0 16px rgba(118, 185, 0, 0.3)' : 'none',
       };
@@ -87,19 +87,19 @@ function getVariantStyles(
     case 'danger':
       return {
         backgroundColor: isPressed
-          ? '#CC3636'
+          ? colors.semantic.errorPressed
           : isHovered
-          ? '#FF5555'
+          ? colors.semantic.errorHover
           : colors.semantic.error,
-        color: '#FFFFFF',
+        color: colors.text.primary,
         border: '1px solid transparent',
       };
     case 'ghost':
       return {
         backgroundColor: isPressed
-          ? 'rgba(255, 255, 255, 0.08)'
+          ? 'rgba(255, 255, 255, 0.12)'
           : isHovered
-          ? 'rgba(255, 255, 255, 0.05)'
+          ? 'rgba(255, 255, 255, 0.08)'
           : 'transparent',
         color: isHovered ? colors.text.primary : colors.text.secondary,
         border: '1px solid transparent',
@@ -122,6 +122,7 @@ export function Button({
 }: ButtonProps): React.ReactElement {
   const [isHovered, setIsHovered] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
+  const [isFocusVisible, setIsFocusVisible] = useState(false);
 
   const isDisabled = disabled || loading;
 
@@ -137,10 +138,18 @@ export function Button({
   const variantStyle = getVariantStyles(variant, isHovered, isPressed, isDisabled);
   const sizeStyle = sizeStyles[size];
 
+  const focusRing: React.CSSProperties = isFocusVisible
+    ? {
+        outline: `2px solid ${colors.accent.default}`,
+        outlineOffset: 2,
+      }
+    : {};
+
   const buttonStyle: React.CSSProperties = {
     ...baseStyle,
     ...sizeStyle,
     ...variantStyle,
+    ...focusRing,
     ...(fullWidth ? { width: '100%' } : {}),
     ...externalStyle,
   };
@@ -157,6 +166,13 @@ export function Button({
       }}
       onMouseDown={() => setIsPressed(true)}
       onMouseUp={() => setIsPressed(false)}
+      onFocus={(e) => {
+        // Only show focus ring for keyboard navigation (not mouse clicks)
+        if (e.target.matches(':focus-visible')) {
+          setIsFocusVisible(true);
+        }
+      }}
+      onBlur={() => setIsFocusVisible(false)}
       disabled={isDisabled}
       className={className}
       aria-label={ariaLabel}

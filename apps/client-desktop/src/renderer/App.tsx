@@ -15,6 +15,7 @@ import { SessionsPage } from './pages/SessionsPage';
 import { HostPage } from './pages/HostPage';
 import { useAuthStore } from './store/authStore';
 import { useConnectionStore } from './store/connectionStore';
+import { colors, spacing, typography } from './styles/theme';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -204,17 +205,17 @@ const styles: Record<string, React.CSSProperties> = {
   mainContent: {
     flex: 1,
     overflow: 'auto',
-    padding: '24px',
+    padding: spacing.lg,
   },
   offlineBanner: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
-    padding: '8px 16px',
-    backgroundColor: '#78350f',
-    color: '#fef3c7',
-    fontSize: '13px',
-    fontWeight: 500,
+    gap: spacing.sm,
+    padding: `${spacing.sm}px ${spacing.md}px`,
+    backgroundColor: colors.semantic.warningBg,
+    color: colors.semantic.warningText,
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
     flexShrink: 0,
   },
 };

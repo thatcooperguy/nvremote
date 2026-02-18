@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { colors, radius, spacing, typography } from '../styles/theme';
+import { colors, radius, spacing, typography, transitions } from '../styles/theme';
 import { Button } from '../components/Button';
 import { HostCard } from '../components/HostCard';
 import { useHostStore } from '../store/hostStore';
@@ -15,6 +15,7 @@ export function DashboardPage(): React.ReactElement {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>('all');
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [connectingHostId, setConnectingHostId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -31,10 +32,15 @@ export function DashboardPage(): React.ReactElement {
     load();
 
     // Auto-refresh every 30 seconds
-    const interval = setInterval(() => {
-      fetchHosts().catch(() => {
+    const interval = setInterval(async () => {
+      setIsRefreshing(true);
+      try {
+        await fetchHosts();
+      } catch {
         // Silent refresh failure
-      });
+      } finally {
+        setIsRefreshing(false);
+      }
     }, 30000);
 
     return () => clearInterval(interval);
@@ -75,11 +81,32 @@ export function DashboardPage(): React.ReactElement {
     [hosts, selectHost, connect]
   );
 
+  const isFiltering = searchQuery !== '' || statusFilter !== 'all';
+  const resultCountText = isFiltering
+    ? `${filteredHosts.length} of ${hosts.length} host${hosts.length !== 1 ? 's' : ''}`
+    : `${hosts.length} host${hosts.length !== 1 ? 's' : ''}`;
+
   return (
     <div style={styles.page}>
       {/* Header */}
       <div style={styles.header}>
-        <h1 style={styles.pageTitle}>Dashboard</h1>
+        <div style={styles.titleRow}>
+          <h1 style={styles.pageTitle}>Dashboard</h1>
+          {isRefreshing && (
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              style={{ animation: 'spin 1s linear infinite', opacity: 0.5 }}
+            >
+              <path d="M8 1V4" stroke={colors.text.secondary} strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M8 12V15" stroke={colors.text.secondary} strokeWidth="1.5" strokeLinecap="round" opacity="0.4" />
+              <path d="M1 8H4" stroke={colors.text.secondary} strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
+              <path d="M12 8H15" stroke={colors.text.secondary} strokeWidth="1.5" strokeLinecap="round" opacity="0.8" />
+            </svg>
+          )}
+        </div>
         <div style={styles.filters}>
           <div style={styles.searchContainer}>
             <SearchIcon />
@@ -90,6 +117,17 @@ export function DashboardPage(): React.ReactElement {
               onChange={(e) => setSearchQuery(e.target.value)}
               style={styles.searchInput}
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                style={styles.searchClear}
+                aria-label="Clear search"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M3.5 3.5L10.5 10.5M10.5 3.5L3.5 10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+            )}
           </div>
           <select
             value={statusFilter}
@@ -103,6 +141,9 @@ export function DashboardPage(): React.ReactElement {
             <option value="offline">Offline</option>
           </select>
         </div>
+        {!isLoading && hosts.length > 0 && (
+          <span style={styles.resultCount}>{resultCountText}</span>
+        )}
       </div>
 
       {/* Content */}
@@ -115,7 +156,7 @@ export function DashboardPage(): React.ReactElement {
       ) : filteredHosts.length === 0 ? (
         <EmptyState hasHosts={hosts.length > 0} />
       ) : (
-        <div style={styles.grid}>
+        <div style={{ ...styles.grid, animation: 'fadeIn 200ms ease' }}>
           {filteredHosts.map((host) => (
             <HostCard
               key={host.id}
@@ -287,7 +328,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100%',
     height: 40,
     paddingLeft: 36,
-    paddingRight: 12,
+    paddingRight: 36,
     backgroundColor: colors.bg.surface,
     border: `1px solid ${colors.border.default}`,
     borderRadius: radius.md,
@@ -310,9 +351,38 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     minWidth: 120,
   },
+  titleRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  resultCount: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    marginTop: -spacing.sm,
+  },
+  searchClear: {
+    position: 'absolute',
+    right: 8,
+    top: '50%',
+    transform: 'translateY(-50%)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 24,
+    height: 24,
+    border: 'none',
+    background: 'transparent',
+    color: colors.text.disabled,
+    cursor: 'pointer',
+    borderRadius: radius.sm,
+    transition: 'color 150ms ease, background-color 150ms ease',
+    padding: 0,
+    outline: 'none',
+  },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
     gap: spacing.md,
   },
   emptyState: {

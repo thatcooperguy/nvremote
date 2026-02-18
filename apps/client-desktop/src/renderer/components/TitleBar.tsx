@@ -175,7 +175,7 @@ const styles: Record<string, React.CSSProperties> = {
     outline: 'none',
   },
   controlButtonHover: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     color: colors.text.primary,
   },
   closeButtonHover: {

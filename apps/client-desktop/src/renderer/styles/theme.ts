@@ -22,10 +22,15 @@ export const colors = {
     primary: '#FFFFFF',
     secondary: '#B0B0B0',
     disabled: '#707070',
+    onPrimary: '#000000',
   },
   semantic: {
     error: '#FF4444',
+    errorHover: '#FF5555',
+    errorPressed: '#CC3636',
     warning: '#FFB020',
+    warningBg: '#78350f',
+    warningText: '#fef3c7',
     success: '#76B900',
     info: '#4A9EFF',
   },
@@ -88,6 +93,7 @@ export const typography = {
 } as const;
 
 export const transitions = {
+  micro: '120ms ease',
   fast: '150ms ease',
   normal: '250ms ease',
   slow: '400ms ease',

@@ -284,7 +284,7 @@ export class HostAgent extends EventEmitter {
       this.emit('session-started', data);
     });
 
-    this.signaling.on('session-active', (data) => {
+    this.signaling.on('session-active', (_data) => {
       this.sendToRenderer('host:status-change', this.getStatus());
     });
 

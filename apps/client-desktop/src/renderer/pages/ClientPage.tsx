@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { colors, spacing, typography, radius, transitions, shadows, statusColors } from '../styles/theme';
+import { colors, spacing, typography, radius, transitions, statusColors } from '../styles/theme';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { ToggleRow } from '../components/ToggleRow';

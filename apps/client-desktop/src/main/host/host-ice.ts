@@ -348,7 +348,7 @@ function parseStunResponse(response: Buffer, expectedTxnId: Buffer): IceCandidat
  */
 function parseXorMappedAddress(
   value: Buffer,
-  magicCookieBytes: Buffer,
+  _magicCookieBytes: Buffer,
   _transactionId: Buffer,
 ): IceCandidate | null {
   if (value.length < 8) return null;

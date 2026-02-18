@@ -1,2 +1,2 @@
 -- Add preferences JSON column to users table
-ALTER TABLE "users" ADD COLUMN "preferences" JSONB;
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "preferences" JSONB;

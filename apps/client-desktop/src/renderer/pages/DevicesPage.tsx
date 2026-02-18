@@ -116,7 +116,6 @@ interface DeviceRowProps {
 }
 
 function DeviceRow({ host, expanded, onToggle, onRevoke, onRename }: DeviceRowProps): React.ReactElement {
-  const [hoveredAction, setHoveredAction] = useState<string | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(host.name);
   const [saving, setSaving] = useState(false);

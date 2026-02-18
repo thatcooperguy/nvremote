@@ -10,11 +10,10 @@
  * named pipe using newline-delimited JSON (JSON-RPC style).
  */
 
-import { ChildProcess, spawn, execFile } from 'child_process';
+import { ChildProcess, spawn, execFile, execFileSync } from 'child_process';
 import net from 'net';
 import path from 'path';
 import fs from 'fs';
-import os from 'os';
 import { app } from 'electron';
 import { EventEmitter } from 'events';
 
@@ -95,7 +94,6 @@ const PROCESS_START_TIMEOUT = 15_000; // 15s — wait for pipe creation
 const PROCESS_STOP_TIMEOUT = 10_000;  // 10s — graceful shutdown
 const IPC_CONNECT_TIMEOUT = 5_000;    // 5s
 const IPC_READ_TIMEOUT = 10_000;      // 10s
-const IPC_WRITE_TIMEOUT = 5_000;      // 5s
 const PIPE_POLL_INTERVAL = 250;       // 250ms
 
 // ---------------------------------------------------------------------------
@@ -580,7 +578,6 @@ export class HostStreamer extends EventEmitter {
 
     // 4. PATH lookup.
     try {
-      const { execFileSync } = require('child_process');
       const where = execFileSync('where', [DEFAULT_PROCESS_NAME], {
         encoding: 'utf-8',
         windowsHide: true,

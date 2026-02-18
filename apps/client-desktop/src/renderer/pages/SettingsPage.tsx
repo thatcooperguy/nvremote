@@ -5,7 +5,7 @@ import { Button } from '../components/Button';
 import { useAuthStore } from '../store/authStore';
 import { toast } from '../components/Toast';
 
-const APP_VERSION = '0.5.0-beta';
+const APP_VERSION = '0.5.1-beta';
 
 interface SettingsSectionProps {
   title: string;

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const VERSION = 'v0.5.0-beta';
+const VERSION = 'v0.5.1-beta';
 const GCS_BUCKET = 'https://storage.googleapis.com/nvremote-downloads';
 
 interface PlatformInfo {

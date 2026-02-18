@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.5.0--beta-76B900?style=for-the-badge" alt="Version" />
+  <img src="https://img.shields.io/badge/version-v0.5.1--beta-76B900?style=for-the-badge" alt="Version" />
   <img src="https://img.shields.io/badge/NVIDIA-NVENC%20%7C%20NvFBC-76B900?style=for-the-badge&logo=nvidia&logoColor=white" alt="NVIDIA" />
   <img src="https://img.shields.io/badge/WebRTC-P2P-blue?style=for-the-badge" alt="WebRTC" />
   <img src="https://img.shields.io/badge/built%20with-Claude%20AI-cc785c?style=for-the-badge" alt="Built with Claude" />
@@ -34,21 +34,21 @@ Grab the latest release for your platform. No account required — just download
 
 | Platform | Download | Notes |
 |----------|----------|-------|
-| **Windows** | [NVRemote-0.5.0-beta-Setup.exe](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemote-0.5.0-beta-Setup.exe) | Windows 10/11, auto-updates |
-| **macOS** | [NVRemote-0.5.0-beta-universal.dmg](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemote-0.5.0-beta-universal.dmg) | Universal binary (Intel + Apple Silicon) |
-| **Linux x86_64** | [NVRemote-0.5.0-beta-x86_64.AppImage](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemote-0.5.0-beta-x86_64.AppImage) | AppImage — `chmod +x` and run |
-| **Linux ARM64** | [NVRemote-0.5.0-beta-arm64.AppImage](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemote-0.5.0-beta-arm64.AppImage) | Jetson / Pi / ARM64 Linux |
-| **Android** | [NVRemote-v0.5.0-beta.apk](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemote-v0.5.0-beta.apk) | Android 7.0+, sideload APK |
+| **Windows** | [NVRemote-0.5.1-beta-Setup.exe](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-0.5.1-beta-Setup.exe) | Windows 10/11, auto-updates |
+| **macOS** | [NVRemote-0.5.1-beta-universal.dmg](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-0.5.1-beta-universal.dmg) | Universal binary (Intel + Apple Silicon) |
+| **Linux x86_64** | [NVRemote-0.5.1-beta-x86_64.AppImage](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-0.5.1-beta-x86_64.AppImage) | AppImage — `chmod +x` and run |
+| **Linux ARM64** | [NVRemote-0.5.1-beta-arm64.AppImage](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-0.5.1-beta-arm64.AppImage) | Jetson / Pi / ARM64 Linux |
+| **Android** | [NVRemote-v0.5.1-beta.apk](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-v0.5.1-beta.apk) | Android 7.0+, sideload APK |
 
 ### 🖧 Stream FROM Your GPU Machine (Host Agent)
 
 | Platform | Download | Notes |
 |----------|----------|-------|
-| **Windows** | [NVRemoteHost-v0.5.0-beta-win64.zip](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemoteHost-v0.5.0-beta-win64.zip) | Extract and run — requires NVIDIA GPU |
-| **Linux x86_64** | [NVRemoteHost-v0.5.0-beta-linux-amd64.tar.gz](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemoteHost-v0.5.0-beta-linux-amd64.tar.gz) | GPG signed ([.asc](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemoteHost-v0.5.0-beta-linux-amd64.tar.gz.asc)) |
-| **Linux ARM64** | [NVRemoteHost-v0.5.0-beta-linux-arm64.tar.gz](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemoteHost-v0.5.0-beta-linux-arm64.tar.gz) | Jetson / DGX Spark — GPG signed ([.asc](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemoteHost-v0.5.0-beta-linux-arm64.tar.gz.asc)) |
+| **Windows** | [NVRemoteHost-v0.5.1-beta-win64.zip](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteHost-v0.5.1-beta-win64.zip) | Extract and run — requires NVIDIA GPU |
+| **Linux x86_64** | [NVRemoteHost-v0.5.1-beta-linux-amd64.tar.gz](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteHost-v0.5.1-beta-linux-amd64.tar.gz) | GPG signed ([.asc](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteHost-v0.5.1-beta-linux-amd64.tar.gz.asc)) |
+| **Linux ARM64** | [NVRemoteHost-v0.5.1-beta-linux-arm64.tar.gz](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteHost-v0.5.1-beta-linux-arm64.tar.gz) | Jetson / DGX Spark — GPG signed ([.asc](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteHost-v0.5.1-beta-linux-arm64.tar.gz.asc)) |
 
-> 📋 [SHA256 checksums](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/SHA256SUMS.txt) &middot; [All releases](https://github.com/thatcooperguy/nvremote/releases)
+> 📋 [SHA256 checksums](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/SHA256SUMS.txt) &middot; [All releases](https://github.com/thatcooperguy/nvremote/releases)
 
 ---
 
@@ -237,7 +237,7 @@ Stream your GPU desktop in 3 steps. Your host and sessions are private to your a
 Download the host agent for your platform from the [Downloads](#downloads) section above.
 
 **Windows:**
-1. Download [NVRemoteHost-v0.5.0-beta-win64.zip](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemoteHost-v0.5.0-beta-win64.zip)
+1. Download [NVRemoteHost-v0.5.1-beta-win64.zip](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteHost-v0.5.1-beta-win64.zip)
 2. Extract the zip
 3. Double-click **`NVRemoteAgent.exe`** &mdash; a setup wizard walks you through first-time configuration
 4. Enter your bootstrap token (get one from [nvremote.com/dashboard/devices](https://nvremote.com/dashboard/devices))
@@ -245,8 +245,8 @@ Download the host agent for your platform from the [Downloads](#downloads) secti
 
 **Linux:**
 ```bash
-tar xzf NVRemoteHost-v0.5.0-beta-linux-amd64.tar.gz
-cd NVRemoteHost-v0.5.0-beta-linux-amd64
+tar xzf NVRemoteHost-v0.5.1-beta-linux-amd64.tar.gz
+cd NVRemoteHost-v0.5.1-beta-linux-amd64
 sudo ./install.sh    # Installs as systemd service, prompts for token
 ```
 
@@ -256,11 +256,11 @@ Or run directly without installing: `./NVRemoteAgent` (interactive setup on firs
 
 Download the client for your platform from the [Downloads](#downloads) section above.
 
-**Windows:** Run [NVRemote-0.5.0-beta-Setup.exe](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemote-0.5.0-beta-Setup.exe) — installs and launches automatically.
+**Windows:** Run [NVRemote-0.5.1-beta-Setup.exe](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-0.5.1-beta-Setup.exe) — installs and launches automatically.
 
-**macOS:** Open [NVRemote-0.5.0-beta-universal.dmg](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemote-0.5.0-beta-universal.dmg) and drag to Applications.
+**macOS:** Open [NVRemote-0.5.1-beta-universal.dmg](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-0.5.1-beta-universal.dmg) and drag to Applications.
 
-**Android:** Sideload [NVRemote-v0.5.0-beta.apk](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.0-beta/NVRemote-v0.5.0-beta.apk).
+**Android:** Sideload [NVRemote-v0.5.1-beta.apk](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-v0.5.1-beta.apk).
 
 **Linux:** `chmod +x NVRemote-*.AppImage && ./NVRemote-*.AppImage`
 

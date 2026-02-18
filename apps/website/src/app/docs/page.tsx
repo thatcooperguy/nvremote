@@ -278,18 +278,48 @@ export default function DocsPage() {
               <SectionAnchor id="install-host">Install Host</SectionAnchor>
 
               <p className="text-gray-700 mb-6 leading-relaxed">
-                The NVRemote Host runs on any NVIDIA-powered PC, workstation,
-                or server. It captures your screen using NvFBC, encodes with
-                NVENC, and streams directly to connected clients.
+                On Windows, host mode is built into the NVRemote app &mdash; no
+                separate download needed. On Linux (headless servers, Jetson,
+                DGX), use the standalone host agent.
               </p>
+
+              <h4 className="text-lg font-semibold text-gray-900 mb-4">Windows (one app does everything)</h4>
+
+              <div className="space-y-4 mb-6">
+                <StepItem number={1} title="Download NVRemote">
+                  Get{' '}
+                  <code className="text-nv-green bg-nv-green/10 px-1.5 py-0.5 rounded text-xs">
+                    NVRemote-Setup.exe
+                  </code>{' '}
+                  from the{' '}
+                  <a
+                    href="/downloads/"
+                    className="text-nv-green hover:underline"
+                  >
+                    Downloads page
+                  </a>
+                  . This is the same app used for both client and host.
+                </StepItem>
+
+                <StepItem number={2} title="Switch to Host mode">
+                  Open NVRemote, go to{' '}
+                  <strong>Settings &rarr; App Mode</strong> and select{' '}
+                  <strong>Host</strong> or <strong>Both</strong> (to stream
+                  and receive on the same machine).
+                </StepItem>
+
+                <StepItem number={3} title="Register your machine">
+                  Follow the setup wizard to enter your bootstrap token and
+                  register. Your machine will appear in the dashboard for any
+                  of your signed-in devices to connect to.
+                </StepItem>
+              </div>
+
+              <h4 className="text-lg font-semibold text-gray-900 mb-4">Linux (headless / Jetson / DGX)</h4>
 
               <div className="space-y-4 mb-6">
                 <StepItem number={1} title="Download the host agent">
-                  Get{' '}
-                  <code className="text-nv-green bg-nv-green/10 px-1.5 py-0.5 rounded text-xs">
-                    NVRemoteAgent.exe
-                  </code>{' '}
-                  from the{' '}
+                  Get the Linux host bundle from the{' '}
                   <a
                     href="/downloads/"
                     className="text-nv-green hover:underline"
@@ -299,23 +329,23 @@ export default function DocsPage() {
                   .
                 </StepItem>
 
-                <StepItem number={2} title="Run the installer">
-                  Double-click the .exe and follow the prompts. The installer
-                  will set up the NVRemote Host service which runs
-                  automatically on startup.
-                </StepItem>
-
-                <StepItem number={3} title="Sign in">
-                  Open the NVRemote Host app from the system tray and sign
-                  in with your account. Your machine will register
-                  automatically.
+                <StepItem number={2} title="Install and run">
+                  Extract the tarball and run{' '}
+                  <code className="text-nv-green bg-nv-green/10 px-1.5 py-0.5 rounded text-xs">
+                    sudo ./install.sh
+                  </code>{' '}
+                  to install as a systemd service, or run{' '}
+                  <code className="text-nv-green bg-nv-green/10 px-1.5 py-0.5 rounded text-xs">
+                    ./NVRemoteAgent
+                  </code>{' '}
+                  directly for interactive setup.
                 </StepItem>
               </div>
 
               <InfoBox type="info">
-                The host requires administrative privileges during installation
-                to set up the screen capture driver. After installation, it runs
-                as a standard Windows service.
+                On Windows, NVRemote does not require a separate host service
+                installation. Host mode runs directly inside the Electron app
+                and communicates with the GPU streamer via a local named pipe.
               </InfoBox>
 
               <div className="section-divider my-12" />

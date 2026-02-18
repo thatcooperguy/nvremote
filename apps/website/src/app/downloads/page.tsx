@@ -132,16 +132,6 @@ interface DownloadItem {
 
 const hostDownloads: DownloadItem[] = [
   {
-    id: 'windows-host',
-    platform: 'Windows Host',
-    ext: '.zip',
-    icon: <Monitor className="w-6 h-6" />,
-    version: VERSION,
-    size: '42 MB',
-    sha256: '398f5b0881bd8c63235c21964d79db07315f165f8e13212a38af53f517faf75b',
-    href: `${BASE_URL}/NVRemoteHost-${VERSION}-win64.zip`,
-  },
-  {
     id: 'linux-host-x64',
     platform: 'Linux Host (x86_64)',
     ext: '.tar.gz',
@@ -161,18 +151,6 @@ const hostDownloads: DownloadItem[] = [
     sha256: '7605f639cc4aaf21f75640eecfe8e7a1397527b62fae1d7cef40ad8bf11c46be',
     href: `${BASE_URL}/NVRemoteHost-${VERSION}-linux-arm64.tar.gz`,
   },
-  {
-    id: 'macos-host',
-    platform: 'macOS Host',
-    ext: '.pkg',
-    icon: <AppleIcon className="w-6 h-6" />,
-    version: VERSION,
-    size: '~45 MB',
-    sha256: '',
-    href: `${BASE_URL}/NVRemoteHost-${VERSION}-universal.pkg`,
-    disabled: true,
-    comingSoon: true,
-  },
 ];
 
 /* -------------------------------------------------------------------------- */
@@ -182,7 +160,7 @@ const hostDownloads: DownloadItem[] = [
 const clientDownloads: DownloadItem[] = [
   {
     id: 'windows-client',
-    platform: 'Windows Client',
+    platform: 'Windows (Client + Host)',
     ext: '.exe',
     icon: <Monitor className="w-6 h-6" />,
     version: VERSION,
@@ -595,11 +573,12 @@ export default function DownloadsPage() {
               </span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">
-              Host Application
+              Linux Host Agent
             </h2>
             <p className="text-gray-600 max-w-lg mx-auto">
-              Install on the machine streaming your games. Requires an
-              NVIDIA GPU with NvFBC / NVENC support.
+              For headless Linux servers, Jetson, and DGX. On Windows, host
+              mode is built into the desktop app below &mdash; no separate
+              download needed.
             </p>
           </motion.div>
 
@@ -625,10 +604,10 @@ export default function DownloadsPage() {
           <div className="flex items-center gap-4 px-6 py-4 rounded-xl glass border border-gray-200">
             <div className="w-2 h-2 rounded-full bg-nv-green shrink-0" />
             <p className="text-sm text-gray-600">
-              <span className="text-gray-900 font-medium">Host</span> runs on
-              the machine streaming the game.{' '}
-              <span className="text-gray-900 font-medium">Client</span>{' '}
-              connects remotely to receive the stream.
+              On <span className="text-gray-900 font-medium">Windows</span>,
+              one app does everything &mdash; switch between Client, Host, or
+              Both mode in Settings. The Linux Host Agent above is for headless
+              servers only.
             </p>
           </div>
         </div>
@@ -655,11 +634,11 @@ export default function DownloadsPage() {
               </span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">
-              Client Applications
+              Desktop &amp; Mobile Apps
             </h2>
             <p className="text-gray-600 max-w-lg mx-auto">
-              Install on the device you want to stream TO. Supports
-              desktop, mobile, and web.
+              Install on any device. Windows includes built-in host mode.
+              macOS, Linux, and Android are client-only.
             </p>
           </motion.div>
 
@@ -799,7 +778,7 @@ export default function DownloadsPage() {
                 <div className="code-block-header">PowerShell (Windows)</div>
                 <pre>
                   <code className="text-sm font-mono text-gray-700">
-{`Get-FileHash .\\NVRemoteHost-${VERSION}-win64.exe -Algorithm SHA256`}
+{`Get-FileHash .\\NVRemote-${VERSION.replace('v', '')}-Setup.exe -Algorithm SHA256`}
                   </code>
                 </pre>
               </div>
@@ -809,7 +788,7 @@ export default function DownloadsPage() {
                 <div className="code-block-header">bash (macOS / Linux)</div>
                 <pre>
                   <code className="text-sm font-mono text-gray-700">
-{`sha256sum NVRemoteHost-${VERSION}-amd64.deb`}
+{`sha256sum NVRemoteHost-${VERSION}-linux-amd64.tar.gz`}
                   </code>
                 </pre>
               </div>

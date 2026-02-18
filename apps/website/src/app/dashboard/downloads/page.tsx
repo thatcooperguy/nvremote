@@ -71,23 +71,13 @@ interface PlatformDownload {
 const platformDownloads: PlatformDownload[] = [
   {
     id: 'windows-client',
-    name: 'Windows Desktop Client',
-    description: 'Stream receiver and decoder for Windows',
+    name: 'Windows (Client + Host)',
+    description: 'Unified app — stream to or from this machine',
     icon: <Monitor className="w-5 h-5" />,
     fileName: `NVRemote-${VERSION.replace('v', '')}-Setup.exe`,
     directUrl: `${BASE_URL}/NVRemote-${VERSION.replace('v', '')}-Setup.exe`,
     apiUrl: `${DOWNLOAD_API}/windows-client`,
-    label: 'Windows 10/11 (x64)',
-  },
-  {
-    id: 'windows-host',
-    name: 'Windows Host Agent',
-    description: 'Stream capture and encoding service',
-    icon: <Monitor className="w-5 h-5" />,
-    fileName: `NVRemoteHost-${VERSION}-win64.zip`,
-    directUrl: `${BASE_URL}/NVRemoteHost-${VERSION}-win64.zip`,
-    apiUrl: `${DOWNLOAD_API}/windows-host`,
-    label: 'Windows 10/11 (x64) — Requires NVIDIA GPU',
+    label: 'Windows 10/11 (x64) — Client, Host, or Both',
   },
   {
     id: 'linux-client',

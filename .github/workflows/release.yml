@@ -18,6 +18,7 @@
 #  11.  build-client-macos            -- Electron desktop client (macOS DMG)
 #  12.  build-android                 -- Android APK (Kotlin/Compose)
 #  13.  create-release                -- Publish GitHub Release with all artifacts
+#  14.  validate-release              -- Verify all expected assets exist and are downloadable
 ###############################################################################
 
 name: Release
@@ -1310,3 +1311,137 @@ jobs:
             Key fingerprint: `178E 1F4A 1849 810C 253B  C569 E48D D3D3 1666 D821`
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  ###########################################################################
+  # Job 11: Validate release assets — ensure all expected files are present
+  #         and downloadable. Fails the workflow if any required asset is
+  #         missing so we catch 404s before users do.
+  ###########################################################################
+  validate-release:
+    name: Validate Release Assets
+    runs-on: ubuntu-latest
+    needs: [create-release]
+
+    steps:
+      - name: Wait for release to propagate
+        run: sleep 15
+
+      - name: Validate all expected assets exist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ github.ref_name }}
+          # Strip leading 'v' for filenames that don't include it
+          VERSION_NOPRE: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          V="${TAG}"
+          V_BARE="${V#v}"   # e.g., "0.5.1-beta" from "v0.5.1-beta"
+
+          echo "=== Validating release assets for $V ==="
+          echo ""
+
+          # Define required assets (these MUST exist or the release is broken)
+          REQUIRED_ASSETS=(
+            "NVRemote-${V_BARE}-Setup.exe"
+            "NVRemote-${V_BARE}-Setup.exe.blockmap"
+            "NVRemote-${V_BARE}-x86_64.AppImage"
+            "NVRemote-${V_BARE}-arm64.AppImage"
+            "NVRemote-${V_BARE}-universal.dmg"
+            "NVRemote-${V}-apk"
+            "NVRemoteHost-${V}-linux-amd64.tar.gz"
+            "NVRemoteHost-${V}-linux-arm64.tar.gz"
+            "SHA256SUMS.txt"
+          )
+
+          # Define optional assets (warn if missing but don't fail)
+          OPTIONAL_ASSETS=(
+            "NVRemoteHost-${V}-win64.zip"
+            "NVRemoteHost-${V}-linux-amd64.tar.gz.asc"
+            "NVRemoteHost-${V}-linux-arm64.tar.gz.asc"
+            "NVRemote-${V_BARE}-x86_64.AppImage.asc"
+            "NVRemote-${V_BARE}-arm64.AppImage.asc"
+            "NVRemote-${V_BARE}-universal.dmg.blockmap"
+            "latest.yml"
+            "latest-mac.yml"
+            "latest-linux.yml"
+            "latest-linux-arm64.yml"
+          )
+
+          # Get actual asset list from the release
+          ACTUAL_ASSETS=$(gh release view "$V" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
+          echo "Assets found on release:"
+          echo "$ACTUAL_ASSETS" | sed 's/^/  ✓ /'
+          echo ""
+
+          # Check required assets
+          MISSING=0
+          echo "--- Required Assets ---"
+          for asset in "${REQUIRED_ASSETS[@]}"; do
+            if echo "$ACTUAL_ASSETS" | grep -qF "$asset"; then
+              echo "  ✅ $asset"
+            else
+              echo "  ❌ MISSING: $asset"
+              MISSING=$((MISSING + 1))
+            fi
+          done
+          echo ""
+
+          # Check optional assets
+          echo "--- Optional Assets ---"
+          for asset in "${OPTIONAL_ASSETS[@]}"; do
+            if echo "$ACTUAL_ASSETS" | grep -qF "$asset"; then
+              echo "  ✅ $asset"
+            else
+              echo "  ⚠️  MISSING (optional): $asset"
+            fi
+          done
+          echo ""
+
+          # Validate download URLs are actually reachable (HTTP HEAD)
+          echo "--- Download URL Validation ---"
+          DOWNLOAD_FAILS=0
+          for asset in "${REQUIRED_ASSETS[@]}"; do
+            URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${V}/${asset}"
+            HTTP_CODE=$(curl -sL -o /dev/null -w "%{http_code}" --max-time 15 "$URL" || echo "000")
+            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ]; then
+              echo "  ✅ $asset → HTTP $HTTP_CODE"
+            else
+              echo "  ❌ $asset → HTTP $HTTP_CODE (UNREACHABLE)"
+              DOWNLOAD_FAILS=$((DOWNLOAD_FAILS + 1))
+            fi
+          done
+          echo ""
+
+          # Validate SHA256SUMS references match actual assets
+          echo "--- SHA256SUMS Cross-Check ---"
+          SHA_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${V}/SHA256SUMS.txt"
+          SHA_CONTENT=$(curl -sL --max-time 15 "$SHA_URL" || echo "")
+          if [ -n "$SHA_CONTENT" ]; then
+            SHA_FILES=$(echo "$SHA_CONTENT" | awk '{print $2}' | sed 's/^\*//')
+            for sha_file in $SHA_FILES; do
+              if echo "$ACTUAL_ASSETS" | grep -qF "$sha_file"; then
+                echo "  ✅ SHA256 entry '$sha_file' has matching asset"
+              else
+                echo "  ⚠️  SHA256 entry '$sha_file' has NO matching asset"
+              fi
+            done
+          else
+            echo "  ⚠️  Could not fetch SHA256SUMS.txt"
+          fi
+          echo ""
+
+          # Final verdict
+          echo "=== Summary ==="
+          echo "Required missing: $MISSING"
+          echo "Download failures: $DOWNLOAD_FAILS"
+
+          if [ "$MISSING" -gt 0 ] || [ "$DOWNLOAD_FAILS" -gt 0 ]; then
+            echo ""
+            echo "::error::Release validation FAILED — $MISSING required assets missing, $DOWNLOAD_FAILS download URLs unreachable"
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ All required release assets validated successfully!"

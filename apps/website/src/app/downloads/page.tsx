@@ -97,6 +97,29 @@ const sectionFade = {
 /* -------------------------------------------------------------------------- */
 
 type DownloadAvailability = 'available' | 'unavailable' | 'checking';
+type DetectedPlatform = 'windows' | 'macos' | 'linux' | 'android' | 'ios' | 'unknown';
+
+function detectPlatform(): DetectedPlatform {
+  if (typeof navigator === 'undefined') return 'unknown';
+  const ua = navigator.userAgent.toLowerCase();
+  if (/android/.test(ua)) return 'android';
+  if (/iphone|ipad|ipod/.test(ua)) return 'ios';
+  if (/win/.test(ua)) return 'windows';
+  if (/mac/.test(ua)) return 'macos';
+  if (/linux/.test(ua)) return 'linux';
+  return 'unknown';
+}
+
+/** Maps detected platform to the recommended download item ID */
+function getRecommendedId(platform: DetectedPlatform): string | null {
+  switch (platform) {
+    case 'windows': return 'windows-client';
+    case 'macos': return 'macos-client';
+    case 'linux': return 'linux-client-x64-deb';
+    case 'android': return 'android-client';
+    default: return null;
+  }
+}
 
 async function checkFileAvailability(
   url: string
@@ -248,10 +271,12 @@ function DownloadCardFull({
   item,
   index,
   availability,
+  recommended = false,
 }: {
   item: DownloadItem;
   index: number;
   availability: DownloadAvailability;
+  recommended?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
   const isAvailable = availability === 'available' && !item.comingSoon && !item.disabled;
@@ -276,13 +301,21 @@ function DownloadCardFull({
         'gradient-border gradient-border-hover group relative overflow-hidden p-6 flex flex-col h-full transition-all duration-500',
         item.disabled || item.comingSoon
           ? 'opacity-50 pointer-events-none'
-          : 'hover:-translate-y-1 hover:shadow-card-hover'
+          : 'hover:-translate-y-1 hover:shadow-card-hover',
+        recommended && !item.comingSoon && 'ring-2 ring-nv-green/30 shadow-lg shadow-nv-green/5'
       )}
     >
       {/* Top accent line */}
       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-nv-green/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-      {/* Coming Soon badge */}
+      {/* Recommended / Coming Soon badge */}
+      {recommended && !item.comingSoon && (
+        <div className="absolute top-4 right-4 px-2.5 py-1 rounded-md bg-nv-green/10 border border-nv-green/30">
+          <span className="text-[10px] font-bold text-nv-green tracking-widest uppercase">
+            Recommended
+          </span>
+        </div>
+      )}
       {item.comingSoon && (
         <div className="absolute top-4 right-4 px-2.5 py-1 rounded-md bg-amber-50 border border-amber-300">
           <span className="text-[10px] font-bold text-amber-600 tracking-widest uppercase">
@@ -463,6 +496,13 @@ export default function DownloadsPage() {
     return init;
   });
 
+  // Detect user's platform to highlight the recommended download
+  const [detectedPlatform, setDetectedPlatform] = useState<DetectedPlatform>('unknown');
+  const recommendedId = getRecommendedId(detectedPlatform);
+  useEffect(() => {
+    setDetectedPlatform(detectPlatform());
+  }, []);
+
   const checkAvailability = useCallback(async () => {
     const results: Record<string, DownloadAvailability> = {};
     await Promise.all(
@@ -604,7 +644,7 @@ export default function DownloadsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {hostDownloads.map((item, i) => (
-              <DownloadCardFull key={item.id} item={item} index={i} availability={availability[item.id] || 'checking'} />
+              <DownloadCardFull key={item.id} item={item} index={i} availability={availability[item.id] || 'checking'} recommended={item.id === recommendedId} />
             ))}
           </div>
         </div>
@@ -664,7 +704,7 @@ export default function DownloadsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {clientDownloads.map((item, i) => (
-              <DownloadCardFull key={item.id} item={item} index={i} availability={availability[item.id] || 'checking'} />
+              <DownloadCardFull key={item.id} item={item} index={i} availability={availability[item.id] || 'checking'} recommended={item.id === recommendedId} />
             ))}
           </div>
 

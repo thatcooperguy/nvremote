@@ -336,6 +336,102 @@ const trayApi = {
 };
 
 // ---------------------------------------------------------------------------
+// Host Agent (host-side streamer management — Windows only)
+// ---------------------------------------------------------------------------
+
+interface HostAgentStatus {
+  state: string;
+  hostId: string;
+  gpuModel: string;
+  codecs: string[];
+  streamerRunning: boolean;
+  signalingConnected: boolean;
+  activeSession: {
+    sessionId: string;
+    codec: string;
+    connectionType: string;
+    userId: string;
+  } | null;
+  error: string | null;
+}
+
+const hostApi = {
+  setMode: (mode: 'client' | 'host' | 'both'): Promise<IpcResult> =>
+    ipcRenderer.invoke('host:set-mode', mode),
+
+  getStatus: (): Promise<HostAgentStatus> =>
+    ipcRenderer.invoke('host:get-status'),
+
+  register: (data: { bootstrapToken: string; hostName: string }): Promise<IpcResult> =>
+    ipcRenderer.invoke('host:register', data),
+
+  getConfig: (): Promise<{
+    mode: string;
+    bootstrapToken: string;
+    hostId: string;
+    apiToken: string;
+    hostName: string;
+    stunServers: string[];
+    registeredAt: string;
+    controlPlaneUrl: string;
+  }> => ipcRenderer.invoke('host:get-config'),
+
+  setConfig: (partial: Record<string, unknown>): Promise<IpcResult> =>
+    ipcRenderer.invoke('host:set-config', partial),
+
+  getStreamerStats: (): Promise<unknown> =>
+    ipcRenderer.invoke('host:get-streamer-stats'),
+
+  forceIDR: (): Promise<IpcResult> =>
+    ipcRenderer.invoke('host:force-idr'),
+
+  start: (): Promise<IpcResult> =>
+    ipcRenderer.invoke('host:start'),
+
+  stop: (): Promise<IpcResult> =>
+    ipcRenderer.invoke('host:stop'),
+
+  // Event listeners for host agent lifecycle.
+  onStatusChange: (callback: (status: HostAgentStatus) => void): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      status: HostAgentStatus
+    ) => callback(status);
+    ipcRenderer.on('host:status-change', handler);
+    return () => ipcRenderer.removeListener('host:status-change', handler);
+  },
+
+  onSessionStarted: (
+    callback: (data: { sessionId: string; codec: string; userId: string }) => void
+  ): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      data: { sessionId: string; codec: string; userId: string }
+    ) => callback(data);
+    ipcRenderer.on('host:session-started', handler);
+    return () => ipcRenderer.removeListener('host:session-started', handler);
+  },
+
+  onSessionEnded: (callback: (data: { sessionId: string }) => void): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      data: { sessionId: string }
+    ) => callback(data);
+    ipcRenderer.on('host:session-ended', handler);
+    return () => ipcRenderer.removeListener('host:session-ended', handler);
+  },
+
+  onStreamerStats: (callback: (stats: unknown) => void): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      stats: unknown
+    ) => callback(stats);
+    ipcRenderer.on('host:streamer-stats', handler);
+    return () => ipcRenderer.removeListener('host:streamer-stats', handler);
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Assemble and expose
 // ---------------------------------------------------------------------------
 
@@ -347,6 +443,8 @@ const platformApi = {
   os: process.platform as 'win32' | 'darwin' | 'linux',
   /** Native streaming is currently only available on Windows. */
   nativeStreamingSupported: process.platform === 'win32',
+  /** Host mode is currently only available on Windows. */
+  hostModeSupported: process.platform === 'win32',
 };
 
 const api = {
@@ -358,6 +456,7 @@ const api = {
   deepLink: deepLinkApi,
   tray: trayApi,
   platform: platformApi,
+  host: hostApi,
 };
 
 contextBridge.exposeInMainWorld('nvrs', api);

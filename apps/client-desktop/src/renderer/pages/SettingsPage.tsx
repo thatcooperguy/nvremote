@@ -1,8 +1,10 @@
 import React, { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { colors, radius, spacing, typography } from '../styles/theme';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useAuthStore } from '../store/authStore';
+import { useHostAgentStore } from '../store/hostAgentStore';
 import { toast } from '../components/Toast';
 
 const APP_VERSION = '0.5.1-beta';
@@ -62,12 +64,19 @@ function ToggleRow({ label, description, checked, onChange }: ToggleRowProps): R
 export function SettingsPage(): React.ReactElement {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const navigate = useNavigate();
+
+  const config = useHostAgentStore((s) => s.config);
+  const isRegistered = useHostAgentStore((s) => s.isRegistered);
+  const setMode = useHostAgentStore((s) => s.setMode);
 
   const [autoConnect, setAutoConnect] = useState(false);
   const [minimizeToTray, setMinimizeToTray] = useState(true);
   const [hardwareDecode, setHardwareDecode] = useState(true);
   const [vsync, setVsync] = useState(true);
   const [autoReconnect, setAutoReconnect] = useState(true);
+
+  const hostModeSupported = window.nvrs?.platform?.hostModeSupported ?? false;
 
   const handleLogout = useCallback(async () => {
     try {
@@ -77,6 +86,18 @@ export function SettingsPage(): React.ReactElement {
       toast.error('Failed to sign out');
     }
   }, [logout]);
+
+  const handleModeChange = useCallback(
+    async (mode: 'client' | 'host' | 'both') => {
+      try {
+        await setMode(mode);
+        toast.success(`Mode changed to ${mode}`);
+      } catch (err) {
+        toast.error((err as Error).message);
+      }
+    },
+    [setMode]
+  );
 
   return (
     <div style={styles.page}>
@@ -104,6 +125,74 @@ export function SettingsPage(): React.ReactElement {
           </Button>
         </div>
       </SettingsSection>
+
+      {/* App Mode (Windows only) */}
+      {hostModeSupported && (
+        <SettingsSection
+          title="App Mode"
+          description="Configure NVRemote as a client, host, or both"
+        >
+          <div style={styles.settingsList}>
+            <div style={styles.settingRow}>
+              <div style={styles.settingInfo}>
+                <span style={styles.settingLabel}>Mode</span>
+                <span style={styles.settingDescription}>
+                  Client receives streams. Host shares your GPU. Both does both simultaneously.
+                </span>
+              </div>
+              <div style={styles.modeSelector}>
+                {(['client', 'host', 'both'] as const).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => handleModeChange(m)}
+                    style={{
+                      ...styles.modeButton,
+                      ...(config?.mode === m ? styles.modeButtonActive : {}),
+                    }}
+                  >
+                    {m.charAt(0).toUpperCase() + m.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {(config?.mode === 'host' || config?.mode === 'both') && (
+              <>
+                <div style={styles.settingDivider} />
+                {isRegistered ? (
+                  <div style={styles.settingRow}>
+                    <div style={styles.settingInfo}>
+                      <span style={styles.settingLabel}>Host ID</span>
+                      <span style={{ ...styles.settingDescription, fontFamily: "'JetBrains Mono', monospace" }}>
+                        {config?.hostId}
+                      </span>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => navigate('/host')}
+                    >
+                      Host Dashboard
+                    </Button>
+                  </div>
+                ) : (
+                  <div style={styles.settingRow}>
+                    <div style={styles.settingInfo}>
+                      <span style={styles.settingLabel}>Registration Required</span>
+                      <span style={styles.settingDescription}>
+                        Register this machine as a streaming host to accept connections.
+                      </span>
+                    </div>
+                    <Button size="sm" onClick={() => navigate('/host')}>
+                      Set Up Host
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </SettingsSection>
+      )}
 
       {/* Connection Preferences */}
       <SettingsSection
@@ -328,5 +417,28 @@ const styles: Record<string, React.CSSProperties> = {
     color: colors.text.primary,
     fontWeight: typography.fontWeight.medium,
     fontFamily: "'JetBrains Mono', 'Consolas', monospace",
+  },
+  modeSelector: {
+    display: 'flex',
+    gap: 0,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    border: `1px solid ${colors.border.default}`,
+  },
+  modeButton: {
+    padding: `6px 16px`,
+    border: 'none',
+    background: colors.bg.elevated,
+    color: colors.text.secondary,
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
+    fontFamily: typography.fontFamily,
+    cursor: 'pointer',
+    transition: 'background-color 150ms ease, color 150ms ease',
+    outline: 'none',
+  },
+  modeButtonActive: {
+    backgroundColor: colors.accent.default,
+    color: '#FFFFFF',
   },
 };

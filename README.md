@@ -30,22 +30,29 @@
 
 Grab the latest release for your platform. No account required — just download and run.
 
-### 🖥️ Stream TO Your Device (Client)
+### 🖥️ Windows — One App, Client + Host
+
+| Download | Notes |
+|----------|-------|
+| [**NVRemote-0.5.1-beta-Setup.exe**](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-0.5.1-beta-Setup.exe) | **Includes client AND host.** Stream to or from this machine. Auto-updates. |
+
+> On Windows, NVRemote is one unified app. Go to Settings to switch between **Client**, **Host**, or **Both** mode. No separate host agent needed.
+
+### 📱 Other Client Platforms
 
 | Platform | Download | Notes |
 |----------|----------|-------|
-| **Windows** | [NVRemote-0.5.1-beta-Setup.exe](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-0.5.1-beta-Setup.exe) | Windows 10/11, auto-updates |
 | **macOS** | [NVRemote-0.5.1-beta-universal.dmg](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-0.5.1-beta-universal.dmg) | Universal binary (Intel + Apple Silicon) |
 | **Linux x86_64** | [NVRemote-0.5.1-beta-x86_64.AppImage](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-0.5.1-beta-x86_64.AppImage) | AppImage — `chmod +x` and run |
 | **Linux ARM64** | [NVRemote-0.5.1-beta-arm64.AppImage](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-0.5.1-beta-arm64.AppImage) | Jetson / Pi / ARM64 Linux |
 | **Android** | [NVRemote-v0.5.1-beta.apk](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-v0.5.1-beta.apk) | Android 7.0+, sideload APK |
 
-### 🖧 Stream FROM Your GPU Machine (Host Agent)
+### 🖧 Linux Host Agent (headless servers)
+
+For headless Linux servers (Jetson, DGX, Docker) where Electron doesn't make sense, use the standalone Go agent:
 
 | Platform | Download | Notes |
 |----------|----------|-------|
-| **Windows** | [**NVRemoteAgent.exe**](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteAgent-v0.5.1-beta.exe) | Download, double-click, done — requires NVIDIA GPU |
-| Windows (full bundle) | [NVRemoteHost-v0.5.1-beta-win64.zip](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteHost-v0.5.1-beta-win64.zip) | Agent + streamer + DLLs + install script |
 | **Linux x86_64** | [NVRemoteHost-v0.5.1-beta-linux-amd64.tar.gz](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteHost-v0.5.1-beta-linux-amd64.tar.gz) | GPG signed ([.asc](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteHost-v0.5.1-beta-linux-amd64.tar.gz.asc)) |
 | **Linux ARM64** | [NVRemoteHost-v0.5.1-beta-linux-arm64.tar.gz](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteHost-v0.5.1-beta-linux-arm64.tar.gz) | Jetson / DGX Spark — GPG signed ([.asc](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteHost-v0.5.1-beta-linux-arm64.tar.gz.asc)) |
 
@@ -170,10 +177,10 @@ nvremote/
 ├── apps/
 │   ├── server-api/          # NestJS API         (TypeScript)
 │   ├── website/             # Next.js site        (TypeScript)
-│   ├── client-desktop/      # Electron client     (TypeScript + C++)
+│   ├── client-desktop/      # Electron app — client + host (TypeScript + C++)
 │   ├── android/             # Android client      (Kotlin)
 │   ├── mac-client/          # macOS client        (Swift)
-│   ├── host-agent/          # Host agent          (Go)
+│   ├── host-agent/          # Host agent — Linux headless (Go)
 │   └── gateway/             # TURN + VPN gateway  (Go)
 ├── libs/
 │   ├── nvremote-host/       # GPU capture + encode (C++17)
@@ -194,7 +201,7 @@ nvremote/
 |-|-----------|
 | API | NestJS 10, Prisma 5, PostgreSQL 15, Socket.io |
 | Website | Next.js 14, React 18, Tailwind CSS, Framer Motion |
-| Desktop | Electron 31, React 18, Zustand, C++ N-API addon |
+| Desktop | Electron 31, React 18, Zustand, C++ N-API addon (unified client + host) |
 | Android | Kotlin, Jetpack Compose, Hilt, WebRTC |
 | macOS | Swift 5.9, Metal, VideoToolbox |
 | Host Agent | Go 1.22 |
@@ -233,17 +240,17 @@ nvremote/
 
 Stream your GPU desktop in 3 steps. Your host and sessions are private to your account — no one else can see or connect to your machine.
 
-### Step 1: Install the Host Agent (on your GPU machine)
+### Windows (one app does everything)
 
-Download the host agent for your platform from the [Downloads](#downloads) section above.
+1. Download [**NVRemote-0.5.1-beta-Setup.exe**](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-0.5.1-beta-Setup.exe) and install it
+2. Sign in with Google
+3. **To stream FROM this machine:** Go to Settings &rarr; switch to **Host** or **Both** mode &rarr; follow the setup wizard to register
+4. **To stream TO this machine:** Your hosts appear in the Dashboard &mdash; click **Stream**
 
-**Windows:**
-1. Download [**NVRemoteAgent.exe**](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemoteAgent-v0.5.1-beta.exe)
-2. Double-click it &mdash; a setup wizard walks you through first-time configuration
-3. Enter your bootstrap token (get one from [nvremote.com/dashboard/devices](https://nvremote.com/dashboard/devices))
-4. The agent registers your machine and starts streaming in the background
+That's it. One app. Client, host, or both at the same time.
 
-**Linux:**
+### Linux Host (headless / Jetson / DGX)
+
 ```bash
 tar xzf NVRemoteHost-v0.5.1-beta-linux-amd64.tar.gz
 cd NVRemoteHost-v0.5.1-beta-linux-amd64
@@ -252,24 +259,9 @@ sudo ./install.sh    # Installs as systemd service, prompts for token
 
 Or run directly without installing: `./NVRemoteAgent` (interactive setup on first run)
 
-### Step 2: Install the Client (on the device you want to stream TO)
+### Other Clients (macOS, Android, Linux desktop)
 
-Download the client for your platform from the [Downloads](#downloads) section above.
-
-**Windows:** Run [NVRemote-0.5.1-beta-Setup.exe](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-0.5.1-beta-Setup.exe) — installs and launches automatically.
-
-**macOS:** Open [NVRemote-0.5.1-beta-universal.dmg](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-0.5.1-beta-universal.dmg) and drag to Applications.
-
-**Android:** Sideload [NVRemote-v0.5.1-beta.apk](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-v0.5.1-beta.apk).
-
-**Linux:** `chmod +x NVRemote-*.AppImage && ./NVRemote-*.AppImage`
-
-### Step 3: Connect and Stream
-
-1. Open the NVRemote client and sign in with the **same Google account** you used on the host
-2. Your GPU machine appears in the device list (only visible to you)
-3. Click **Stream** — a peer-to-peer connection is established directly between your devices
-4. That's it. Your GPU desktop is now streaming to your device.
+Download from [Downloads](#downloads), sign in with the **same Google account**, and your hosts will appear.
 
 > 🔒 **Privacy:** Your host is registered to your account and is only visible to you (or members of your organization if you create one). Sessions are encrypted end-to-end with DTLS/SRTP. No one — not even NVRemote servers — can see your stream content.
 
@@ -314,7 +306,7 @@ Push a tag &rarr; 13 jobs build everything:
 | Android Client (Kotlin) | Builds in CI |
 | macOS Client (Swift) | Skeleton |
 | Web Client (Chrome) | **Built** &mdash; WebRTC in browser |
-| Host Agent (Go) | Builds in CI (Win + Linux + ARM64) |
+| Host Agent (Go) | Builds in CI (Linux + ARM64 headless) |
 | C++ Streaming Core | Builds in CI |
 | Infrastructure | GCP, Terraform, CI/CD all live |
 

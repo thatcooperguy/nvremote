@@ -213,7 +213,57 @@ interface NvrsApi {
   platform: {
     os: 'win32' | 'darwin' | 'linux';
     nativeStreamingSupported: boolean;
+    hostModeSupported: boolean;
   };
+
+  host: {
+    setMode: (mode: 'client' | 'host' | 'both') => Promise<IpcResult>;
+    getStatus: () => Promise<HostAgentStatus>;
+    register: (data: { bootstrapToken: string; hostName: string }) => Promise<IpcResult>;
+    getConfig: () => Promise<HostAgentConfig>;
+    setConfig: (partial: Record<string, unknown>) => Promise<IpcResult>;
+    getStreamerStats: () => Promise<unknown>;
+    forceIDR: () => Promise<IpcResult>;
+    start: () => Promise<IpcResult>;
+    stop: () => Promise<IpcResult>;
+    onStatusChange: (cb: (status: HostAgentStatus) => void) => () => void;
+    onSessionStarted: (
+      cb: (data: { sessionId: string; codec: string; userId: string }) => void
+    ) => () => void;
+    onSessionEnded: (cb: (data: { sessionId: string }) => void) => () => void;
+    onStreamerStats: (cb: (stats: unknown) => void) => () => void;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Host Agent types
+// ---------------------------------------------------------------------------
+
+interface HostAgentStatus {
+  state: string;
+  hostId: string;
+  gpuModel: string;
+  codecs: string[];
+  streamerRunning: boolean;
+  signalingConnected: boolean;
+  activeSession: {
+    sessionId: string;
+    codec: string;
+    connectionType: string;
+    userId: string;
+  } | null;
+  error: string | null;
+}
+
+interface HostAgentConfig {
+  mode: string;
+  bootstrapToken: string;
+  hostId: string;
+  apiToken: string;
+  hostName: string;
+  stunServers: string[];
+  registeredAt: string;
+  controlPlaneUrl: string;
 }
 
 // ---------------------------------------------------------------------------

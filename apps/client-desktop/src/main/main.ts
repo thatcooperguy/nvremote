@@ -10,6 +10,7 @@ import {
   dialog,
 } from 'electron';
 import path from 'path';
+import os from 'os';
 import { autoUpdater } from 'electron-updater';
 import { loadViewer, getViewer, isViewerAvailable } from './viewer';
 import type { ViewerConfig, IceCandidate } from './viewer';
@@ -26,6 +27,8 @@ import {
   onSessionEnded,
 } from './p2p';
 import type { SessionOptions } from './p2p';
+import { HostAgent } from './host';
+import type { HostAgentConfig } from './host';
 
 // ---------------------------------------------------------------------------
 // Encrypted token storage using electron-store
@@ -45,6 +48,13 @@ async function getStore(): Promise<any> {
     schema: {
       'auth.access': { type: 'string', default: '' },
       'auth.refresh': { type: 'string', default: '' },
+      'host.mode': { type: 'string', default: 'client' },
+      'host.bootstrapToken': { type: 'string', default: '' },
+      'host.hostId': { type: 'string', default: '' },
+      'host.apiToken': { type: 'string', default: '' },
+      'host.hostName': { type: 'string', default: '' },
+      'host.stunServers': { type: 'string', default: 'stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302' },
+      'host.registeredAt': { type: 'string', default: '' },
     },
   });
   return store;
@@ -58,6 +68,7 @@ let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let trayContextMenu: Electron.Menu | null = null;
 let isQuitting = false;
+let hostAgent: HostAgent | null = null;
 
 const PROTOCOL = 'nvremote';
 const isDev = !app.isPackaged;
@@ -81,6 +92,41 @@ function getApiBaseUrl(): string {
   return isDev
     ? 'http://localhost:3000/api'
     : 'https://api.nvremote.com';
+}
+
+function getControlPlaneUrl(): string {
+  return isDev
+    ? 'http://localhost:3000'
+    : 'https://api.nvremote.com';
+}
+
+/** Build a HostAgentConfig from the electron-store values. */
+async function buildHostConfig(): Promise<HostAgentConfig> {
+  const s = await getStore();
+  const stunStr = (s.get('host.stunServers', '') as string);
+  const stunServers = stunStr ? stunStr.split(',').map((x: string) => x.trim()).filter(Boolean) : [];
+  return {
+    mode: (s.get('host.mode', 'client') as HostAgentConfig['mode']),
+    bootstrapToken: (s.get('host.bootstrapToken', '') as string),
+    hostId: (s.get('host.hostId', '') as string),
+    apiToken: (s.get('host.apiToken', '') as string),
+    hostName: (s.get('host.hostName', '') as string) || os.hostname(),
+    stunServers,
+    registeredAt: (s.get('host.registeredAt', '') as string),
+    controlPlaneUrl: getControlPlaneUrl(),
+  };
+}
+
+/** Persist host config keys back to electron-store. */
+async function saveHostConfig(cfg: Partial<HostAgentConfig>): Promise<void> {
+  const s = await getStore();
+  if (cfg.mode !== undefined) s.set('host.mode', cfg.mode);
+  if (cfg.bootstrapToken !== undefined) s.set('host.bootstrapToken', cfg.bootstrapToken);
+  if (cfg.hostId !== undefined) s.set('host.hostId', cfg.hostId);
+  if (cfg.apiToken !== undefined) s.set('host.apiToken', cfg.apiToken);
+  if (cfg.hostName !== undefined) s.set('host.hostName', cfg.hostName);
+  if (cfg.stunServers !== undefined) s.set('host.stunServers', cfg.stunServers.join(','));
+  if (cfg.registeredAt !== undefined) s.set('host.registeredAt', cfg.registeredAt);
 }
 
 // ---------------------------------------------------------------------------
@@ -492,6 +538,151 @@ function setupIpcHandlers(): void {
       menuItem.enabled = enabled;
     }
   });
+
+  // ── Host Agent ────────────────────────────────────────────────────────
+  ipcMain.handle('host:set-mode', async (_event, mode: 'client' | 'host' | 'both') => {
+    try {
+      await saveHostConfig({ mode });
+
+      // Start host agent if switching to host/both mode (Windows only).
+      if ((mode === 'host' || mode === 'both') && process.platform === 'win32') {
+        if (!hostAgent) {
+          const cfg = await buildHostConfig();
+          hostAgent = new HostAgent(cfg);
+          if (mainWindow) hostAgent.setMainWindow(mainWindow);
+        }
+        // Only auto-start if already registered.
+        const cfg = hostAgent.getConfig();
+        if (cfg.hostId && cfg.apiToken) {
+          await hostAgent.start();
+        }
+      } else if (mode === 'client') {
+        // Stop host agent if switching to client-only.
+        if (hostAgent) {
+          await hostAgent.stop();
+        }
+      }
+
+      return { success: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to set mode';
+      return { success: false, error: message };
+    }
+  });
+
+  ipcMain.handle('host:get-status', () => {
+    if (!hostAgent) {
+      return {
+        state: 'stopped',
+        hostId: '',
+        gpuModel: '',
+        codecs: [],
+        streamerRunning: false,
+        signalingConnected: false,
+        activeSession: null,
+        error: null,
+      };
+    }
+    return hostAgent.getStatus();
+  });
+
+  ipcMain.handle(
+    'host:register',
+    async (_event, data: { bootstrapToken: string; hostName: string }) => {
+      try {
+        if (!hostAgent) {
+          const cfg = await buildHostConfig();
+          cfg.bootstrapToken = data.bootstrapToken;
+          cfg.hostName = data.hostName;
+          hostAgent = new HostAgent(cfg);
+          if (mainWindow) hostAgent.setMainWindow(mainWindow);
+        } else {
+          hostAgent.updateConfig({
+            bootstrapToken: data.bootstrapToken,
+            hostName: data.hostName,
+          });
+        }
+
+        const resp = await hostAgent.register({
+          bootstrapToken: data.bootstrapToken,
+          hostName: data.hostName,
+          controlPlaneUrl: getControlPlaneUrl(),
+        });
+
+        // Persist registration data.
+        await saveHostConfig({
+          bootstrapToken: data.bootstrapToken,
+          hostName: data.hostName,
+          hostId: resp.host_id,
+          apiToken: resp.api_token,
+          registeredAt: resp.registered_at,
+        });
+
+        return { success: true, data: resp };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Registration failed';
+        return { success: false, error: message };
+      }
+    }
+  );
+
+  ipcMain.handle('host:get-config', async () => {
+    return buildHostConfig();
+  });
+
+  ipcMain.handle('host:set-config', async (_event, partial: Record<string, unknown>) => {
+    try {
+      await saveHostConfig(partial as Partial<HostAgentConfig>);
+      if (hostAgent) {
+        hostAgent.updateConfig(partial as Partial<HostAgentConfig>);
+      }
+      return { success: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save config';
+      return { success: false, error: message };
+    }
+  });
+
+  ipcMain.handle('host:get-streamer-stats', async () => {
+    if (!hostAgent) return null;
+    return hostAgent.getStreamerStats();
+  });
+
+  ipcMain.handle('host:force-idr', async () => {
+    try {
+      if (!hostAgent) throw new Error('Host agent not running');
+      await hostAgent.forceIDR();
+      return { success: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to force IDR';
+      return { success: false, error: message };
+    }
+  });
+
+  ipcMain.handle('host:start', async () => {
+    try {
+      if (!hostAgent) {
+        const cfg = await buildHostConfig();
+        hostAgent = new HostAgent(cfg);
+        if (mainWindow) hostAgent.setMainWindow(mainWindow);
+      }
+      await hostAgent.start();
+      return { success: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to start host agent';
+      return { success: false, error: message };
+    }
+  });
+
+  ipcMain.handle('host:stop', async () => {
+    try {
+      if (hostAgent) await hostAgent.stop();
+      return { success: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to stop host agent';
+      return { success: false, error: message };
+    }
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -597,12 +788,31 @@ if (!gotLock) {
     }
   });
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
     registerProtocolHandler();
     createWindow();
     createTray();
     setupIpcHandlers();
     initAutoUpdater();
+
+    // Initialize host agent if mode is host or both (Windows only).
+    if (process.platform === 'win32') {
+      try {
+        const hostCfg = await buildHostConfig();
+        if (hostCfg.mode === 'host' || hostCfg.mode === 'both') {
+          hostAgent = new HostAgent(hostCfg);
+          if (mainWindow) hostAgent.setMainWindow(mainWindow);
+          // Auto-start if registered.
+          if (hostCfg.hostId && hostCfg.apiToken) {
+            hostAgent.start().catch((err) => {
+              console.warn('[main] host agent auto-start failed:', err.message);
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('[main] failed to initialize host agent:', (err as Error).message);
+      }
+    }
   });
 }
 
@@ -632,5 +842,13 @@ app.on('before-quit', async () => {
     disconnectSignaling();
   } catch {
     // Swallow errors during shutdown.
+  }
+  // Stop host agent gracefully.
+  if (hostAgent) {
+    try {
+      await hostAgent.stop();
+    } catch {
+      // Swallow errors during shutdown.
+    }
   }
 });

@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { colors, radius, spacing, typography } from '../styles/theme';
+import { colors, radius, spacing, typography, transitions } from '../styles/theme';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useAuthStore } from '../store/authStore';
@@ -20,7 +20,9 @@ function SettingsSection({ title, description, children }: SettingsSectionProps)
   return (
     <div style={styles.section}>
       <div style={styles.sectionHeader}>
-        <h2 style={styles.sectionTitle}>{title}</h2>
+        <div style={styles.sectionTitleBar}>
+          <h2 style={styles.sectionTitle}>{title}</h2>
+        </div>
         {description && <p style={styles.sectionDescription}>{description}</p>}
       </div>
       <Card>{children}</Card>
@@ -62,6 +64,42 @@ function ToggleRow({ label, description, checked, onChange }: ToggleRowProps): R
   );
 }
 
+function CopyButton({ text }: { text: string }): React.ReactElement {
+  const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, []);
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      timerRef.current = setTimeout(() => setCopied(false), 1500);
+    });
+  }, [text]);
+
+  return (
+    <button
+      onClick={handleCopy}
+      style={styles.copyButton}
+      title={copied ? 'Copied!' : 'Copy to clipboard'}
+      aria-label="Copy to clipboard"
+    >
+      {copied ? (
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M3 7L6 10L11 4" stroke={colors.accent.default} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ) : (
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <rect x="4" y="4" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+          <path d="M10 4V3C10 2.44772 9.55228 2 9 2H3C2.44772 2 2 2.44772 2 3V9C2 9.55228 2.44772 10 3 10H4" stroke="currentColor" strokeWidth="1.3" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
 export function SettingsPage(): React.ReactElement {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -79,6 +117,15 @@ export function SettingsPage(): React.ReactElement {
   const [hardwareDecode, setHardwareDecode] = useState(true);
   const [vsync, setVsync] = useState(true);
   const [autoReconnect, setAutoReconnect] = useState(true);
+
+  // Wrapper to show save feedback on toggle changes
+  const withSaveToast = useCallback(
+    (setter: (v: boolean) => void) => (value: boolean) => {
+      setter(value);
+      toast.success('Setting saved');
+    },
+    []
+  );
 
   const hostModeSupported = window.nvrs?.platform?.hostModeSupported ?? false;
 
@@ -167,9 +214,12 @@ export function SettingsPage(): React.ReactElement {
                   <div style={styles.settingRow}>
                     <div style={styles.settingInfo}>
                       <span style={styles.settingLabel}>Host ID</span>
-                      <span style={{ ...styles.settingDescription, fontFamily: "'JetBrains Mono', monospace" }}>
-                        {config?.hostId}
-                      </span>
+                      <div style={styles.hostIdRow}>
+                        <span style={styles.hostIdText}>
+                          {config?.hostId}
+                        </span>
+                        <CopyButton text={config?.hostId || ''} />
+                      </div>
                     </div>
                     <Button
                       variant="secondary"
@@ -234,35 +284,35 @@ export function SettingsPage(): React.ReactElement {
             label="Hardware Decoding"
             description="Use GPU-accelerated video decoding for better performance"
             checked={hardwareDecode}
-            onChange={setHardwareDecode}
+            onChange={withSaveToast(setHardwareDecode)}
           />
           <div style={styles.settingDivider} />
           <ToggleRow
             label="VSync"
             description="Synchronize frame rendering to prevent tearing"
             checked={vsync}
-            onChange={setVsync}
+            onChange={withSaveToast(setVsync)}
           />
           <div style={styles.settingDivider} />
           <ToggleRow
             label="Auto-Reconnect"
             description="Automatically reconnect when the connection is interrupted"
             checked={autoReconnect}
-            onChange={setAutoReconnect}
+            onChange={withSaveToast(setAutoReconnect)}
           />
           <div style={styles.settingDivider} />
           <ToggleRow
             label="Auto-Connect on Launch"
             description="Automatically connect to the last used host on startup"
             checked={autoConnect}
-            onChange={setAutoConnect}
+            onChange={withSaveToast(setAutoConnect)}
           />
           <div style={styles.settingDivider} />
           <ToggleRow
             label="Minimize to System Tray"
             description="Keep the app running in the background when the window is closed"
             checked={minimizeToTray}
-            onChange={setMinimizeToTray}
+            onChange={withSaveToast(setMinimizeToTray)}
           />
         </div>
       </SettingsSection>
@@ -331,6 +381,13 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     gap: 4,
   },
+  sectionTitleBar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderLeft: `3px solid ${colors.accent.default}`,
+    paddingLeft: spacing.sm,
+  },
   sectionTitle: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.semibold,
@@ -346,6 +403,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     gap: spacing.md,
+    flexWrap: 'wrap' as const,
   },
   avatar: {
     width: 56,
@@ -481,6 +539,32 @@ const styles: Record<string, React.CSSProperties> = {
   },
   modeButtonActive: {
     backgroundColor: colors.accent.default,
-    color: '#FFFFFF',
+    color: colors.text.onPrimary,
+    fontWeight: typography.fontWeight.semibold,
+  },
+  hostIdRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+  },
+  hostIdText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    fontFamily: typography.fontMono,
+  },
+  copyButton: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 24,
+    height: 24,
+    border: 'none',
+    background: 'transparent',
+    color: colors.text.disabled,
+    cursor: 'pointer',
+    borderRadius: radius.sm,
+    transition: 'color 150ms ease, background-color 150ms ease',
+    padding: 0,
+    outline: 'none',
   },
 };

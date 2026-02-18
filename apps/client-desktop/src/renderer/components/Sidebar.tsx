@@ -8,6 +8,8 @@ interface NavItem {
   label: string;
   path: string;
   icon: React.ReactNode;
+  /** Keyboard shortcut hint text (e.g., "Ctrl+D") */
+  shortcut?: string;
   /** If true, only show on Windows when host mode is available. */
   hostOnly?: boolean;
 }
@@ -17,6 +19,7 @@ const allNavItems: NavItem[] = [
     label: 'Dashboard',
     path: '/dashboard',
     icon: <DashboardIcon />,
+    shortcut: 'Ctrl+D',
   },
   {
     label: 'Host',
@@ -28,11 +31,13 @@ const allNavItems: NavItem[] = [
     label: 'Sessions',
     path: '/sessions',
     icon: <SessionsIcon />,
+    shortcut: 'Ctrl+S',
   },
   {
     label: 'Settings',
     path: '/settings',
     icon: <SettingsIcon />,
+    shortcut: 'Ctrl+,',
   },
 ];
 
@@ -92,8 +97,8 @@ export function Sidebar(): React.ReactElement {
             )}
           </div>
           <div style={styles.userInfo}>
-            <span style={styles.userName}>{user?.name || 'User'}</span>
-            <span style={styles.userOrg}>{user?.org || 'Organization'}</span>
+            <span style={styles.userName} title={user?.name || 'User'}>{user?.name || 'User'}</span>
+            <span style={styles.userOrg} title={user?.org || 'Organization'}>{user?.org || 'Organization'}</span>
           </div>
         </div>
       )}
@@ -115,24 +120,38 @@ export function Sidebar(): React.ReactElement {
           const isHovered = hoveredItem === item.path;
 
           return (
-            <button
-              key={item.path}
-              onClick={() => handleNavClick(item.path)}
-              onMouseEnter={() => setHoveredItem(item.path)}
-              onMouseLeave={() => setHoveredItem(null)}
-              style={{
-                ...styles.navItem,
-                ...(isActive ? styles.navItemActive : {}),
-                ...(isHovered && !isActive ? styles.navItemHover : {}),
-                justifyContent: collapsed ? 'center' : 'flex-start',
-                paddingLeft: collapsed ? 0 : 16,
-              }}
-              title={collapsed ? item.label : undefined}
-            >
-              {isActive && <div style={styles.activeIndicator} />}
-              <span style={styles.navIcon}>{item.icon}</span>
-              {!collapsed && <span style={styles.navLabel}>{item.label}</span>}
-            </button>
+            <div key={item.path} style={{ position: 'relative' }}>
+              <button
+                onClick={() => handleNavClick(item.path)}
+                onMouseEnter={() => setHoveredItem(item.path)}
+                onMouseLeave={() => setHoveredItem(null)}
+                style={{
+                  ...styles.navItem,
+                  ...(isActive ? styles.navItemActive : {}),
+                  ...(isHovered && !isActive ? styles.navItemHover : {}),
+                  justifyContent: collapsed ? 'center' : 'flex-start',
+                  paddingLeft: collapsed ? 0 : 16,
+                }}
+                aria-label={item.label}
+              >
+                {isActive && <div style={styles.activeIndicator} />}
+                <span style={styles.navIcon}>{item.icon}</span>
+                {!collapsed && (
+                  <>
+                    <span style={styles.navLabel}>{item.label}</span>
+                    {item.shortcut && (
+                      <span style={styles.shortcutHint}>{item.shortcut}</span>
+                    )}
+                  </>
+                )}
+              </button>
+              {/* Tooltip for collapsed sidebar */}
+              {collapsed && isHovered && (
+                <span style={styles.collapsedTooltip}>
+                  {item.label}
+                </span>
+              )}
+            </div>
           );
         })}
       </nav>
@@ -314,7 +333,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: colors.accent.default,
   },
   navItemHover: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.10)',
     color: colors.text.primary,
   },
   activeIndicator: {
@@ -325,6 +344,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: 3,
     borderRadius: '0 3px 3px 0',
     backgroundColor: colors.accent.default,
+    boxShadow: `0 0 8px ${colors.accent.default}`,
   },
   navIcon: {
     display: 'flex',
@@ -336,6 +356,15 @@ const styles: Record<string, React.CSSProperties> = {
   },
   navLabel: {
     fontWeight: typography.fontWeight.medium,
+    flex: 1,
+  },
+  shortcutHint: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.disabled,
+    opacity: 0.6,
+    fontFamily: typography.fontMono,
+    fontWeight: typography.fontWeight.normal,
+    marginLeft: 'auto',
   },
   footer: {
     padding: spacing.sm,
@@ -354,5 +383,23 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     transition: 'background-color 150ms ease, color 150ms ease',
     outline: 'none',
+  },
+  collapsedTooltip: {
+    position: 'absolute',
+    left: '100%',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    marginLeft: 8,
+    padding: '4px 10px',
+    backgroundColor: colors.bg.elevated,
+    color: colors.text.primary,
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
+    borderRadius: radius.sm,
+    whiteSpace: 'nowrap',
+    pointerEvents: 'none',
+    zIndex: 700,
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
+    animation: 'fadeIn 120ms ease',
   },
 };

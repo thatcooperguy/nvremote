@@ -4,12 +4,17 @@ import { Card } from '../components/Card';
 import { useSessionStore, type Session } from '../store/sessionStore';
 import { useHostStore } from '../store/hostStore';
 
+type SortField = 'date' | 'duration';
+type SortDirection = 'asc' | 'desc';
+
 export function SessionsPage(): React.ReactElement {
   const sessions = useSessionStore((s) => s.sessions);
   const fetchSessions = useSessionStore((s) => s.fetchSessions);
   const hosts = useHostStore((s) => s.hosts);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<SortField>('date');
+  const [sortDir, setSortDir] = useState<SortDirection>('desc');
 
   useEffect(() => {
     const load = async () => {
@@ -30,16 +35,56 @@ export function SessionsPage(): React.ReactElement {
     return host?.name || 'Unknown Host';
   };
 
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDir('desc');
+    }
+  };
+
+  const sortedSessions = [...sessions].sort((a, b) => {
+    const mul = sortDir === 'asc' ? 1 : -1;
+    if (sortField === 'date') {
+      return mul * (new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime());
+    }
+    return mul * ((a.durationMs || 0) - (b.durationMs || 0));
+  });
+
+  const SortIcon = ({ field }: { field: SortField }) => (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 10 10"
+      fill="none"
+      style={{ marginLeft: 4, opacity: sortField === field ? 1 : 0.3 }}
+    >
+      <path
+        d="M5 1L8 4H2L5 1Z"
+        fill={sortField === field && sortDir === 'asc' ? colors.accent.default : colors.text.disabled}
+      />
+      <path
+        d="M5 9L2 6H8L5 9Z"
+        fill={sortField === field && sortDir === 'desc' ? colors.accent.default : colors.text.disabled}
+      />
+    </svg>
+  );
+
   return (
     <div style={styles.page}>
       <h1 style={styles.pageTitle}>Sessions</h1>
       <p style={styles.pageDescription}>
         Your streaming session history
+        {!isLoading && sessions.length > 0 && (
+          <span style={{ color: colors.text.disabled }}> ({sessions.length})</span>
+        )}
       </p>
 
       {isLoading ? (
         <div style={styles.sessionList}>
           <div style={styles.tableHeader}>
+            <span style={{ ...styles.tableHeaderCell, width: 28 }} />
             <span style={{ ...styles.tableHeaderCell, flex: 2 }}>Host</span>
             <span style={{ ...styles.tableHeaderCell, flex: 2 }}>Date</span>
             <span style={{ ...styles.tableHeaderCell, flex: 1 }}>Duration</span>
@@ -68,14 +113,25 @@ export function SessionsPage(): React.ReactElement {
         <div style={styles.sessionList}>
           {/* Table Header */}
           <div style={styles.tableHeader}>
+            <span style={{ ...styles.tableHeaderCell, width: 28 }} />
             <span style={{ ...styles.tableHeaderCell, flex: 2 }}>Host</span>
-            <span style={{ ...styles.tableHeaderCell, flex: 2 }}>Date</span>
-            <span style={{ ...styles.tableHeaderCell, flex: 1 }}>Duration</span>
+            <button
+              style={{ ...styles.tableHeaderCell, flex: 2, ...styles.sortableHeader }}
+              onClick={() => handleSort('date')}
+            >
+              Date <SortIcon field="date" />
+            </button>
+            <button
+              style={{ ...styles.tableHeaderCell, flex: 1, ...styles.sortableHeader }}
+              onClick={() => handleSort('duration')}
+            >
+              Duration <SortIcon field="duration" />
+            </button>
             <span style={{ ...styles.tableHeaderCell, flex: 1 }}>Status</span>
           </div>
 
           {/* Session Rows */}
-          {sessions.map((session) => (
+          {sortedSessions.map((session) => (
             <SessionRow
               key={session.id}
               session={session}
@@ -125,6 +181,27 @@ function SessionRow({ session, hostName, expanded, onToggle }: SessionRowProps):
           }
         }}
       >
+        {/* Expand chevron */}
+        <div style={{ width: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 14 14"
+            fill="none"
+            style={{
+              transition: 'transform 200ms ease',
+              transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+            }}
+          >
+            <path
+              d="M5 3L9 7L5 11"
+              stroke={expanded ? colors.accent.default : colors.text.disabled}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
         <div style={{ ...styles.sessionCell, flex: 2 }}>
           <span style={styles.hostName}>{hostName}</span>
         </div>
@@ -146,7 +223,7 @@ function SessionRow({ session, hostName, expanded, onToggle }: SessionRowProps):
         <div style={{ ...styles.sessionCell, flex: 1 }}>
           <span style={styles.duration}>{formatDuration(session.durationMs)}</span>
         </div>
-        <div style={{ ...styles.sessionCell, flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <div style={{ ...styles.sessionCell, flex: 1 }}>
           <span
             style={{
               ...styles.statusLabel,
@@ -156,25 +233,6 @@ function SessionRow({ session, hostName, expanded, onToggle }: SessionRowProps):
           >
             {session.status}
           </span>
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 12 12"
-            fill="none"
-            style={{
-              transition: 'transform 200ms ease',
-              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-              marginLeft: 'auto',
-            }}
-          >
-            <path
-              d="M3 4.5L6 7.5L9 4.5"
-              stroke={colors.text.disabled}
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
         </div>
       </div>
 
@@ -268,18 +326,19 @@ function DetailItem({ label, value, mono, highlight }: DetailItemProps): React.R
 function SkeletonRow(): React.ReactElement {
   return (
     <div style={styles.sessionRow}>
+      <div style={{ width: 28, flexShrink: 0 }} />
       <div style={{ ...styles.sessionCell, flex: 2 }}>
         <div style={{ ...styles.skeletonLine, width: '70%', height: 16 }} className="skeleton" />
       </div>
       <div style={{ ...styles.sessionCell, flex: 2 }}>
-        <div style={{ ...styles.skeletonLine, width: '60%', height: 16 }} className="skeleton" />
-        <div style={{ ...styles.skeletonLine, width: '40%', height: 12, marginTop: 4 }} className="skeleton" />
-      </div>
-      <div style={{ ...styles.sessionCell, flex: 1 }}>
         <div style={{ ...styles.skeletonLine, width: '50%', height: 16 }} className="skeleton" />
+        <div style={{ ...styles.skeletonLine, width: '35%', height: 12, marginTop: 4 }} className="skeleton" />
       </div>
       <div style={{ ...styles.sessionCell, flex: 1 }}>
-        <div style={{ ...styles.skeletonLine, width: 60, height: 22, borderRadius: 12 }} className="skeleton" />
+        <div style={{ ...styles.skeletonLine, width: '60%', height: 16 }} className="skeleton" />
+      </div>
+      <div style={{ ...styles.sessionCell, flex: 1 }}>
+        <div style={{ ...styles.skeletonLine, width: 56, height: 22, borderRadius: 12 }} className="skeleton" />
       </div>
     </div>
   );
@@ -436,6 +495,17 @@ const styles: Record<string, React.CSSProperties> = {
     color: colors.text.disabled,
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
+  },
+  sortableHeader: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: 0,
+    outline: 'none',
+    fontFamily: typography.fontFamily,
+    transition: 'color 150ms ease',
   },
   sessionRow: {
     display: 'flex',

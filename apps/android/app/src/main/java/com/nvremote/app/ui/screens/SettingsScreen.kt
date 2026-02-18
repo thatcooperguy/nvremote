@@ -267,7 +267,7 @@ fun SettingsScreen(
 
             // App version
             Text(
-                text = "NVRemote v0.5.0-beta",
+                text = "NVRemote v0.5.1-beta",
                 style = MaterialTheme.typography.bodySmall,
                 color = CsOnSurfaceDim,
                 modifier = Modifier.padding(vertical = 8.dp),

@@ -80,7 +80,7 @@ async function bootstrap(): Promise<void> {
     const swaggerConfig = new DocumentBuilder()
       .setTitle('NVRemote Control Plane API')
       .setDescription('Enterprise-grade GPU streaming platform API')
-      .setVersion('0.5.0-beta')
+      .setVersion('0.5.1-beta')
       .addBearerAuth()
       .build();
 

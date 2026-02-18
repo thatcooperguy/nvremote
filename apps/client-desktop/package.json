@@ -1,6 +1,6 @@
 {
   "name": "nvremote-client",
-  "version": "0.5.0-beta",
+  "version": "0.5.1-beta",
   "description": "NVRemote — Cloud Gaming Desktop Client",
   "main": "dist-electron/main/main.js",
   "author": "NVRemote",

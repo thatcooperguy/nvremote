@@ -42,7 +42,7 @@ export class HealthController {
       status: dbHealthy ? 'ok' : 'degraded',
       uptime: Math.floor(uptimeMs / 1000),
       database: dbHealthy ? 'connected' : 'unreachable',
-      version: '0.5.0-beta',
+      version: '0.5.1-beta',
       timestamp: new Date().toISOString(),
     };
   }

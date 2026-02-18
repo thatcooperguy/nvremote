@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { colors, spacing, typography, radius, transitions } from '../styles/theme';
+import { colors, spacing, typography, radius } from '../styles/theme';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useHostAgentStore } from '../store/hostAgentStore';

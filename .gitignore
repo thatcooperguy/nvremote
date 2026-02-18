@@ -64,8 +64,8 @@ docker-compose.override.yml
 coverage/
 .nyc_output/
 
-# Prisma
-apps/server-api/prisma/migrations/
+# Prisma (generated client, NOT migrations — migrations must be committed)
+apps/server-api/node_modules/.prisma/
 
 # WireGuard keys (never commit!)
 *.key

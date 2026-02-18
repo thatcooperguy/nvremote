@@ -4,8 +4,8 @@
  * Used in SettingsPage and anywhere we need tabbed navigation.
  */
 
-import React, { useState, useCallback } from 'react';
-import { colors, spacing, typography, radius, transitions } from '../styles/theme';
+import React, { useState } from 'react';
+import { colors, spacing, typography, transitions } from '../styles/theme';
 
 export interface TabItem {
   id: string;

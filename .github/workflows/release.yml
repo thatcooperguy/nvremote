@@ -840,7 +840,7 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build and package client (ARM64: AppImage + deb + tar.gz)
+      - name: "Build and package client (ARM64: AppImage + deb + tar.gz)"
         working-directory: apps/client-desktop
         run: |
           npm run build

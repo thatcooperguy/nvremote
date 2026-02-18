@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { colors, radius, typography, spacing } from '../styles/theme';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';

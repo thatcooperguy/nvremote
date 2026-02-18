@@ -4,10 +4,9 @@
  * Provides date range, host, and outcome filters + Export/Copy buttons.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { colors, spacing, typography, radius, transitions } from '../styles/theme';
 import { Button } from './Button';
-import { toast } from './Toast';
 
 export interface FilterState {
   dateRange: 'all' | '7d' | '30d' | '90d';

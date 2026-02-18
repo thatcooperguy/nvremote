@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { colors, radius, spacing, typography, transitions, statusColors } from '../styles/theme';
 import { Card } from '../components/Card';
-import { Button } from '../components/Button';
 import { HostCard } from '../components/HostCard';
 import { ErrorState } from '../components/ErrorState';
 import { useHostStore } from '../store/hostStore';

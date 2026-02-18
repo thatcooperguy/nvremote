@@ -262,7 +262,7 @@ export class HostSignaling extends EventEmitter {
     }
 
     // Step 2: Parse resolution.
-    let { width, height } = parseResolution(offer.resolution);
+    const { width, height } = parseResolution(offer.resolution);
 
     // Step 3: Determine gaming mode.
     let gamingMode = 'balanced';

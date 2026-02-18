@@ -4,7 +4,7 @@
  * Used in HostPage to select streaming quality profiles.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { colors, spacing, typography, radius, transitions } from '../styles/theme';
 
 export type StreamingPreset = 'competitive' | 'balanced' | 'cinematic' | 'custom';

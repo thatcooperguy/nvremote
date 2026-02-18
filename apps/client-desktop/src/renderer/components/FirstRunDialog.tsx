@@ -118,7 +118,7 @@ export function FirstRunDialog({ open, onComplete }: FirstRunDialogProps): React
 // ---------------------------------------------------------------------------
 
 function ModeCard({
-  mode,
+  mode: _mode,
   title,
   description,
   icon,

@@ -812,9 +812,10 @@ export default function HomePage() {
                       Windows
                     </span>
                   </div>
-                  <span className="text-[10px] text-gray-400 uppercase tracking-wider">
-                    macOS / Linux coming soon
-                  </span>
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200">
+                    <Monitor size={14} className="text-gray-500" />
+                    <span className="text-xs text-gray-500">Linux</span>
+                  </div>
                 </div>
 
                 <Link
@@ -867,9 +868,10 @@ export default function HomePage() {
                     <Monitor size={14} className="text-gray-500" />
                     <span className="text-xs text-gray-500">Chrome</span>
                   </div>
-                  <span className="text-[10px] text-gray-400 uppercase tracking-wider">
-                    macOS soon
-                  </span>
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200">
+                    <Apple size={14} className="text-gray-500" />
+                    <span className="text-xs text-gray-500">macOS</span>
+                  </div>
                 </div>
 
                 <Link

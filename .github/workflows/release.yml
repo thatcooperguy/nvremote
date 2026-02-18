@@ -737,6 +737,11 @@ jobs:
           }
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Windows Authenticode signing — electron-builder auto-signs
+          # when these env vars are present. Set CSC_LINK to the base64
+          # encoded .pfx certificate and CSC_KEY_PASSWORD to the password.
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
 
       - name: Upload client installer
         uses: actions/upload-artifact@v4
@@ -1026,6 +1031,13 @@ jobs:
           find release -type f -exec ls -lh {} \;
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # macOS code signing (Developer ID Application certificate as .p12 base64)
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          # macOS notarization (Apple Developer account credentials)
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Upload client DMG
         uses: actions/upload-artifact@v4
@@ -1088,23 +1100,35 @@ jobs:
           echo "Gradle wrapper version:"
           ./gradlew --version
 
-      - name: Generate signing keystore
+      - name: Decode signing keystore
         run: |
           KEYSTORE_PATH="${{ runner.temp }}/nvremote-release.jks"
-          KEYSTORE_PASS="NvRemoteAlpha2026"
-          keytool -genkeypair \
-            -alias nvremote \
-            -keyalg RSA -keysize 2048 \
-            -validity 10000 \
-            -keystore "$KEYSTORE_PATH" \
-            -storepass "$KEYSTORE_PASS" \
-            -keypass "$KEYSTORE_PASS" \
-            -dname "CN=NVRemote Alpha, OU=Dev, O=NVRemote, L=US, ST=CA, C=US"
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$KEYSTORE_PATH"
+            echo "Decoded persistent keystore from secret"
+          else
+            echo "WARNING: ANDROID_KEYSTORE_BASE64 secret not set — generating ephemeral keystore"
+            echo "WARNING: Sideload upgrades will break without a persistent keystore!"
+            keytool -genkeypair \
+              -alias nvremote \
+              -keyalg RSA -keysize 2048 \
+              -validity 10000 \
+              -keystore "$KEYSTORE_PATH" \
+              -storepass "NvRemoteAlpha2026" \
+              -keypass "NvRemoteAlpha2026" \
+              -dname "CN=NVRemote Alpha, OU=Dev, O=NVRemote, L=US, ST=CA, C=US"
+          fi
           echo "ANDROID_KEYSTORE_FILE=$KEYSTORE_PATH" >> $GITHUB_ENV
-          echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PASS" >> $GITHUB_ENV
           echo "ANDROID_KEY_ALIAS=nvremote" >> $GITHUB_ENV
-          echo "ANDROID_KEY_PASSWORD=$KEYSTORE_PASS" >> $GITHUB_ENV
-          echo "Generated release keystore at $KEYSTORE_PATH"
+          # Password from secret (falls back to hardcoded for ephemeral builds)
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" ]; then
+            echo "ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+          else
+            echo "ANDROID_KEYSTORE_PASSWORD=NvRemoteAlpha2026" >> $GITHUB_ENV
+            echo "ANDROID_KEY_PASSWORD=NvRemoteAlpha2026" >> $GITHUB_ENV
+          fi
+          echo "Keystore ready at $KEYSTORE_PATH"
 
       - name: Build release APK
         working-directory: apps/android

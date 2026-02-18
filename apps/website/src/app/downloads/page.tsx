@@ -721,7 +721,7 @@ export default function DownloadsPage() {
                   Automatic updates and verified installs.
                 </p>
                 <a
-                  href="https://play.google.com/store/apps/details?id=com.nvremote.client"
+                  href="https://play.google.com/store/apps/details?id=com.nvremote.app"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl bg-gray-100 border border-gray-300 hover:border-nv-green/30 hover:bg-nv-green/5 transition-all duration-300"

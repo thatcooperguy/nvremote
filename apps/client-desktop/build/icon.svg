@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="128" fill="#0A0A0A"/>
+
+  <!-- Lightning bolt / stream icon -->
+  <path d="M430 180L336 445H450L393 672L677 370H525L601 180Z" fill="#76B900"/>
+
+  <!-- Controller outline at bottom -->
+  <path d="M340 610C302 610 272 640 272 678C272 716 302 746 340 746H454C473 746 492 727 492 708C492 727 511 746 530 746H644C682 746 712 716 712 678C712 640 682 610 644 610Z" fill="#76B900" fill-opacity="0.6"/>
+
+  <!-- Left stick dot -->
+  <path d="M384 678m-28,0a28,28 0,1 1,56 0a28,28 0,1 1,-56 0" fill="#76B900"/>
+
+  <!-- Right buttons dots -->
+  <path d="M612 660m-19,0a19,19 0,1 1,38 0a19,19 0,1 1,-38 0" fill="#76B900"/>
+  <path d="M574 698m-19,0a19,19 0,1 1,38 0a19,19 0,1 1,-38 0" fill="#76B900"/>
+  <path d="M650 698m-19,0a19,19 0,1 1,38 0a19,19 0,1 1,-38 0" fill="#76B900"/>
+</svg>

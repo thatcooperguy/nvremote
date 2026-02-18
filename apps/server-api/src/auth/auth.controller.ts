@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
+import { GoogleAuthGuard } from '../common/guards/google-auth.guard';
 import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
@@ -55,10 +56,10 @@ export class AuthController {
   @Get('google')
   @Public()
   @Throttle({ default: { ttl: 60000, limit: 20 } })
-  @UseGuards(AuthGuard('google'))
+  @UseGuards(GoogleAuthGuard)
   @ApiOperation({ summary: 'Initiate Google OAuth login' })
   googleAuth(): void {
-    // Passport redirects to Google
+    // Passport redirects to Google — GoogleAuthGuard passes ?state= through
   }
 
   /**
@@ -66,6 +67,9 @@ export class AuthController {
    * On success, redirects to the frontend with tokens as a URL fragment.
    * The fragment (#) is never sent to the server, keeping tokens client-side only.
    * Falls back to JSON response for non-browser clients (e.g., Electron, mobile).
+   *
+   * Desktop clients pass `state=desktop` through the OAuth flow, which triggers
+   * a redirect to the `nvremote://` custom protocol instead of the website.
    */
   @Get('google/callback')
   @Public()
@@ -84,6 +88,20 @@ export class AuthController {
     const acceptHeader = req.headers.accept || '';
     if (acceptHeader.includes('application/json')) {
       return result;
+    }
+
+    // Desktop clients pass state=desktop through the OAuth flow to indicate
+    // that the callback should redirect to the nvremote:// custom protocol
+    // instead of the web frontend.
+    const state = (req.query.state as string) || '';
+    if (state === 'desktop') {
+      const params = new URLSearchParams({
+        token: result.accessToken,
+        refresh: result.refreshToken,
+      });
+      const redirectUrl = `nvremote://auth?${params.toString()}`;
+      res.redirect(302, redirectUrl);
+      return;
     }
 
     // Encode tokens in the URL fragment for the frontend callback page.

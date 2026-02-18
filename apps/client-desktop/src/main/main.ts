@@ -85,7 +85,11 @@ function getRendererUrl(): string {
   if (isDev) {
     return 'http://localhost:5173';
   }
-  return `file://${path.join(__dirname, '../../dist/index.html')}`;
+  // On Windows, path.join produces backslashes (C:\Users\...) which are
+  // invalid in file:// URLs. Convert to forward slashes and use the
+  // three-slash file:/// convention for absolute paths.
+  const htmlPath = path.join(__dirname, '../../dist/index.html');
+  return `file:///${htmlPath.replace(/\\/g, '/')}`;
 }
 
 function getApiBaseUrl(): string {

@@ -22,7 +22,7 @@
 
 ---
 
-> **This is a proof of concept** built collaboratively by a human developer and AI (Claude by Anthropic). Every line of code across 7 languages, 6 platforms, and a production cloud backend was pair-programmed in iterative sessions. Not affiliated with NVIDIA Corporation.
+> **This is a proof of concept** built collaboratively by a human developer and AI (Claude by Anthropic). Every line of code across 7 languages, 6 platforms, and a production cloud backend was pair-programmed in iterative sessions. This project is not affiliated with NVIDIA Corporation.
 
 ---
 

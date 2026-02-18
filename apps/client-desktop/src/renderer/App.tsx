@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { Suspense, useState, useEffect, useCallback } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { TopBar } from './components/TopBar';
 import { Sidebar } from './components/Sidebar';
@@ -8,20 +8,30 @@ import { ConnectionOverlay } from './components/ConnectionOverlay';
 import { StreamView } from './components/StreamView';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
-import { LoginPage } from './pages/LoginPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { HostDetailPage } from './pages/HostDetailPage';
-import { SettingsPage } from './pages/SettingsPage';
-import { SessionsPage } from './pages/SessionsPage';
-import { HostPage } from './pages/HostPage';
-import { ClientPage } from './pages/ClientPage';
-import { DevicesPage } from './pages/DevicesPage';
-import { DiagnosticsPage } from './pages/DiagnosticsPage';
+import { FirstRunDialog } from './components/FirstRunDialog';
 import { useAuthStore } from './store/authStore';
 import { useConnectionStore } from './store/connectionStore';
 import { useHostAgentStore } from './store/hostAgentStore';
-import { FirstRunDialog } from './components/FirstRunDialog';
 import { colors, spacing, typography } from './styles/theme';
+
+// Lazy-loaded pages — code-split into separate chunks
+const LoginPage = React.lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
+const DashboardPage = React.lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
+const HostDetailPage = React.lazy(() => import('./pages/HostDetailPage').then(m => ({ default: m.HostDetailPage })));
+const SettingsPage = React.lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const SessionsPage = React.lazy(() => import('./pages/SessionsPage').then(m => ({ default: m.SessionsPage })));
+const HostPage = React.lazy(() => import('./pages/HostPage').then(m => ({ default: m.HostPage })));
+const ClientPage = React.lazy(() => import('./pages/ClientPage').then(m => ({ default: m.ClientPage })));
+const DevicesPage = React.lazy(() => import('./pages/DevicesPage').then(m => ({ default: m.DevicesPage })));
+const DiagnosticsPage = React.lazy(() => import('./pages/DiagnosticsPage').then(m => ({ default: m.DiagnosticsPage })));
+
+function PageLoader(): React.ReactElement {
+  return (
+    <div style={styles.pageLoader}>
+      <div style={styles.spinner} />
+    </div>
+  );
+}
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -135,17 +145,19 @@ function AuthenticatedLayout(): React.ReactElement {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <OfflineBanner />
         <main style={styles.mainContent}>
-          <Routes>
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/hosts/:id" element={<HostDetailPage />} />
-          <Route path="/host" element={<HostPage />} />
-          <Route path="/client" element={<ClientPage />} />
-          <Route path="/devices" element={<DevicesPage />} />
-          <Route path="/diagnostics" element={<DiagnosticsPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/sessions" element={<SessionsPage />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/hosts/:id" element={<HostDetailPage />} />
+              <Route path="/host" element={<HostPage />} />
+              <Route path="/client" element={<ClientPage />} />
+              <Route path="/devices" element={<DevicesPage />} />
+              <Route path="/diagnostics" element={<DiagnosticsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/sessions" element={<SessionsPage />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </Suspense>
         </main>
         <StatusBar />
       </div>
@@ -179,22 +191,24 @@ export function App(): React.ReactElement {
       <div style={styles.app}>
         <TopBar />
         <div style={styles.content}>
-          <Routes>
-            <Route
-              path="/"
-              element={
-                isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />
-              }
-            />
-            <Route
-              path="/*"
-              element={
-                <ProtectedRoute>
-                  <AuthenticatedLayout />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />
+                }
+              />
+              <Route
+                path="/*"
+                element={
+                  <ProtectedRoute>
+                    <AuthenticatedLayout />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </Suspense>
         </div>
         {/* Full-screen stream view when actively streaming */}
         {isStreaming && <StreamView />}
@@ -245,5 +259,20 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.medium,
     flexShrink: 0,
+  },
+  pageLoader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    minHeight: 200,
+  },
+  spinner: {
+    width: 24,
+    height: 24,
+    borderRadius: '50%',
+    border: `2px solid ${colors.border.default}`,
+    borderTopColor: colors.accent.default,
+    animation: 'spin 0.8s linear infinite',
   },
 };

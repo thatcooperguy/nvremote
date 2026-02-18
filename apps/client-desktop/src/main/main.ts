@@ -174,7 +174,33 @@ async function saveHostConfig(cfg: Partial<HostAgentConfig>): Promise<void> {
 // Window creation
 // ---------------------------------------------------------------------------
 
+function setupCSP(): void {
+  // Set CSP programmatically so it works correctly for both http:// (dev)
+  // and file:// (production). The meta tag approach is unreliable under
+  // file:// because 'self' behaves differently across Electron versions.
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    const csp = [
+      "default-src 'self'",
+      // Allow 'unsafe-eval' so executeJavaScript (Sentry DSN injection) works.
+      "script-src 'self' 'unsafe-eval'",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com",
+      `connect-src 'self' http://localhost:* https://api.nvremote.com https://*.nvremote.com wss://api.nvremote.com wss://*.nvremote.com https://*.nvidia.com wss://*.nvidia.com https://*.ingest.sentry.io`,
+      "img-src 'self' data: https:",
+    ].join('; ');
+
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [csp],
+      },
+    });
+  });
+}
+
 async function createWindow(): Promise<void> {
+  setupCSP();
+
   // Restore saved window bounds (or use defaults)
   const s = await getStore();
   const savedWidth = s.get('window.width', 1280) as number;

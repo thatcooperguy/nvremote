@@ -11,6 +11,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { HostDetailPage } from './pages/HostDetailPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SessionsPage } from './pages/SessionsPage';
+import { HostPage } from './pages/HostPage';
 import { useAuthStore } from './store/authStore';
 import { useConnectionStore } from './store/connectionStore';
 
@@ -36,6 +37,7 @@ function AuthenticatedLayout(): React.ReactElement {
         <Routes>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/hosts/:id" element={<HostDetailPage />} />
+          <Route path="/host" element={<HostPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/sessions" element={<SessionsPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

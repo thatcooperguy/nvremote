@@ -687,6 +687,25 @@ jobs:
             Copy-Item $_.FullName "$resourceDir\"
           }
 
+          # Copy nvremote-host.exe for unified host mode (shared DLLs with viewer)
+          $hostSrc = $null
+          if (Test-Path "native-libs\nvremote-host.exe") {
+            $hostSrc = "native-libs\nvremote-host.exe"
+          } else {
+            $found = Get-ChildItem "native-libs" -Recurse -Filter "nvremote-host.exe" -File
+            if ($found) {
+              $hostSrc = $found[0].FullName
+              Write-Host "Found nvremote-host.exe at: $hostSrc"
+            }
+          }
+
+          if ($hostSrc) {
+            Copy-Item $hostSrc "$resourceDir\"
+            Write-Host "Copied nvremote-host.exe to resources"
+          } else {
+            Write-Host "WARNING: nvremote-host.exe not found — host mode will be unavailable in this build"
+          }
+
           Write-Host ""
           Write-Host "=== Resources directory contents ==="
           Get-ChildItem $resourceDir | ForEach-Object { Write-Host "  $($_.Name)  ($([math]::Round($_.Length/1KB)) KB)" }

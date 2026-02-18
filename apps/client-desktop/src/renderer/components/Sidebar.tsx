@@ -1,19 +1,28 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { colors, spacing, typography, radius } from '../styles/theme';
 import { useAuthStore } from '../store/authStore';
+import { useHostAgentStore } from '../store/hostAgentStore';
 
 interface NavItem {
   label: string;
   path: string;
   icon: React.ReactNode;
+  /** If true, only show on Windows when host mode is available. */
+  hostOnly?: boolean;
 }
 
-const navItems: NavItem[] = [
+const allNavItems: NavItem[] = [
   {
     label: 'Dashboard',
     path: '/dashboard',
     icon: <DashboardIcon />,
+  },
+  {
+    label: 'Host',
+    path: '/host',
+    icon: <HostNavIcon />,
+    hostOnly: true,
   },
   {
     label: 'Sessions',
@@ -33,6 +42,18 @@ export function Sidebar(): React.ReactElement {
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
+  const isHostMode = useHostAgentStore((state) => state.isHostMode);
+
+  // Filter nav items: show "Host" only on Windows when mode is host/both.
+  const navItems = useMemo(() => {
+    const hostModeSupported = window.nvrs?.platform?.hostModeSupported ?? false;
+    return allNavItems.filter((item) => {
+      if (item.hostOnly) {
+        return hostModeSupported && isHostMode;
+      }
+      return true;
+    });
+  }, [isHostMode]);
 
   const handleNavClick = useCallback(
     (path: string) => {
@@ -161,6 +182,17 @@ function SettingsIcon(): React.ReactElement {
         strokeWidth="1.5"
         strokeLinecap="round"
       />
+    </svg>
+  );
+}
+
+function HostNavIcon(): React.ReactElement {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <rect x="2" y="3" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      <line x1="9" y1="13" x2="9" y2="16" stroke="currentColor" strokeWidth="1.5" />
+      <line x1="6" y1="16" x2="12" y2="16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="9" cy="8" r="1.5" fill="currentColor" />
     </svg>
   );
 }

@@ -1,4 +1,5 @@
 import React from 'react';
+import * as Sentry from '@sentry/react';
 import { colors, typography, spacing, radius, shadows } from '../styles/theme';
 
 interface ErrorBoundaryState {
@@ -21,6 +22,7 @@ export class ErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, info: React.ErrorInfo): void {
     console.error('[NVRemote] Unhandled UI error:', error, info.componentStack);
+    Sentry.captureException(error, { extra: { componentStack: info.componentStack } });
   }
 
   handleReset = (): void => {

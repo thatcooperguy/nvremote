@@ -76,7 +76,7 @@ Every platform has a "trust gate" where the OS warns users about unsigned softwa
 | API error toasts | ✅ | Toast notifications for connection/fetch failures |
 | **Offline detection** | ✅ | Offline banner shown when navigator.onLine is false — auto-hides on reconnect |
 | **Network retry** | ✅ | Auto-refresh hosts every 30s, token refresh with queue |
-| **Crash reporting** | ❌ | No crash reporter on ANY platform (no Sentry, no Crashlytics). Flying blind on production stability. |
+| **Crash reporting** | ✅ | Sentry integrated on ALL platforms: Electron (main+renderer), NestJS API, Next.js website, Android (Gradle plugin). Enabled via `SENTRY_DSN` env var. |
 
 ---
 
@@ -105,7 +105,7 @@ Every platform has a "trust gate" where the OS warns users about unsigned softwa
 | **versionCode** | ✅ | Auto-incremented from `github.run_number` via `VERSION_CODE` env var |
 | **FOREGROUND_SERVICE permission** | ✅ | Added FOREGROUND_SERVICE + FOREGROUND_SERVICE_MEDIA_PLAYBACK |
 | **POST_NOTIFICATIONS permission** | ✅ | Added POST_NOTIFICATIONS for Android 13+ |
-| Crash reporting | ❌ | No Crashlytics/Sentry |
+| Crash reporting | ✅ | Sentry via Gradle plugin (`io.sentry.android.gradle`), DSN from manifest placeholder |
 | ProGuard/R8 | ✅ | Comprehensive rules |
 | App icons | ✅ | All densities present |
 | Deep links | ✅ | `nvremote://` scheme registered |
@@ -165,8 +165,8 @@ Every platform has a "trust gate" where the OS warns users about unsigned softwa
 8. ~~Website Play Store link~~ → Fixed package ID to `com.nvremote.app`
 9. ~~Website "macOS soon"~~ → Updated to show macOS/Linux as available
 
-### P1 — Before Beta Exit (mostly done)
-8. Crash reporting (Sentry or similar) — all platforms ← **remaining P1 item**
+### P1 — Before Beta Exit ✅ ALL DONE
+8. ~~Crash reporting (Sentry)~~ → Integrated on Electron (main+renderer), NestJS API, Next.js website, Android
 9. ~~Android targetSdk bump to 35~~ → compileSdk=35, targetSdk=35
 10. ~~Android versionCode auto-increment from CI~~ → `github.run_number` via `VERSION_CODE` env var
 11. ~~Android FOREGROUND_SERVICE + POST_NOTIFICATIONS permissions~~ → Added to manifest

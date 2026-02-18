@@ -36,6 +36,18 @@
         android:extractNativeLibs="true"
         tools:targetApi="35">
 
+        <!-- Sentry crash reporting — DSN set via CI secret (SENTRY_DSN).
+             If empty or missing, Sentry is silently disabled. -->
+        <meta-data
+            android:name="io.sentry.dsn"
+            android:value="${sentryDsn}" />
+        <meta-data
+            android:name="io.sentry.traces-sample-rate"
+            android:value="0.1" />
+        <meta-data
+            android:name="io.sentry.anr.enable"
+            android:value="true" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -21,6 +22,9 @@ import { WaitlistModule } from './waitlist/waitlist.module';
 
 @Module({
   imports: [
+    // Sentry error tracking (must be first import)
+    SentryModule.forRoot(),
+
     // Global configuration
     ConfigModule.forRoot({
       isGlobal: true,
@@ -76,6 +80,12 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     WaitlistModule,
   ],
   providers: [
+    // Sentry global exception filter — captures all unhandled exceptions
+    {
+      provide: APP_FILTER,
+      useClass: SentryGlobalFilter,
+    },
+
     PrismaService,
     SessionTimeoutService,
 

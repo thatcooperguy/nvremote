@@ -462,6 +462,20 @@ function setupIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle('p2p:reconnect', async () => {
+    try {
+      // Attempt ICE restart by re-establishing the P2P connection
+      disconnectP2P();
+      // Brief cooldown before reconnecting
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      const result = await establishP2PConnection('');
+      return { success: true, connectionType: result.connectionType };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'P2P reconnect failed';
+      return { success: false, error: message };
+    }
+  });
+
   ipcMain.handle('p2p:status', () => {
     return {
       signalingConnected: isSignalingConnected(),
@@ -505,7 +519,7 @@ function initAutoUpdater(): void {
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
 
-  autoUpdater.on('update-available', (info) => {
+  autoUpdater.on('update-available', (info: { version: string; releaseDate?: string }) => {
     console.log('Update available:', info.version);
     mainWindow?.webContents.send('update:available', {
       version: info.version,
@@ -529,7 +543,7 @@ function initAutoUpdater(): void {
       });
   });
 
-  autoUpdater.on('update-downloaded', (info) => {
+  autoUpdater.on('update-downloaded', (info: { version: string }) => {
     console.log('Update downloaded:', info.version);
     mainWindow?.webContents.send('update:ready', {
       version: info.version,
@@ -551,7 +565,7 @@ function initAutoUpdater(): void {
       });
   });
 
-  autoUpdater.on('error', (err) => {
+  autoUpdater.on('error', (err: Error) => {
     console.error('Auto-update error:', err);
   });
 

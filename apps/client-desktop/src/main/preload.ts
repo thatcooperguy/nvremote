@@ -168,6 +168,9 @@ const p2pApi = {
   disconnect: (): Promise<IpcResult> =>
     ipcRenderer.invoke('p2p:disconnect'),
 
+  reconnect: (): Promise<IpcResult> =>
+    ipcRenderer.invoke('p2p:reconnect'),
+
   status: (): Promise<{
     signalingConnected: boolean;
     sessionId: string | null;

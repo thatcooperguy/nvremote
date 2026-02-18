@@ -33,9 +33,40 @@
 
 namespace cs {
 
-// Response types for TURN methods
+// ---------------------------------------------------------------------------
+// STUN/TURN protocol constants (RFC 5389 / RFC 5766)
+// Defined at file scope so both free helper functions and TurnClient member
+// functions can reference them.
+// ---------------------------------------------------------------------------
+
+// TURN message types
+static constexpr uint16_t ALLOCATE_REQUEST    = 0x0003;
+static constexpr uint16_t ALLOCATE_RESPONSE   = 0x0103;
+static constexpr uint16_t ALLOCATE_ERROR      = 0x0113;
+static constexpr uint16_t REFRESH_REQUEST     = 0x0004;
 static constexpr uint16_t REFRESH_RESPONSE    = 0x0104;
+static constexpr uint16_t PERMISSION_REQUEST  = 0x0008;
 static constexpr uint16_t PERMISSION_RESPONSE = 0x0108;
+static constexpr uint16_t SEND_INDICATION     = 0x0016;
+static constexpr uint16_t DATA_INDICATION     = 0x0017;
+static constexpr uint16_t CHANNEL_BIND        = 0x0009;
+
+// STUN magic cookie
+static constexpr uint32_t MAGIC_COOKIE = 0x2112A442;
+
+// STUN/TURN attribute types
+static constexpr uint16_t ATTR_MAPPED_ADDRESS      = 0x0001;
+static constexpr uint16_t ATTR_USERNAME             = 0x0006;
+static constexpr uint16_t ATTR_MESSAGE_INTEGRITY    = 0x0008;
+static constexpr uint16_t ATTR_ERROR_CODE           = 0x0009;
+static constexpr uint16_t ATTR_LIFETIME             = 0x000D;
+static constexpr uint16_t ATTR_XOR_PEER_ADDRESS     = 0x0012;
+static constexpr uint16_t ATTR_DATA                 = 0x0013;
+static constexpr uint16_t ATTR_REALM                = 0x0014;
+static constexpr uint16_t ATTR_NONCE                = 0x0015;
+static constexpr uint16_t ATTR_XOR_RELAYED_ADDRESS  = 0x0016;
+static constexpr uint16_t ATTR_REQUESTED_TRANSPORT  = 0x0019;
+static constexpr uint16_t ATTR_XOR_MAPPED_ADDRESS   = 0x0020;
 
 // Address family
 static constexpr uint8_t ADDR_FAMILY_IPV4 = 0x01;
@@ -135,25 +166,25 @@ static std::vector<uint8_t> buildAuthMessage(uint16_t msgType,
     // 20-byte header placeholder
     msg.resize(20);
     writeU16(&msg[0], msgType);
-    writeU32(&msg[4], TurnClient::MAGIC_COOKIE);
+    writeU32(&msg[4], MAGIC_COOKIE);
     std::memcpy(&msg[8], txnId, 12);
 
     // Append method-specific attributes
     msg.insert(msg.end(), attrs.begin(), attrs.end());
 
     // USERNAME attribute
-    appendAttribute(msg, TurnClient::ATTR_USERNAME,
+    appendAttribute(msg, ATTR_USERNAME,
                     reinterpret_cast<const uint8_t*>(username.data()),
                     username.size());
 
     // REALM attribute
-    appendAttribute(msg, TurnClient::ATTR_REALM,
+    appendAttribute(msg, ATTR_REALM,
                     reinterpret_cast<const uint8_t*>(realm.data()),
                     realm.size());
 
     // NONCE attribute
     if (!nonce.empty()) {
-        appendAttribute(msg, TurnClient::ATTR_NONCE,
+        appendAttribute(msg, ATTR_NONCE,
                         reinterpret_cast<const uint8_t*>(nonce.data()),
                         nonce.size());
     }
@@ -166,7 +197,7 @@ static std::vector<uint8_t> buildAuthMessage(uint16_t msgType,
 
     // Compute MESSAGE-INTEGRITY HMAC-SHA1 over the message so far
     auto hmac = computeHmacSha1(credential, msg.data(), msg.size());
-    appendAttribute(msg, TurnClient::ATTR_MESSAGE_INTEGRITY, hmac.data(), hmac.size());
+    appendAttribute(msg, ATTR_MESSAGE_INTEGRITY, hmac.data(), hmac.size());
 
     // Final length update
     writeU16(&msg[2], static_cast<uint16_t>(msg.size() - 20));
@@ -239,7 +270,7 @@ static int extractErrorCode(const uint8_t* data, size_t len) {
         offset += 4;
         if (offset + attrLen > end) break;
 
-        if (attrType == TurnClient::ATTR_ERROR_CODE && attrLen >= 4) {
+        if (attrType == ATTR_ERROR_CODE && attrLen >= 4) {
             int errorClass = data[offset + 2] & 0x07;
             int errorNumber = data[offset + 3];
             return errorClass * 100 + errorNumber;
@@ -266,7 +297,7 @@ static std::string extractNonce(const uint8_t* data, size_t len) {
         offset += 4;
         if (offset + attrLen > end) break;
 
-        if (attrType == TurnClient::ATTR_NONCE) {
+        if (attrType == ATTR_NONCE) {
             return std::string(reinterpret_cast<const char*>(data + offset), attrLen);
         }
 

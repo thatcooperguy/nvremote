@@ -141,6 +141,20 @@ interface AuthTokens {
   refresh: string;
 }
 
+interface AppSettings {
+  startOnBoot: boolean;
+  minimizeToTray: boolean;
+  autoConnect: boolean;
+  showOverlay: boolean;
+  hardwareDecode: boolean;
+  vsync: boolean;
+  autoReconnect: boolean;
+  codecPreference: string;
+  captureMode: string;
+  connectionMode: string;
+  maxBandwidth: number;
+}
+
 // ---------------------------------------------------------------------------
 // The full API shape exposed on window.nvrs
 // ---------------------------------------------------------------------------
@@ -214,6 +228,11 @@ interface NvrsApi {
     os: 'win32' | 'darwin' | 'linux';
     nativeStreamingSupported: boolean;
     hostModeSupported: boolean;
+  };
+
+  settings: {
+    get: () => Promise<AppSettings>;
+    set: (key: keyof AppSettings, value: unknown) => Promise<IpcResult>;
   };
 
   host: {

@@ -4,7 +4,7 @@
  * 5 tabs: General, Account, Network, Streaming, Security.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { colors, radius, spacing, typography, transitions } from '../styles/theme';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
@@ -58,6 +58,16 @@ function GeneralTab(): React.ReactElement {
   const setMode = useHostAgentStore((s) => s.setMode);
   const hostModeSupported = window.nvrs?.platform?.hostModeSupported ?? false;
 
+  // Load persisted settings on mount
+  useEffect(() => {
+    window.nvrs?.settings?.get().then((s) => {
+      setStartOnBoot(s.startOnBoot);
+      setMinimizeToTray(s.minimizeToTray);
+      setAutoConnect(s.autoConnect);
+      setShowOverlay(s.showOverlay);
+    }).catch(() => {});
+  }, []);
+
   const handleModeChange = useCallback(
     async (mode: 'client' | 'host' | 'both') => {
       try {
@@ -71,9 +81,11 @@ function GeneralTab(): React.ReactElement {
   );
 
   const withSave = useCallback(
-    (setter: (v: boolean) => void) => (value: boolean) => {
+    (key: string, setter: (v: boolean) => void) => (value: boolean) => {
       setter(value);
-      toast.success('Setting saved');
+      window.nvrs?.settings?.set(key as never, value).catch(() => {
+        toast.error('Failed to save setting');
+      });
     },
     []
   );
@@ -86,28 +98,28 @@ function GeneralTab(): React.ReactElement {
             label="Start on Boot"
             description="Launch NVRemote when your computer starts"
             checked={startOnBoot}
-            onChange={withSave(setStartOnBoot)}
+            onChange={withSave('startOnBoot', setStartOnBoot)}
           />
           <div style={styles.settingDivider} />
           <ToggleRow
             label="Minimize to System Tray"
             description="Keep the app running in the background when the window is closed"
             checked={minimizeToTray}
-            onChange={withSave(setMinimizeToTray)}
+            onChange={withSave('minimizeToTray', setMinimizeToTray)}
           />
           <div style={styles.settingDivider} />
           <ToggleRow
             label="Auto-Connect on Launch"
             description="Automatically connect to the last used host on startup"
             checked={autoConnect}
-            onChange={withSave(setAutoConnect)}
+            onChange={withSave('autoConnect', setAutoConnect)}
           />
           <div style={styles.settingDivider} />
           <ToggleRow
             label="Performance Overlay"
             description="Show FPS, latency, and bitrate during streaming"
             checked={showOverlay}
-            onChange={withSave(setShowOverlay)}
+            onChange={withSave('showOverlay', setShowOverlay)}
           />
         </div>
       </SettingsSection>
@@ -341,15 +353,28 @@ function NetworkTab(): React.ReactElement {
 
 function StreamingTab(): React.ReactElement {
   const [hardwareDecode, setHardwareDecode] = useState(true);
-  const [vsync, setVsync] = useState(true);
+  const [vsync, setVsync] = useState(false);
   const [autoReconnect, setAutoReconnect] = useState(true);
   const [preferredCodec, setPreferredCodec] = useState('auto');
-  const [captureMode, setCaptureMode] = useState('desktop');
+  const [captureMode, setCaptureMode] = useState('auto');
+
+  // Load persisted settings on mount
+  useEffect(() => {
+    window.nvrs?.settings?.get().then((s) => {
+      setHardwareDecode(s.hardwareDecode);
+      setVsync(s.vsync);
+      setAutoReconnect(s.autoReconnect);
+      setPreferredCodec(s.codecPreference);
+      setCaptureMode(s.captureMode);
+    }).catch(() => {});
+  }, []);
 
   const withSave = useCallback(
-    (setter: (v: boolean) => void) => (value: boolean) => {
+    (key: string, setter: (v: boolean) => void) => (value: boolean) => {
       setter(value);
-      toast.success('Setting saved');
+      window.nvrs?.settings?.set(key as never, value).catch(() => {
+        toast.error('Failed to save setting');
+      });
     },
     []
   );
@@ -362,21 +387,21 @@ function StreamingTab(): React.ReactElement {
             label="Hardware Decoding"
             description="Use GPU-accelerated video decoding for better performance"
             checked={hardwareDecode}
-            onChange={withSave(setHardwareDecode)}
+            onChange={withSave('hardwareDecode', setHardwareDecode)}
           />
           <div style={styles.settingDivider} />
           <ToggleRow
             label="VSync"
             description="Synchronize frame rendering to prevent tearing"
             checked={vsync}
-            onChange={withSave(setVsync)}
+            onChange={withSave('vsync', setVsync)}
           />
           <div style={styles.settingDivider} />
           <ToggleRow
             label="Auto-Reconnect"
             description="Automatically reconnect when the connection is interrupted"
             checked={autoReconnect}
-            onChange={withSave(setAutoReconnect)}
+            onChange={withSave('autoReconnect', setAutoReconnect)}
           />
         </div>
       </SettingsSection>
@@ -390,7 +415,7 @@ function StreamingTab(): React.ReactElement {
             </div>
             <select
               value={preferredCodec}
-              onChange={(e) => { setPreferredCodec(e.target.value); toast.success('Codec preference saved'); }}
+              onChange={(e) => { setPreferredCodec(e.target.value); window.nvrs?.settings?.set('codecPreference' as never, e.target.value).catch(() => {}); }}
               style={styles.select}
             >
               <option value="auto">Auto (let host decide)</option>
@@ -407,7 +432,7 @@ function StreamingTab(): React.ReactElement {
             </div>
             <select
               value={captureMode}
-              onChange={(e) => { setCaptureMode(e.target.value); toast.success('Capture mode saved'); }}
+              onChange={(e) => { setCaptureMode(e.target.value); window.nvrs?.settings?.set('captureMode' as never, e.target.value).catch(() => {}); }}
               style={styles.select}
             >
               <option value="desktop">Entire Desktop</option>

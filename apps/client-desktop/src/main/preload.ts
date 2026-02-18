@@ -439,6 +439,36 @@ const hostApi = {
 // Platform info
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// User settings persistence
+// ---------------------------------------------------------------------------
+
+interface AppSettings {
+  startOnBoot: boolean;
+  minimizeToTray: boolean;
+  autoConnect: boolean;
+  showOverlay: boolean;
+  hardwareDecode: boolean;
+  vsync: boolean;
+  autoReconnect: boolean;
+  codecPreference: string;
+  captureMode: string;
+  connectionMode: string;
+  maxBandwidth: number;
+}
+
+const settingsApi = {
+  get: (): Promise<AppSettings> =>
+    ipcRenderer.invoke('settings:get'),
+
+  set: (key: keyof AppSettings, value: unknown): Promise<IpcResult> =>
+    ipcRenderer.invoke('settings:set', key, value),
+};
+
+// ---------------------------------------------------------------------------
+// Platform info
+// ---------------------------------------------------------------------------
+
 const platformApi = {
   os: process.platform as 'win32' | 'darwin' | 'linux',
   /** Native streaming is currently only available on Windows. */
@@ -457,6 +487,7 @@ const api = {
   tray: trayApi,
   platform: platformApi,
   host: hostApi,
+  settings: settingsApi,
 };
 
 contextBridge.exposeInMainWorld('nvrs', api);

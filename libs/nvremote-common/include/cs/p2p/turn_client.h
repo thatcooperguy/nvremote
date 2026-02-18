@@ -101,32 +101,6 @@ private:
     std::function<void(const uint8_t*, size_t,
                         const std::string&, uint16_t)> on_data_;
 
-    // TURN message building helpers
-    static constexpr uint16_t ALLOCATE_REQUEST    = 0x0003;
-    static constexpr uint16_t ALLOCATE_RESPONSE   = 0x0103;
-    static constexpr uint16_t ALLOCATE_ERROR      = 0x0113;
-    static constexpr uint16_t REFRESH_REQUEST     = 0x0004;
-    static constexpr uint16_t PERMISSION_REQUEST  = 0x0008;
-    static constexpr uint16_t SEND_INDICATION     = 0x0016;
-    static constexpr uint16_t DATA_INDICATION     = 0x0017;
-    static constexpr uint16_t CHANNEL_BIND        = 0x0009;
-
-    static constexpr uint32_t MAGIC_COOKIE = 0x2112A442;
-
-    // STUN/TURN attribute types
-    static constexpr uint16_t ATTR_MAPPED_ADDRESS      = 0x0001;
-    static constexpr uint16_t ATTR_USERNAME             = 0x0006;
-    static constexpr uint16_t ATTR_MESSAGE_INTEGRITY    = 0x0008;
-    static constexpr uint16_t ATTR_ERROR_CODE           = 0x0009;
-    static constexpr uint16_t ATTR_XOR_MAPPED_ADDRESS   = 0x0020;
-    static constexpr uint16_t ATTR_XOR_RELAYED_ADDRESS  = 0x0016;
-    static constexpr uint16_t ATTR_LIFETIME             = 0x000D;
-    static constexpr uint16_t ATTR_XOR_PEER_ADDRESS     = 0x0012;
-    static constexpr uint16_t ATTR_DATA                 = 0x0013;
-    static constexpr uint16_t ATTR_REALM                = 0x0014;
-    static constexpr uint16_t ATTR_NONCE                = 0x0015;
-    static constexpr uint16_t ATTR_REQUESTED_TRANSPORT  = 0x0019;
-
     // Internal: build and send TURN messages
     int createSocket();
     bool sendAllocateRequest(int sock, const std::string& nonce = "");

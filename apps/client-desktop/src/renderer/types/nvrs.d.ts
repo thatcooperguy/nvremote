@@ -181,6 +181,7 @@ interface NvrsApi {
     addRemoteCandidate: (candidate: IceCandidate) => Promise<IpcResult>;
     connect: (config: { dtlsFingerprint: string }) => Promise<P2PConnectResult>;
     disconnect: () => Promise<IpcResult>;
+    reconnect: () => Promise<IpcResult>;
     status: () => Promise<P2PStatusResult>;
     onSessionAccepted: (cb: (info: SessionAcceptedInfo) => void) => () => void;
     onConnected: (cb: (info: { sessionId: string; connectionType: string }) => void) => () => void;

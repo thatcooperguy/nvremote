@@ -45,7 +45,7 @@ export class ErrorBoundary extends React.Component<
               height="32"
               viewBox="0 0 24 24"
               fill="none"
-              stroke={colors.status?.error || '#EF4444'}
+              stroke={colors.semantic.error || '#EF4444'}
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"

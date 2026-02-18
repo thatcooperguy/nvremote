@@ -6,7 +6,7 @@
  */
 
 import React, { useCallback, useState } from 'react';
-import { colors, spacing, typography, radius } from '../styles/theme';
+import { colors, spacing, typography, radius, transitions } from '../styles/theme';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useHostAgentStore } from '../store/hostAgentStore';
@@ -200,6 +200,7 @@ export function HostPage(): React.ReactElement {
       {!status.activeSession && status.state === 'running' && (
         <Card>
           <div style={styles.waitingState}>
+            <div style={styles.waitingDot} />
             <span style={styles.waitingText}>Waiting for a client to connect...</span>
             <span style={styles.waitingSubtext}>
               Share your Host ID or connect via nvremote.com/dashboard
@@ -296,18 +297,18 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: typography.fontSize.md,
     color: colors.text.primary,
     fontWeight: typography.fontWeight.medium,
-    fontFamily: "'JetBrains Mono', 'Consolas', monospace",
+    fontFamily: typography.fontMono,
   },
   errorBanner: {
     marginTop: spacing.sm,
     padding: `${spacing.sm}px ${spacing.md}px`,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: `${colors.semantic.error}15`,
     borderRadius: radius.md,
-    border: '1px solid rgba(239, 68, 68, 0.3)',
+    border: `1px solid ${colors.semantic.error}4D`,
   },
   errorText: {
     fontSize: typography.fontSize.sm,
-    color: '#EF4444',
+    color: colors.semantic.error,
   },
   cardTitle: {
     fontSize: typography.fontSize.lg,
@@ -338,14 +339,16 @@ const styles: Record<string, React.CSSProperties> = {
   },
   modeSelect: {
     height: 32,
-    padding: `0 ${spacing.sm}px`,
+    padding: `0 ${spacing.sm + 4}px`,
     backgroundColor: colors.bg.elevated,
     color: colors.text.primary,
     border: `1px solid ${colors.border.default}`,
     borderRadius: radius.md,
     fontSize: typography.fontSize.sm,
+    fontFamily: typography.fontFamily,
     outline: 'none',
     cursor: 'pointer',
+    transition: `border-color ${transitions.fast}`,
   },
   emptyState: {
     display: 'flex',
@@ -372,7 +375,15 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     alignItems: 'center',
     padding: `${spacing.lg}px 0`,
-    gap: spacing.xs,
+    gap: spacing.sm,
+  },
+  waitingDot: {
+    width: 12,
+    height: 12,
+    borderRadius: '50%',
+    backgroundColor: colors.accent.default,
+    animation: 'pulse 2s ease-in-out infinite',
+    marginBottom: spacing.xs,
   },
   waitingText: {
     fontSize: typography.fontSize.md,

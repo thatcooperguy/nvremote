@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { colors, radius, spacing, typography } from '../styles/theme';
+import { colors, radius, spacing, typography, transitions } from '../styles/theme';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { StatusBadge } from '../components/StatusBadge';
@@ -59,7 +59,16 @@ export function HostDetailPage(): React.ReactElement {
   return (
     <div style={styles.page}>
       {/* Back button */}
-      <button onClick={() => navigate('/dashboard')} style={styles.backButton}>
+      <button
+        onClick={() => navigate('/dashboard')}
+        style={styles.backButton}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = colors.text.primary;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = colors.text.secondary;
+        }}
+      >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -174,12 +183,16 @@ interface InfoCardProps {
 }
 
 function InfoCard({ label, value, icon }: InfoCardProps): React.ReactElement {
+  const isNA = value === 'N/A';
   return (
     <div style={styles.infoCard}>
       <div style={styles.infoCardIcon}>{icon}</div>
       <div style={styles.infoCardContent}>
         <span style={styles.infoCardLabel}>{label}</span>
-        <span style={styles.infoCardValue}>{value}</span>
+        <span style={{
+          ...styles.infoCardValue,
+          ...(isNA ? { color: colors.text.disabled, fontStyle: 'italic' } : {}),
+        }}>{value}</span>
       </div>
     </div>
   );
@@ -267,16 +280,19 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: 6,
-    padding: '6px 0',
+    padding: `${spacing.xs}px ${spacing.sm}px`,
+    marginLeft: -spacing.sm,
     border: 'none',
     background: 'transparent',
     color: colors.text.secondary,
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily,
+    fontWeight: typography.fontWeight.medium,
     cursor: 'pointer',
-    transition: 'color 150ms ease',
+    transition: `color ${transitions.fast}`,
     outline: 'none',
     alignSelf: 'flex-start',
+    borderRadius: radius.md,
   },
   headerRow: {
     display: 'flex',
@@ -303,7 +319,7 @@ const styles: Record<string, React.CSSProperties> = {
   hostname: {
     fontSize: typography.fontSize.md,
     color: colors.text.secondary,
-    fontFamily: "'JetBrains Mono', 'Consolas', monospace",
+    fontFamily: typography.fontMono,
   },
   infoGrid: {
     display: 'grid',
@@ -318,6 +334,7 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: colors.bg.card,
     border: `1px solid ${colors.border.default}`,
     borderRadius: radius.md,
+    transition: `border-color ${transitions.fast}`,
   },
   infoCardIcon: {
     display: 'flex',

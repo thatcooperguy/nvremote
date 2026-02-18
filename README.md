@@ -28,9 +28,9 @@
 
 ## The Pitch
 
-You have a beefy NVIDIA GPU sitting in your office. You want to use it from your couch, your phone, or a browser tab halfway across the world.
+You have a beefy NVIDIA GPU sitting in your device. You want to use it from your couch, your phone, or a browser tab halfway across the world.
 
-**NVRemote** installs a tiny agent on your GPU machine and streams the entire desktop &mdash; with hardware-accelerated encoding &mdash; to any device over a peer-to-peer WebRTC connection. Low latency. Adaptive quality. No cloud gaming subscription required.
+**NVRemote** installs a tiny agent on your GPU machine and streams the entire desktop &mdash; with hardware-accelerated encoding &mdash; to any device over a peer-to-peer WebRTC connection. Low latency. Adaptive quality. 
 
 ```
 Your RTX 3090 at home  ----WebRTC P2P---->  Your laptop at a coffee shop
@@ -49,7 +49,6 @@ Your DGX Spark at work ----WebRTC P2P---->  A Chrome tab anywhere
 | Limited to desktops | Native apps for Win, Mac, Android, Linux ARM + Chrome browser |
 | No edge GPU support | First-class Jetson Orin and DGX Spark support |
 | Complex setup | Install agent, sign in, click "Stream" |
-| Cloud gaming is expensive | Your own GPU, your own connection, no subscription |
 
 ---
 

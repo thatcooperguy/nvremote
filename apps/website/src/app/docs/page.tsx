@@ -284,10 +284,10 @@ export default function DocsPage() {
               </p>
 
               <div className="space-y-4 mb-6">
-                <StepItem number={1} title="Download the installer">
-                  Get the latest{' '}
+                <StepItem number={1} title="Download the host agent">
+                  Get{' '}
                   <code className="text-nv-green bg-nv-green/10 px-1.5 py-0.5 rounded text-xs">
-                    NVRemoteHost-v0.5.1-beta-win64.zip
+                    NVRemoteAgent.exe
                   </code>{' '}
                   from the{' '}
                   <a

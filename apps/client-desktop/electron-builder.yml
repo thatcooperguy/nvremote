@@ -22,6 +22,9 @@ win:
         - x64
   artifactName: "NVRemote-${version}-Setup.${ext}"
   publisherName: NVRemote
+  # Code signing: electron-builder auto-signs when CSC_LINK and
+  # CSC_KEY_PASSWORD env vars are set. No config needed here —
+  # just ensure the secrets exist in GitHub Actions.
 
 nsis:
   oneClick: false
@@ -68,6 +71,14 @@ mac:
         - universal
   artifactName: "NVRemote-${version}-universal.${ext}"
   category: public.app-category.games
+  # Enable Hardened Runtime (required for notarization)
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  # Notarize after signing (requires APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID)
+  notarize: false
+  afterSign: build/notarize.cjs
   # Allow shared native resources in universal builds (FFmpeg dylibs,
   # N-API addons are arch-specific but bundled from a single CI build)
   x64ArchFiles: "Contents/Resources/resources/**"

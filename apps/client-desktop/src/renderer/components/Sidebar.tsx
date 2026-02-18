@@ -1,7 +1,6 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { colors, spacing, typography, radius } from '../styles/theme';
-import { useAuthStore } from '../store/authStore';
+import { colors, spacing, typography, radius, transitions } from '../styles/theme';
 import { useHostAgentStore } from '../store/hostAgentStore';
 
 interface NavItem {
@@ -10,11 +9,9 @@ interface NavItem {
   icon: React.ReactNode;
   /** Keyboard shortcut hint text (e.g., "Ctrl+D") */
   shortcut?: string;
-  /** If true, only show on Windows when host mode is available. */
-  hostOnly?: boolean;
 }
 
-const allNavItems: NavItem[] = [
+const navItems: NavItem[] = [
   {
     label: 'Dashboard',
     path: '/dashboard',
@@ -25,13 +22,28 @@ const allNavItems: NavItem[] = [
     label: 'Host',
     path: '/host',
     icon: <HostNavIcon />,
-    hostOnly: true,
+  },
+  {
+    label: 'Client',
+    path: '/client',
+    icon: <ClientIcon />,
+  },
+  {
+    label: 'Devices',
+    path: '/devices',
+    icon: <DevicesIcon />,
   },
   {
     label: 'Sessions',
     path: '/sessions',
     icon: <SessionsIcon />,
     shortcut: 'Ctrl+S',
+  },
+  {
+    label: 'Diagnostics',
+    path: '/diagnostics',
+    icon: <DiagnosticsIcon />,
+    shortcut: 'Ctrl+E',
   },
   {
     label: 'Settings',
@@ -46,19 +58,7 @@ export function Sidebar(): React.ReactElement {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const user = useAuthStore((state) => state.user);
-  const isHostMode = useHostAgentStore((state) => state.isHostMode);
-
-  // Filter nav items: show "Host" only on Windows when mode is host/both.
-  const navItems = useMemo(() => {
-    const hostModeSupported = window.nvrs?.platform?.hostModeSupported ?? false;
-    return allNavItems.filter((item) => {
-      if (item.hostOnly) {
-        return hostModeSupported && isHostMode;
-      }
-      return true;
-    });
-  }, [isHostMode]);
+  const config = useHostAgentStore((s) => s.config);
 
   const handleNavClick = useCallback(
     (path: string) => {
@@ -73,6 +73,13 @@ export function Sidebar(): React.ReactElement {
 
   const sidebarWidth = collapsed ? 64 : 240;
 
+  // Derive mode label for the badge
+  const modeLabel = config?.mode === 'host'
+    ? 'Host'
+    : config?.mode === 'both'
+      ? 'Host + Client'
+      : 'Client';
+
   return (
     <aside
       style={{
@@ -80,36 +87,18 @@ export function Sidebar(): React.ReactElement {
         width: sidebarWidth,
       }}
     >
-      {/* User Section */}
+      {/* Mode badge */}
       {!collapsed && (
-        <div style={styles.userSection}>
-          <div style={styles.avatar}>
-            {user?.avatarUrl ? (
-              <img
-                src={user.avatarUrl}
-                alt={user.name}
-                style={styles.avatarImage}
-              />
-            ) : (
-              <span style={styles.avatarInitial}>
-                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-              </span>
-            )}
-          </div>
-          <div style={styles.userInfo}>
-            <span style={styles.userName} title={user?.name || 'User'}>{user?.name || 'User'}</span>
-            <span style={styles.userOrg} title={user?.org || 'Organization'}>{user?.org || 'Organization'}</span>
-          </div>
+        <div style={styles.modeBadgeSection}>
+          <span style={styles.modeBadge}>{modeLabel}</span>
         </div>
       )}
 
       {collapsed && (
-        <div style={styles.collapsedAvatar}>
-          <div style={{ ...styles.avatar, width: 36, height: 36 }}>
-            <span style={{ ...styles.avatarInitial, fontSize: 14 }}>
-              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-            </span>
-          </div>
+        <div style={styles.collapsedBadge}>
+          <span style={styles.collapsedBadgeText}>
+            {config?.mode === 'host' ? 'H' : config?.mode === 'both' ? 'H+C' : 'C'}
+          </span>
         </div>
       )}
 
@@ -170,6 +159,8 @@ export function Sidebar(): React.ReactElement {
   );
 }
 
+/* ---------- SVG Icons ---------- */
+
 function DashboardIcon(): React.ReactElement {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -181,12 +172,53 @@ function DashboardIcon(): React.ReactElement {
   );
 }
 
+function HostNavIcon(): React.ReactElement {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <rect x="2" y="3" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      <line x1="9" y1="13" x2="9" y2="16" stroke="currentColor" strokeWidth="1.5" />
+      <line x1="6" y1="16" x2="12" y2="16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="9" cy="8" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function ClientIcon(): React.ReactElement {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <rect x="1" y="4" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M13 6h2a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M5 8l2 1-2 1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function DevicesIcon(): React.ReactElement {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <rect x="1" y="2" width="12" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="10" y="7" width="7" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+      <line x1="4" y1="14" x2="8" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="12" y1="14" x2="15" y2="14" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function SessionsIcon(): React.ReactElement {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
       <rect x="2" y="3" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
       <circle cx="9" cy="9" r="2" stroke="currentColor" strokeWidth="1.5" />
       <path d="M6 15L9 12L12 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function DiagnosticsIcon(): React.ReactElement {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <circle cx="9" cy="9" r="7" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M9 5v4l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -205,17 +237,6 @@ function SettingsIcon(): React.ReactElement {
   );
 }
 
-function HostNavIcon(): React.ReactElement {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-      <rect x="2" y="3" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" />
-      <line x1="9" y1="13" x2="9" y2="16" stroke="currentColor" strokeWidth="1.5" />
-      <line x1="6" y1="16" x2="12" y2="16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="9" cy="8" r="1.5" fill="currentColor" />
-    </svg>
-  );
-}
-
 function CollapseIcon({ collapsed }: { collapsed: boolean }): React.ReactElement {
   return (
     <svg
@@ -225,7 +246,7 @@ function CollapseIcon({ collapsed }: { collapsed: boolean }): React.ReactElement
       fill="none"
       style={{
         transform: collapsed ? 'rotate(180deg)' : 'none',
-        transition: 'transform 250ms ease',
+        transition: `transform ${transitions.normal}`,
       }}
     >
       <path
@@ -239,90 +260,69 @@ function CollapseIcon({ collapsed }: { collapsed: boolean }): React.ReactElement
   );
 }
 
+/* ---------- Styles ---------- */
+
 const styles: Record<string, React.CSSProperties> = {
   sidebar: {
     display: 'flex',
     flexDirection: 'column',
     backgroundColor: colors.bg.surface,
     borderRight: `1px solid ${colors.border.default}`,
-    transition: 'width 250ms ease',
+    transition: `width ${transitions.normal}`,
     overflow: 'hidden',
     flexShrink: 0,
   },
-  userSection: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: spacing.sm,
-    padding: `${spacing.lg}px ${spacing.md}px ${spacing.md}px`,
-    borderBottom: `1px solid ${colors.border.default}`,
-  },
-  collapsedAvatar: {
-    display: 'flex',
-    justifyContent: 'center',
-    padding: `${spacing.lg}px 0 ${spacing.md}px`,
-    borderBottom: `1px solid ${colors.border.default}`,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.full,
-    backgroundColor: colors.accent.muted,
+  modeBadgeSection: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
-    flexShrink: 0,
+    padding: `${spacing.md}px ${spacing.md}px ${spacing.sm}px`,
   },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-  },
-  avatarInitial: {
-    color: colors.accent.default,
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.semibold,
-  },
-  userInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-  },
-  userName: {
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.text.primary,
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  },
-  userOrg: {
+  modeBadge: {
     fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.medium,
     color: colors.text.secondary,
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    padding: '3px 10px',
+    borderRadius: radius.full,
+    letterSpacing: '0.3px',
+    textTransform: 'uppercase' as const,
+  },
+  collapsedBadge: {
+    display: 'flex',
+    justifyContent: 'center',
+    padding: `${spacing.md}px 0 ${spacing.sm}px`,
+  },
+  collapsedBadgeText: {
+    fontSize: 9,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.secondary,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    padding: '2px 6px',
+    borderRadius: radius.full,
+    letterSpacing: '0.3px',
+    textTransform: 'uppercase' as const,
   },
   nav: {
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
     gap: 2,
-    padding: `${spacing.md}px ${spacing.sm}px`,
+    padding: `${spacing.sm}px ${spacing.sm}px`,
   },
   navItem: {
     position: 'relative',
     display: 'flex',
     alignItems: 'center',
     gap: spacing.sm + 4,
-    height: 40,
+    height: 38,
     paddingRight: spacing.md,
     border: 'none',
     background: 'transparent',
     color: colors.text.secondary,
     borderRadius: radius.md,
     cursor: 'pointer',
-    transition: 'background-color 150ms ease, color 150ms ease',
+    transition: `background-color ${transitions.fast}, color ${transitions.fast}`,
     outline: 'none',
     fontSize: typography.fontSize.md,
     fontFamily: typography.fontFamily,
@@ -381,7 +381,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: colors.text.secondary,
     borderRadius: radius.md,
     cursor: 'pointer',
-    transition: 'background-color 150ms ease, color 150ms ease',
+    transition: `background-color ${transitions.fast}, color ${transitions.fast}`,
     outline: 'none',
   },
   collapsedTooltip: {
@@ -400,6 +400,5 @@ const styles: Record<string, React.CSSProperties> = {
     pointerEvents: 'none',
     zIndex: 700,
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
-    animation: 'fadeIn 120ms ease',
   },
 };

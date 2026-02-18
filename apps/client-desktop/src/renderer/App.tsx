@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { TitleBar } from './components/TitleBar';
+import { TopBar } from './components/TopBar';
 import { Sidebar } from './components/Sidebar';
+import { StatusBar } from './components/StatusBar';
 import { Toast } from './components/Toast';
 import { ConnectionOverlay } from './components/ConnectionOverlay';
 import { StreamView } from './components/StreamView';
@@ -13,8 +14,13 @@ import { HostDetailPage } from './pages/HostDetailPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SessionsPage } from './pages/SessionsPage';
 import { HostPage } from './pages/HostPage';
+import { ClientPage } from './pages/ClientPage';
+import { DevicesPage } from './pages/DevicesPage';
+import { DiagnosticsPage } from './pages/DiagnosticsPage';
 import { useAuthStore } from './store/authStore';
 import { useConnectionStore } from './store/connectionStore';
+import { useHostAgentStore } from './store/hostAgentStore';
+import { FirstRunDialog } from './components/FirstRunDialog';
 import { colors, spacing, typography } from './styles/theme';
 
 interface ProtectedRouteProps {
@@ -101,6 +107,13 @@ function AuthenticatedLayout(): React.ReactElement {
         return;
       }
 
+      // Ctrl+E → Diagnostics
+      if (e.key === 'e' && e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        navigate('/diagnostics');
+        return;
+      }
+
       // Ctrl+, → Settings
       if (e.key === ',' && e.ctrlKey && !e.altKey && !e.metaKey) {
         e.preventDefault();
@@ -126,11 +139,15 @@ function AuthenticatedLayout(): React.ReactElement {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/hosts/:id" element={<HostDetailPage />} />
           <Route path="/host" element={<HostPage />} />
+          <Route path="/client" element={<ClientPage />} />
+          <Route path="/devices" element={<DevicesPage />} />
+          <Route path="/diagnostics" element={<DiagnosticsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/sessions" element={<SessionsPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </main>
+        <StatusBar />
       </div>
       <KeyboardShortcutsModal
         open={showShortcuts}
@@ -143,6 +160,12 @@ function AuthenticatedLayout(): React.ReactElement {
 export function App(): React.ReactElement {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const connectionStatus = useConnectionStore((state) => state.status);
+  const config = useHostAgentStore((state) => state.config);
+
+  const [firstRunDismissed, setFirstRunDismissed] = useState(false);
+
+  // Show first-run dialog when authenticated but mode is not yet set
+  const showFirstRun = isAuthenticated && config && !config.mode && !firstRunDismissed;
 
   const isStreaming = connectionStatus === 'streaming' || connectionStatus === 'reconnecting';
   const isConnecting =
@@ -154,7 +177,7 @@ export function App(): React.ReactElement {
   return (
     <ErrorBoundary>
       <div style={styles.app}>
-        <TitleBar />
+        <TopBar />
         <div style={styles.content}>
           <Routes>
             <Route
@@ -177,6 +200,11 @@ export function App(): React.ReactElement {
         {isStreaming && <StreamView />}
         {/* Connection overlay shown during the connecting phase */}
         {isConnecting && <ConnectionOverlay />}
+        {/* First-run guided setup */}
+        <FirstRunDialog
+          open={!!showFirstRun}
+          onComplete={() => setFirstRunDismissed(true)}
+        />
         <Toast />
       </div>
     </ErrorBoundary>

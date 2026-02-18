@@ -6,7 +6,7 @@ import { useSessionStore } from '../store/sessionStore';
 import { toast } from '../components/Toast';
 import type { HostStatus } from '../components/StatusBadge';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (import.meta.env.DEV ? 'http://localhost:3000' : 'https://api.nvremote.com');
 
 let socket: Socket | null = null;
 let reconnectAttempts = 0;

@@ -11,7 +11,7 @@ import { useAuthStore } from '../store/authStore';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.DEV ? 'http://localhost:3000/api' : 'https://api.nvremote.com/api');
+  (import.meta.env.DEV ? 'http://localhost:3000/api/v1' : 'https://api.nvremote.com/api/v1');
 
 // ---------------------------------------------------------------------------
 // Axios instance

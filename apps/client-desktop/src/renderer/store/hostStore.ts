@@ -35,6 +35,7 @@ interface HostState {
   selectHost: (host: Host | null) => void;
   updateHostStatus: (hostId: string, status: HostStatus) => void;
   updateHostLatency: (hostId: string, latencyMs: number) => void;
+  renameHost: (hostId: string, name: string) => Promise<void>;
 }
 
 export const useHostStore = create<HostState>((set, get) => ({
@@ -104,5 +105,23 @@ export const useHostStore = create<HostState>((set, get) => ({
           ? { ...state.selectedHost, latencyMs }
           : state.selectedHost,
     }));
+  },
+
+  renameHost: async (hostId: string, name: string) => {
+    try {
+      await apiClient.patch(`/hosts/${hostId}`, { name });
+      set((state) => ({
+        hosts: state.hosts.map((h) =>
+          h.id === hostId ? { ...h, name } : h
+        ),
+        selectedHost:
+          state.selectedHost?.id === hostId
+            ? { ...state.selectedHost, name }
+            : state.selectedHost,
+      }));
+    } catch (err) {
+      console.error('Failed to rename host:', err);
+      throw err;
+    }
   },
 }));

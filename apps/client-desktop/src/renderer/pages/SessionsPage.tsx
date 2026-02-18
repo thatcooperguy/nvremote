@@ -1,8 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { colors, radius, spacing, typography } from '../styles/theme';
 import { Card } from '../components/Card';
+import { FilterBar, type FilterState } from '../components/FilterBar';
+import { ErrorState } from '../components/ErrorState';
 import { useSessionStore, type Session } from '../store/sessionStore';
 import { useHostStore } from '../store/hostStore';
+import { toast } from '../components/Toast';
 
 type SortField = 'date' | 'duration';
 type SortDirection = 'asc' | 'desc';
@@ -12,23 +15,31 @@ export function SessionsPage(): React.ReactElement {
   const fetchSessions = useSessionStore((s) => s.fetchSessions);
   const hosts = useHostStore((s) => s.hosts);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
+  const [filters, setFilters] = useState<FilterState>({
+    dateRange: 'all',
+    host: 'all',
+    status: 'all',
+  });
+
+  const loadSessions = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      await fetchSessions();
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Failed to load sessions');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchSessions]);
 
   useEffect(() => {
-    const load = async () => {
-      setIsLoading(true);
-      try {
-        await fetchSessions();
-      } catch {
-        // Silent failure
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    load();
-  }, [fetchSessions]);
+    loadSessions();
+  }, [loadSessions]);
 
   const getHostName = (hostId: string): string => {
     const host = hosts.find((h) => h.id === hostId);
@@ -44,13 +55,72 @@ export function SessionsPage(): React.ReactElement {
     }
   };
 
-  const sortedSessions = [...sessions].sort((a, b) => {
-    const mul = sortDir === 'asc' ? 1 : -1;
-    if (sortField === 'date') {
-      return mul * (new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime());
+  // Client-side filtering
+  const filteredSessions = useMemo(() => {
+    let result = [...sessions];
+
+    // Date range filter
+    if (filters.dateRange !== 'all') {
+      const days = filters.dateRange === '7d' ? 7 : filters.dateRange === '30d' ? 30 : 90;
+      const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+      result = result.filter((s) => new Date(s.startedAt).getTime() >= cutoff);
     }
-    return mul * ((a.durationMs || 0) - (b.durationMs || 0));
-  });
+
+    // Host filter
+    if (filters.host !== 'all') {
+      result = result.filter((s) => s.hostId === filters.host);
+    }
+
+    // Status filter
+    if (filters.status !== 'all') {
+      result = result.filter((s) => s.status === filters.status);
+    }
+
+    return result;
+  }, [sessions, filters]);
+
+  const sortedSessions = useMemo(() => {
+    return [...filteredSessions].sort((a, b) => {
+      const mul = sortDir === 'asc' ? 1 : -1;
+      if (sortField === 'date') {
+        return mul * (new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime());
+      }
+      return mul * ((a.durationMs || 0) - (b.durationMs || 0));
+    });
+  }, [filteredSessions, sortField, sortDir]);
+
+  // Host options for filter dropdown
+  const hostOptions = useMemo(() => {
+    const uniqueHosts = new Map<string, string>();
+    sessions.forEach((s) => {
+      if (!uniqueHosts.has(s.hostId)) {
+        uniqueHosts.set(s.hostId, getHostName(s.hostId));
+      }
+    });
+    return Array.from(uniqueHosts.entries()).map(([value, label]) => ({ value, label }));
+  }, [sessions, hosts]);
+
+  // Export & Copy handlers
+  const handleExport = useCallback(() => {
+    const data = JSON.stringify(sortedSessions, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `nvremote-sessions-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Sessions exported');
+  }, [sortedSessions]);
+
+  const handleCopy = useCallback(() => {
+    const lines = sortedSessions.map(
+      (s) =>
+        `${getHostName(s.hostId)} | ${new Date(s.startedAt).toLocaleDateString()} | ${formatDuration(s.durationMs)} | ${s.status}`
+    );
+    const summary = `NVRemote Sessions (${sortedSessions.length})\n${'—'.repeat(40)}\n${lines.join('\n')}`;
+    navigator.clipboard.writeText(summary).then(() => toast.success('Summary copied to clipboard'));
+  }, [sortedSessions]);
 
   const SortIcon = ({ field }: { field: SortField }) => (
     <svg
@@ -80,6 +150,28 @@ export function SessionsPage(): React.ReactElement {
           <span style={{ color: colors.text.disabled }}> ({sessions.length})</span>
         )}
       </p>
+
+      {/* Load error */}
+      {loadError && (
+        <ErrorState
+          title="Failed to load sessions"
+          description={loadError}
+          onRetry={loadSessions}
+          compact
+        />
+      )}
+
+      {/* Filter Bar — shown when there are sessions */}
+      {!isLoading && !loadError && sessions.length > 0 && (
+        <FilterBar
+          filters={filters}
+          onChange={setFilters}
+          hostOptions={hostOptions}
+          sessions={sortedSessions}
+          onExport={handleExport}
+          onCopy={handleCopy}
+        />
+      )}
 
       {isLoading ? (
         <div style={styles.sessionList}>

@@ -130,15 +130,15 @@ function getRendererUrl(): string {
 }
 
 function getApiBaseUrl(): string {
-  return isDev
-    ? 'http://localhost:3000/api'
-    : 'https://api.nvremote.com';
+  return process.env.API_BASE_URL || (isDev
+    ? 'http://localhost:3000/api/v1'
+    : 'https://api.nvremote.com/api/v1');
 }
 
 function getControlPlaneUrl(): string {
-  return isDev
+  return process.env.CONTROL_PLANE_URL || (isDev
     ? 'http://localhost:3000'
-    : 'https://api.nvremote.com';
+    : 'https://api.nvremote.com');
 }
 
 /** Build a HostAgentConfig from the electron-store values. */
@@ -397,7 +397,7 @@ function setupIpcHandlers(): void {
   // ── Authentication ───────────────────────────────────────────────────
   ipcMain.handle('auth:google-sign-in', async () => {
     try {
-      const authUrl = `${getApiBaseUrl()}/auth/google`;
+      const authUrl = `${getApiBaseUrl()}/auth/google?state=desktop`;
       await shell.openExternal(authUrl);
       return { success: true };
     } catch (err) {

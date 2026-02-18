@@ -13,8 +13,8 @@
 #   6.  build-host-bundle-linux       -- Tar.gz NVRemoteAgent (Linux x86_64)
 #   7.  build-host-bundle-linux-arm64 -- Tar.gz NVRemoteAgent (Linux ARM64)
 #   8.  build-client                  -- Electron desktop client (Windows NSIS installer)
-#   9.  build-client-linux            -- Electron desktop client (Linux x86_64 AppImage)
-#  10.  build-client-linux-arm64      -- Electron desktop client (Linux ARM64 AppImage)
+#   9.  build-client-linux            -- Electron desktop client (Linux x86_64: AppImage + deb + tar.gz)
+#  10.  build-client-linux-arm64      -- Electron desktop client (Linux ARM64: AppImage + deb + tar.gz)
 #  11.  build-client-macos            -- Electron desktop client (macOS DMG)
 #  12.  build-android                 -- Android APK (Kotlin/Compose)
 #  13.  create-release                -- Publish GitHub Release with all artifacts
@@ -747,7 +747,7 @@ jobs:
           retention-days: 5
 
   ###########################################################################
-  # Job 7: Build Electron desktop client (Linux AppImage)
+  # Job 7: Build Electron desktop client (Linux x86_64: AppImage + deb + tar.gz)
   ###########################################################################
   build-client-linux:
     name: Build Desktop Client (Linux)
@@ -770,11 +770,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build and package client
+      - name: Build and package client (AppImage + deb + tar.gz)
         working-directory: apps/client-desktop
         run: |
           npm run build
-          npx electron-builder --linux
+          npx electron-builder --linux AppImage deb tar.gz
           echo ""
           echo "=== Release directory contents ==="
           find release -type f -exec ls -lh {} \;
@@ -785,7 +785,7 @@ jobs:
         if: env.HAS_GPG_KEY == 'true'
         run: |
           echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d | gpg --batch --import
-          APPIMAGE=$(find apps/client-desktop/release -name 'NVRemote-*.AppImage' | head -1)
+          APPIMAGE=$(find apps/client-desktop/release -name 'NVRemote-*-x86_64.AppImage' | head -1)
           if [ -n "$APPIMAGE" ]; then
             gpg --batch --yes --detach-sign --armor "$APPIMAGE"
             echo "Signed: $APPIMAGE"
@@ -794,18 +794,20 @@ jobs:
             echo "No AppImage found to sign"
           fi
 
-      - name: Upload client AppImage
+      - name: Upload client Linux packages
         uses: actions/upload-artifact@v4
         with:
           name: client-linux
           path: |
             apps/client-desktop/release/NVRemote-*.AppImage
             apps/client-desktop/release/NVRemote-*.AppImage.asc
+            apps/client-desktop/release/NVRemote-*.deb
+            apps/client-desktop/release/NVRemote-*.tar.gz
           if-no-files-found: warn
           retention-days: 5
 
   ###########################################################################
-  # Job 10: Build Electron desktop client (Linux ARM64 AppImage)
+  # Job 10: Build Electron desktop client (Linux ARM64: AppImage + deb + tar.gz)
   ###########################################################################
   build-client-linux-arm64:
     name: Build Desktop Client (Linux ARM64)
@@ -833,11 +835,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build and package client (ARM64)
+      - name: Build and package client (ARM64: AppImage + deb + tar.gz)
         working-directory: apps/client-desktop
         run: |
           npm run build
-          USE_SYSTEM_FPM=true npx electron-builder --linux AppImage --arm64 \
+          USE_SYSTEM_FPM=true npx electron-builder --linux AppImage deb tar.gz --arm64 \
             -c.linux.artifactName='NVRemote-${version}-arm64.${ext}'
           echo ""
           echo "=== Release directory contents ==="
@@ -858,13 +860,15 @@ jobs:
             echo "No ARM64 AppImage found to sign"
           fi
 
-      - name: Upload client AppImage (ARM64)
+      - name: Upload client Linux ARM64 packages
         uses: actions/upload-artifact@v4
         with:
           name: client-linux-arm64
           path: |
             apps/client-desktop/release/NVRemote-*-arm64.AppImage
             apps/client-desktop/release/NVRemote-*-arm64.AppImage.asc
+            apps/client-desktop/release/NVRemote-*-arm64.deb
+            apps/client-desktop/release/NVRemote-*-arm64.tar.gz
           if-no-files-found: warn
           retention-days: 5
 
@@ -1208,17 +1212,25 @@ jobs:
           cp release-artifacts/client-installer/*.exe release-files/ 2>/dev/null && \
             echo "Collected Windows client installer exe" || echo "Warning: Windows client installer exe not found"
 
-          # Linux client AppImage (x86_64)
+          # Linux client (x86_64) — AppImage, deb, tar.gz
           cp release-artifacts/client-linux/*.AppImage release-files/ 2>/dev/null && \
             echo "Collected Linux client AppImage (x86_64)" || echo "Warning: Linux client AppImage not found"
           cp release-artifacts/client-linux/*.AppImage.asc release-files/ 2>/dev/null && \
             echo "Collected Linux client AppImage signature" || echo "Note: No Linux client AppImage signature"
+          cp release-artifacts/client-linux/*.deb release-files/ 2>/dev/null && \
+            echo "Collected Linux client deb (x86_64)" || echo "Warning: Linux client deb not found"
+          cp release-artifacts/client-linux/*.tar.gz release-files/ 2>/dev/null && \
+            echo "Collected Linux client tar.gz (x86_64)" || echo "Warning: Linux client tar.gz not found"
 
-          # Linux client AppImage (ARM64)
+          # Linux client (ARM64) — AppImage, deb, tar.gz
           cp release-artifacts/client-linux-arm64/*.AppImage release-files/ 2>/dev/null && \
             echo "Collected Linux client AppImage (ARM64)" || echo "Warning: Linux ARM64 client AppImage not found"
           cp release-artifacts/client-linux-arm64/*.AppImage.asc release-files/ 2>/dev/null && \
             echo "Collected Linux ARM64 client AppImage signature" || echo "Note: No Linux ARM64 client AppImage signature"
+          cp release-artifacts/client-linux-arm64/*.deb release-files/ 2>/dev/null && \
+            echo "Collected Linux ARM64 client deb" || echo "Warning: Linux ARM64 client deb not found"
+          cp release-artifacts/client-linux-arm64/*.tar.gz release-files/ 2>/dev/null && \
+            echo "Collected Linux ARM64 client tar.gz" || echo "Warning: Linux ARM64 client tar.gz not found"
 
           # macOS client DMG
           cp release-artifacts/client-macos/*.dmg release-files/ 2>/dev/null && \
@@ -1279,8 +1291,12 @@ jobs:
             | Platform | Artifact | Description |
             |----------|----------|-------------|
             | macOS | `NVRemote-*-universal.dmg` | Universal binary (Intel + Apple Silicon) |
-            | Linux x86_64 | `NVRemote-*-x86_64.AppImage` | AppImage — chmod +x and run |
-            | Linux ARM64 | `NVRemote-*-arm64.AppImage` | Jetson / Pi / ARM64 Linux |
+            | Linux x86_64 | `nvremote_*_amd64.deb` | **Recommended** — Debian/Ubuntu package, `sudo dpkg -i` |
+            | Linux x86_64 | `NVRemote-*-x86_64.AppImage` | Portable AppImage — chmod +x and run |
+            | Linux x86_64 | `NVRemote-*-x86_64.tar.gz` | Manual install tarball |
+            | Linux ARM64 | `nvremote_*_arm64.deb` | **Recommended** — Debian/Ubuntu ARM64 package |
+            | Linux ARM64 | `NVRemote-*-arm64.AppImage` | Portable ARM64 AppImage |
+            | Linux ARM64 | `NVRemote-*-arm64.tar.gz` | Manual install ARM64 tarball |
             | Android | `NVRemote-${{ github.ref_name }}.apk` | Android 7.0+ sideload APK |
 
             #### Linux Host Agent (headless servers)
@@ -1298,7 +1314,7 @@ jobs:
             ### Requirements
             - **Windows**: Windows 10/11 x64 with NVIDIA GPU (for host mode: NVENC support required)
             - **macOS**: macOS 13+ (client only)
-            - **Linux**: x86_64 or ARM64 (client: AppImage; host: standalone Go agent)
+            - **Linux**: x86_64 or ARM64 (client: deb/AppImage/tar.gz; host: standalone Go agent)
             - **Android**: Android 7.0+ (API 24)
             - **Jetson/DGX**: JetPack 5.0+ with NVIDIA GPU (host agent)
 
@@ -1347,7 +1363,9 @@ jobs:
             "NVRemote-${V_BARE}-Setup.exe"
             "NVRemote-${V_BARE}-Setup.exe.blockmap"
             "NVRemote-${V_BARE}-x86_64.AppImage"
+            "nvremote_${V_BARE}_amd64.deb"
             "NVRemote-${V_BARE}-arm64.AppImage"
+            "nvremote_${V_BARE}_arm64.deb"
             "NVRemote-${V_BARE}-universal.dmg"
             "NVRemote-${V}-apk"
             "NVRemoteHost-${V}-linux-amd64.tar.gz"
@@ -1362,6 +1380,8 @@ jobs:
             "NVRemoteHost-${V}-linux-arm64.tar.gz.asc"
             "NVRemote-${V_BARE}-x86_64.AppImage.asc"
             "NVRemote-${V_BARE}-arm64.AppImage.asc"
+            "NVRemote-${V_BARE}-x86_64.tar.gz"
+            "NVRemote-${V_BARE}-arm64.tar.gz"
             "NVRemote-${V_BARE}-universal.dmg.blockmap"
             "latest.yml"
             "latest-mac.yml"

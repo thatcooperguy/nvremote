@@ -111,7 +111,21 @@ export function HostDetailPage(): React.ReactElement {
         <h2 style={styles.sectionTitle}>Connection History</h2>
         {hostSessions.length === 0 ? (
           <Card>
-            <p style={styles.emptyText}>No previous sessions with this host.</p>
+            <div style={styles.emptySessionState}>
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style={{ opacity: 0.5 }}>
+                <rect x="6" y="10" width="36" height="24" rx="4" stroke={colors.text.disabled} strokeWidth="2" />
+                <path d="M6 18H42" stroke={colors.text.disabled} strokeWidth="2" />
+                <path d="M18 40H30" stroke={colors.text.disabled} strokeWidth="2" strokeLinecap="round" />
+                <path d="M24 34V40" stroke={colors.text.disabled} strokeWidth="2" strokeLinecap="round" />
+                <path d="M20 26L24 22L28 26" stroke={colors.text.disabled} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <div style={styles.emptySessionContent}>
+                <span style={styles.emptySessionTitle}>No sessions yet</span>
+                <span style={styles.emptySessionDesc}>
+                  Click Connect above to start your first streaming session. Session history and performance metrics will appear here.
+                </span>
+              </div>
+            </div>
           </Card>
         ) : (
           <div style={styles.sessionList}>
@@ -348,6 +362,31 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
     textAlign: 'center',
     padding: spacing.lg,
+  },
+  emptySessionState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: `${spacing.xl}px ${spacing.lg}px`,
+  },
+  emptySessionContent: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 4,
+    textAlign: 'center',
+    maxWidth: 380,
+  },
+  emptySessionTitle: {
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
+  },
+  emptySessionDesc: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    lineHeight: 1.5,
   },
   sessionList: {
     display: 'flex',

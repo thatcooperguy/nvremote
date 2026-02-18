@@ -43,8 +43,10 @@ Grab the latest release for your platform. No account required — just download
 | Platform | Download | Notes |
 |----------|----------|-------|
 | **macOS** | [NVRemote-0.5.1-beta-universal.dmg](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-0.5.1-beta-universal.dmg) | Universal binary (Intel + Apple Silicon) |
-| **Linux x86_64** | [NVRemote-0.5.1-beta-x86_64.AppImage](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-0.5.1-beta-x86_64.AppImage) | AppImage — `chmod +x` and run |
-| **Linux ARM64** | [NVRemote-0.5.1-beta-arm64.AppImage](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-0.5.1-beta-arm64.AppImage) | Jetson / Pi / ARM64 Linux |
+| **Linux x86_64** | [nvremote_0.5.1-beta_amd64.deb](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/nvremote_0.5.1-beta_amd64.deb) | **Recommended** — `sudo dpkg -i` (Debian/Ubuntu) |
+| **Linux x86_64** | [NVRemote-0.5.1-beta-x86_64.AppImage](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-0.5.1-beta-x86_64.AppImage) | Portable AppImage — `chmod +x` and run |
+| **Linux ARM64** | [nvremote_0.5.1-beta_arm64.deb](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/nvremote_0.5.1-beta_arm64.deb) | **Recommended** — ARM64 Debian/Ubuntu package |
+| **Linux ARM64** | [NVRemote-0.5.1-beta-arm64.AppImage](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-0.5.1-beta-arm64.AppImage) | Portable ARM64 AppImage |
 | **Android** | [NVRemote-v0.5.1-beta.apk](https://github.com/thatcooperguy/nvremote/releases/download/v0.5.1-beta/NVRemote-v0.5.1-beta.apk) | Android 7.0+, sideload APK |
 
 ### 🖧 Linux Host Agent (headless servers)

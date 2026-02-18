@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { colors, radius, spacing, typography } from '../styles/theme';
 import { Card } from '../components/Card';
 import { useSessionStore, type Session } from '../store/sessionStore';
@@ -8,9 +8,21 @@ export function SessionsPage(): React.ReactElement {
   const sessions = useSessionStore((s) => s.sessions);
   const fetchSessions = useSessionStore((s) => s.fetchSessions);
   const hosts = useHostStore((s) => s.hosts);
+  const [isLoading, setIsLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchSessions();
+    const load = async () => {
+      setIsLoading(true);
+      try {
+        await fetchSessions();
+      } catch {
+        // Silent failure
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    load();
   }, [fetchSessions]);
 
   const getHostName = (hostId: string): string => {
@@ -25,7 +37,19 @@ export function SessionsPage(): React.ReactElement {
         Your streaming session history
       </p>
 
-      {sessions.length === 0 ? (
+      {isLoading ? (
+        <div style={styles.sessionList}>
+          <div style={styles.tableHeader}>
+            <span style={{ ...styles.tableHeaderCell, flex: 2 }}>Host</span>
+            <span style={{ ...styles.tableHeaderCell, flex: 2 }}>Date</span>
+            <span style={{ ...styles.tableHeaderCell, flex: 1 }}>Duration</span>
+            <span style={{ ...styles.tableHeaderCell, flex: 1 }}>Status</span>
+          </div>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <SkeletonRow key={i} />
+          ))}
+        </div>
+      ) : sessions.length === 0 ? (
         <Card>
           <div style={styles.emptyState}>
             <EmptyIcon />
@@ -33,6 +57,11 @@ export function SessionsPage(): React.ReactElement {
             <p style={styles.emptyDescription}>
               Your streaming sessions will appear here once you connect to a host.
             </p>
+            <div style={styles.emptyHints}>
+              <HintItem icon={<MonitorIcon />} text="Connect to a host from the Dashboard" />
+              <HintItem icon={<ClockIcon />} text="Session history and metrics are saved automatically" />
+              <HintItem icon={<ChartIcon />} text="View detailed stats for each session" />
+            </div>
           </div>
         </Card>
       ) : (
@@ -51,6 +80,10 @@ export function SessionsPage(): React.ReactElement {
               key={session.id}
               session={session}
               hostName={getHostName(session.hostId)}
+              expanded={expandedId === session.id}
+              onToggle={() =>
+                setExpandedId(expandedId === session.id ? null : session.id)
+              }
             />
           ))}
         </div>
@@ -62,9 +95,11 @@ export function SessionsPage(): React.ReactElement {
 interface SessionRowProps {
   session: Session;
   hostName: string;
+  expanded: boolean;
+  onToggle: () => void;
 }
 
-function SessionRow({ session, hostName }: SessionRowProps): React.ReactElement {
+function SessionRow({ session, hostName, expanded, onToggle }: SessionRowProps): React.ReactElement {
   const statusColor =
     session.status === 'active'
       ? colors.semantic.success
@@ -73,38 +108,178 @@ function SessionRow({ session, hostName }: SessionRowProps): React.ReactElement 
       : colors.semantic.error;
 
   return (
+    <div>
+      <div
+        style={{
+          ...styles.sessionRow,
+          backgroundColor: expanded ? colors.bg.surface : colors.bg.card,
+          cursor: 'pointer',
+        }}
+        onClick={onToggle}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+      >
+        <div style={{ ...styles.sessionCell, flex: 2 }}>
+          <span style={styles.hostName}>{hostName}</span>
+        </div>
+        <div style={{ ...styles.sessionCell, flex: 2 }}>
+          <span style={styles.sessionDate}>
+            {new Date(session.startedAt).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })}
+          </span>
+          <span style={styles.sessionTime}>
+            {new Date(session.startedAt).toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </span>
+        </div>
+        <div style={{ ...styles.sessionCell, flex: 1 }}>
+          <span style={styles.duration}>{formatDuration(session.durationMs)}</span>
+        </div>
+        <div style={{ ...styles.sessionCell, flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <span
+            style={{
+              ...styles.statusLabel,
+              color: statusColor,
+              backgroundColor: `${statusColor}15`,
+            }}
+          >
+            {session.status}
+          </span>
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 12 12"
+            fill="none"
+            style={{
+              transition: 'transform 200ms ease',
+              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+              marginLeft: 'auto',
+            }}
+          >
+            <path
+              d="M3 4.5L6 7.5L9 4.5"
+              stroke={colors.text.disabled}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+      </div>
+
+      {/* Expandable detail panel */}
+      {expanded && (
+        <div style={styles.detailPanel}>
+          <div style={styles.detailGrid}>
+            <DetailItem label="Session ID" value={session.id.slice(0, 12) + '...'} mono />
+            <DetailItem label="Host" value={hostName} />
+            <DetailItem
+              label="Started"
+              value={new Date(session.startedAt).toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+              })}
+            />
+            <DetailItem label="Duration" value={formatDuration(session.durationMs)} />
+            <DetailItem
+              label="Connection Type"
+              value={session.connectionType === 'direct' ? 'P2P Direct' : 'WireGuard VPN'}
+            />
+            {session.metrics && (
+              <>
+                <DetailItem
+                  label="Avg Bitrate"
+                  value={`${session.metrics.avgBitrateMbps.toFixed(1)} Mbps`}
+                  mono
+                />
+                <DetailItem
+                  label="Avg FPS"
+                  value={`${session.metrics.avgFps}`}
+                  mono
+                />
+                <DetailItem
+                  label="Avg Latency"
+                  value={`${session.metrics.avgLatencyMs} ms`}
+                  mono
+                  highlight={session.metrics.avgLatencyMs > 40 ? 'warning' : 'good'}
+                />
+                <DetailItem
+                  label="Packet Loss"
+                  value={`${session.metrics.packetLossPercent.toFixed(2)}%`}
+                  mono
+                  highlight={session.metrics.packetLossPercent > 1 ? 'warning' : 'good'}
+                />
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface DetailItemProps {
+  label: string;
+  value: string;
+  mono?: boolean;
+  highlight?: 'good' | 'warning' | 'bad';
+}
+
+function DetailItem({ label, value, mono, highlight }: DetailItemProps): React.ReactElement {
+  const valueColor = highlight === 'good'
+    ? colors.semantic.success
+    : highlight === 'warning'
+    ? colors.semantic.warning
+    : highlight === 'bad'
+    ? colors.semantic.error
+    : colors.text.primary;
+
+  return (
+    <div style={styles.detailItem}>
+      <span style={styles.detailLabel}>{label}</span>
+      <span
+        style={{
+          ...styles.detailValue,
+          fontFamily: mono ? typography.fontMono : typography.fontFamily,
+          color: valueColor,
+        }}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function SkeletonRow(): React.ReactElement {
+  return (
     <div style={styles.sessionRow}>
       <div style={{ ...styles.sessionCell, flex: 2 }}>
-        <span style={styles.hostName}>{hostName}</span>
+        <div style={{ ...styles.skeletonLine, width: '70%', height: 16 }} className="skeleton" />
       </div>
       <div style={{ ...styles.sessionCell, flex: 2 }}>
-        <span style={styles.sessionDate}>
-          {new Date(session.startedAt).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-          })}
-        </span>
-        <span style={styles.sessionTime}>
-          {new Date(session.startedAt).toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </span>
+        <div style={{ ...styles.skeletonLine, width: '60%', height: 16 }} className="skeleton" />
+        <div style={{ ...styles.skeletonLine, width: '40%', height: 12, marginTop: 4 }} className="skeleton" />
       </div>
       <div style={{ ...styles.sessionCell, flex: 1 }}>
-        <span style={styles.duration}>{formatDuration(session.durationMs)}</span>
+        <div style={{ ...styles.skeletonLine, width: '50%', height: 16 }} className="skeleton" />
       </div>
       <div style={{ ...styles.sessionCell, flex: 1 }}>
-        <span
-          style={{
-            ...styles.statusLabel,
-            color: statusColor,
-            backgroundColor: `${statusColor}15`,
-          }}
-        >
-          {session.status}
-        </span>
+        <div style={{ ...styles.skeletonLine, width: 60, height: 22, borderRadius: 12 }} className="skeleton" />
       </div>
     </div>
   );
@@ -123,13 +298,57 @@ function formatDuration(ms: number): string {
 
 function EmptyIcon(): React.ReactElement {
   return (
-    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style={{ opacity: 0.5 }}>
-      <rect x="6" y="10" width="36" height="28" rx="4" stroke={colors.text.disabled} strokeWidth="2" />
-      <path d="M6 18H42" stroke={colors.text.disabled} strokeWidth="2" />
-      <circle cx="12" cy="14" r="1.5" fill={colors.text.disabled} />
-      <circle cx="18" cy="14" r="1.5" fill={colors.text.disabled} />
-      <circle cx="24" cy="14" r="1.5" fill={colors.text.disabled} />
+    <svg width="56" height="56" viewBox="0 0 56 56" fill="none" style={{ opacity: 0.5 }}>
+      <rect x="6" y="10" width="44" height="32" rx="4" stroke={colors.text.disabled} strokeWidth="2" />
+      <path d="M6 18H50" stroke={colors.text.disabled} strokeWidth="2" />
+      <circle cx="14" cy="14" r="1.5" fill={colors.text.disabled} />
+      <circle cx="20" cy="14" r="1.5" fill={colors.text.disabled} />
+      <circle cx="26" cy="14" r="1.5" fill={colors.text.disabled} />
+      <path d="M20 46H36" stroke={colors.text.disabled} strokeWidth="2" strokeLinecap="round" />
+      <path d="M28 42V46" stroke={colors.text.disabled} strokeWidth="2" strokeLinecap="round" />
     </svg>
+  );
+}
+
+function MonitorIcon(): React.ReactElement {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect x="1" y="2" width="14" height="10" rx="2" stroke={colors.accent.default} strokeWidth="1.5" />
+      <path d="M5 14H11M8 12V14" stroke={colors.accent.default} strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ClockIcon(): React.ReactElement {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="8" r="6.5" stroke={colors.accent.default} strokeWidth="1.5" />
+      <path d="M8 4.5V8L10.5 9.5" stroke={colors.accent.default} strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ChartIcon(): React.ReactElement {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect x="2" y="9" width="3" height="5" rx="0.5" fill={colors.accent.default} opacity="0.4" />
+      <rect x="6.5" y="5" width="3" height="9" rx="0.5" fill={colors.accent.default} opacity="0.6" />
+      <rect x="11" y="2" width="3" height="12" rx="0.5" fill={colors.accent.default} opacity="0.8" />
+    </svg>
+  );
+}
+
+interface HintItemProps {
+  icon: React.ReactNode;
+  text: string;
+}
+
+function HintItem({ icon, text }: HintItemProps): React.ReactElement {
+  return (
+    <div style={styles.hintItem}>
+      <div style={styles.hintIcon}>{icon}</div>
+      <span style={styles.hintText}>{text}</span>
+    </div>
   );
 }
 
@@ -170,6 +389,32 @@ const styles: Record<string, React.CSSProperties> = {
     color: colors.text.secondary,
     margin: 0,
     textAlign: 'center',
+    maxWidth: 400,
+  },
+  emptyHints: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    width: '100%',
+    maxWidth: 360,
+  },
+  hintItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.sm + 2,
+    padding: `${spacing.xs + 2}px ${spacing.md}px`,
+    borderRadius: radius.md,
+    backgroundColor: colors.bg.surface,
+  },
+  hintIcon: {
+    display: 'flex',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  hintText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
   },
   sessionList: {
     display: 'flex',
@@ -199,7 +444,6 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: colors.bg.card,
     borderBottom: `1px solid ${colors.border.default}`,
     transition: 'background-color 150ms ease',
-    cursor: 'default',
   },
   sessionCell: {
     display: 'flex',
@@ -222,7 +466,7 @@ const styles: Record<string, React.CSSProperties> = {
   duration: {
     fontSize: typography.fontSize.md,
     color: colors.text.secondary,
-    fontFamily: "'JetBrains Mono', 'Consolas', monospace",
+    fontFamily: typography.fontMono,
   },
   statusLabel: {
     display: 'inline-block',
@@ -231,5 +475,38 @@ const styles: Record<string, React.CSSProperties> = {
     textTransform: 'capitalize',
     padding: '3px 8px',
     borderRadius: radius.full,
+  },
+  // Expandable detail panel
+  detailPanel: {
+    padding: `${spacing.md}px ${spacing.lg}px`,
+    backgroundColor: colors.bg.surface,
+    borderBottom: `1px solid ${colors.border.default}`,
+    animation: 'slideUp 200ms ease',
+  },
+  detailGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+    gap: `${spacing.sm}px ${spacing.lg}px`,
+  },
+  detailItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+  },
+  detailLabel: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.disabled,
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+  detailValue: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.text.primary,
+  },
+  // Skeleton
+  skeletonLine: {
+    borderRadius: radius.sm,
+    backgroundColor: colors.bg.surface,
   },
 };

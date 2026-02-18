@@ -179,6 +179,16 @@ const clientDownloads: DownloadItem[] = [
     href: `${BASE_URL}/NVRemote-${VERSION.replace('v', '')}-universal.dmg`,
   },
   {
+    id: 'linux-client-x64-deb',
+    platform: 'Linux Client (x86_64)',
+    ext: '.deb',
+    icon: <Laptop className="w-6 h-6" />,
+    version: VERSION,
+    size: '~80 MB',
+    sha256: '',
+    href: `${BASE_URL}/nvremote_${VERSION.replace('v', '')}_amd64.deb`,
+  },
+  {
     id: 'linux-client-x64',
     platform: 'Linux Client (x86_64)',
     ext: '.AppImage',
@@ -187,6 +197,16 @@ const clientDownloads: DownloadItem[] = [
     size: '103 MB',
     sha256: '66e07fbbb329c477f000d3927becf26497d6d1391902ca983bffe5217dac008b',
     href: `${BASE_URL}/NVRemote-${VERSION.replace('v', '')}-x86_64.AppImage`,
+  },
+  {
+    id: 'linux-client-arm64-deb',
+    platform: 'Linux Client (ARM64)',
+    ext: '.deb',
+    icon: <Laptop className="w-6 h-6" />,
+    version: VERSION,
+    size: '~35 MB',
+    sha256: '',
+    href: `${BASE_URL}/nvremote_${VERSION.replace('v', '')}_arm64.deb`,
   },
   {
     id: 'linux-client-arm64',

@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/electron/main';
 import {
   app,
   BrowserWindow,
@@ -12,6 +13,36 @@ import {
 import path from 'path';
 import os from 'os';
 import { autoUpdater } from 'electron-updater';
+
+// ---------------------------------------------------------------------------
+// Sentry — crash & error reporting (main process)
+// ---------------------------------------------------------------------------
+// Initialize before anything else so uncaught exceptions are captured.
+// Silently skips if DSN is not set (safe for local dev).
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN || '',
+  release: `nvremote-client@${app.getVersion()}`,
+  environment: app.isPackaged ? 'production' : 'development',
+  enabled: !!process.env.SENTRY_DSN,
+  // Capture 10% of transactions for performance monitoring
+  tracesSampleRate: 0.1,
+  beforeSend(event) {
+    // Strip local file paths from stack traces for privacy
+    if (event.exception?.values) {
+      for (const ex of event.exception.values) {
+        if (ex.stacktrace?.frames) {
+          for (const frame of ex.stacktrace.frames) {
+            if (frame.filename) {
+              frame.filename = frame.filename.replace(/.*[/\\]app\.asar/, 'app.asar');
+            }
+          }
+        }
+      }
+    }
+    return event;
+  },
+});
 import { loadViewer, getViewer, isViewerAvailable } from './viewer';
 import type { ViewerConfig, IceCandidate } from './viewer';
 import {
@@ -174,6 +205,15 @@ async function createWindow(): Promise<void> {
       sandbox: true,
       webSecurity: true,
     },
+  });
+
+  // Inject Sentry DSN + app info into renderer window for @sentry/react
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow?.webContents.executeJavaScript(`
+      window.__SENTRY_DSN__ = ${JSON.stringify(process.env.SENTRY_DSN || '')};
+      window.__APP_VERSION__ = ${JSON.stringify(app.getVersion())};
+      window.__APP_PACKAGED__ = ${JSON.stringify(app.isPackaged)};
+    `).catch(() => {});
   });
 
   mainWindow.loadURL(getRendererUrl());

@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
+    id("io.sentry.android.gradle")
 }
 
 android {
@@ -27,6 +28,9 @@ android {
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
+
+        // Sentry DSN injected from CI secret (empty string disables Sentry)
+        manifestPlaceholders["sentryDsn"] = System.getenv("SENTRY_DSN") ?: ""
     }
 
     signingConfigs {
@@ -91,6 +95,20 @@ android {
             useLegacyPackaging = true
         }
     }
+}
+
+// Sentry configuration — auto-instruments the app for crash/ANR reporting.
+// DSN is set at runtime in NVRemoteApp.kt via BuildConfig or manifest meta-data.
+// Source map upload requires SENTRY_AUTH_TOKEN at CI build time.
+sentry {
+    // Disable auto-upload by default (enable in CI with SENTRY_AUTH_TOKEN)
+    autoUploadProguardMapping.set(System.getenv("SENTRY_AUTH_TOKEN") != null)
+    // Include source context for better stack traces
+    includeSourceContext.set(true)
+    // Auto-install Sentry SDK
+    autoInstallation.enabled.set(true)
+    // Track app start performance
+    tracingInstrumentation.enabled.set(true)
 }
 
 dependencies {

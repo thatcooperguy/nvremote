@@ -477,6 +477,13 @@ const platformApi = {
   hostModeSupported: process.platform === 'win32',
 };
 
+// Runtime config fetched synchronously from main process so it's available
+// before any renderer code executes (api.ts, socket.ts module init).
+const configApi = ipcRenderer.sendSync('app:get-config') as {
+  apiBaseUrl: string;
+  controlPlaneUrl: string;
+};
+
 const api = {
   window: windowApi,
   auth: authApi,
@@ -488,6 +495,7 @@ const api = {
   platform: platformApi,
   host: hostApi,
   settings: settingsApi,
+  config: configApi,
 };
 
 contextBridge.exposeInMainWorld('nvrs', api);

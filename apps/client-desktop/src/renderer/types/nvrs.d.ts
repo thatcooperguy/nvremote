@@ -235,6 +235,12 @@ interface NvrsApi {
     set: (key: keyof AppSettings, value: unknown) => Promise<IpcResult>;
   };
 
+  /** Runtime config injected by preload (API URLs from env vars). */
+  config: {
+    apiBaseUrl: string;
+    controlPlaneUrl: string;
+  };
+
   host: {
     setMode: (mode: 'client' | 'host' | 'both') => Promise<IpcResult>;
     getStatus: () => Promise<HostAgentStatus>;

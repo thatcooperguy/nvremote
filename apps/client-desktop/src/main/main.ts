@@ -143,13 +143,13 @@ function getRendererUrl(): string {
 
 function getApiBaseUrl(): string {
   return process.env.API_BASE_URL || (isDev
-    ? 'http://localhost:3000/api/v1'
+    ? 'http://localhost:3001/api/v1'
     : 'https://api.nvremote.com/api/v1');
 }
 
 function getControlPlaneUrl(): string {
   return process.env.CONTROL_PLANE_URL || (isDev
-    ? 'http://localhost:3000'
+    ? 'http://localhost:3001'
     : 'https://api.nvremote.com');
 }
 
@@ -418,6 +418,15 @@ function handleDeepLink(url: string): void {
 // ---------------------------------------------------------------------------
 // IPC handlers
 // ---------------------------------------------------------------------------
+
+// Synchronous config handler — must be registered before window creation
+// so the preload can call sendSync('app:get-config') immediately.
+ipcMain.on('app:get-config', (event) => {
+  event.returnValue = {
+    apiBaseUrl: getApiBaseUrl(),
+    controlPlaneUrl: getControlPlaneUrl(),
+  };
+});
 
 function setupIpcHandlers(): void {
   // ── Window controls ──────────────────────────────────────────────────
@@ -920,8 +929,8 @@ function initAutoUpdater(): void {
   });
 
   // Check for updates 5 seconds after startup, then every 4 hours
-  setTimeout(() => autoUpdater.checkForUpdates(), 5000);
-  setInterval(() => autoUpdater.checkForUpdates(), 4 * 60 * 60 * 1000);
+  setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 5000);
+  setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 4 * 60 * 60 * 1000);
 }
 
 // ---------------------------------------------------------------------------

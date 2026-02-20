@@ -6,7 +6,11 @@ import { useSessionStore } from '../store/sessionStore';
 import { toast } from '../components/Toast';
 import type { HostStatus } from '../components/StatusBadge';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (import.meta.env.DEV ? 'http://localhost:3000' : 'https://api.nvremote.com');
+// Priority: preload config (supports CONTROL_PLANE_URL env var) → compile-time → defaults.
+const SOCKET_URL: string =
+  window.nvrs?.config?.controlPlaneUrl ||
+  import.meta.env.VITE_SOCKET_URL ||
+  (import.meta.env.DEV ? 'http://localhost:3001' : 'https://api.nvremote.com');
 
 let socket: Socket | null = null;
 let reconnectAttempts = 0;

@@ -1,5 +1,5 @@
-import { Controller, Get, Res } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiOkResponse } from '@nestjs/swagger';
+import { Controller, Get, Res, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiOkResponse, ApiServiceUnavailableResponse } from '@nestjs/swagger';
 import { Response } from 'express';
 import { Public } from '../common/decorators/public.decorator';
 import { PrismaService } from '../common/prisma.service';
@@ -20,14 +20,18 @@ export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Simple health check — returns 200 if the API can reach the database.
-   * Used by Cloud Run, Docker HEALTHCHECK, and load balancers.
+   * Health check — returns 200 if healthy, 503 if degraded.
+   *
+   * Cloud Run and load balancers use the HTTP status code to determine
+   * whether to route traffic to this instance. Returning 503 on degraded
+   * state ensures unhealthy instances are removed from the pool.
    */
   @Public()
   @Get('health')
   @ApiOperation({ summary: 'Health check' })
   @ApiOkResponse({ description: 'Service healthy' })
-  async health() {
+  @ApiServiceUnavailableResponse({ description: 'Service degraded (database unreachable)' })
+  async health(@Res() res: Response) {
     let dbHealthy = false;
     try {
       await this.prisma.$queryRaw`SELECT 1`;
@@ -38,13 +42,17 @@ export class HealthController {
 
     const uptimeMs = Date.now() - this.startTime;
 
-    return {
+    const body = {
       status: dbHealthy ? 'ok' : 'degraded',
       uptime: Math.floor(uptimeMs / 1000),
       database: dbHealthy ? 'connected' : 'unreachable',
       version: '0.5.1-beta',
       timestamp: new Date().toISOString(),
     };
+
+    res
+      .status(dbHealthy ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE)
+      .json(body);
   }
 
   /**

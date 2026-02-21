@@ -104,6 +104,16 @@ const (
 
 	// defaultProcessName is the expected process image name.
 	defaultProcessName = "nvremote-host.exe"
+
+	// Auto-restart constants — prevent restart storms when nvremote-host keeps crashing.
+	maxRestartAttempts    = 3               // Max consecutive restarts before giving up
+	restartBackoffBase   = 5 * time.Second  // Initial backoff delay
+	restartBackoffMax    = 60 * time.Second // Maximum backoff delay
+	restartCounterReset  = 5 * time.Minute  // Reset restart counter after stable uptime
+
+	// IPC retry constants — handle transient pipe failures.
+	ipcRetryAttempts = 3
+	ipcRetryDelay    = 200 * time.Millisecond
 )
 
 // Manager manages the lifecycle of the nvremote-host.exe process and communicates
@@ -115,15 +125,37 @@ type Manager struct {
 	pipeName  string
 	ipcClient *IpcClient
 	mu        sync.Mutex
+
+	// Auto-restart state
+	autoRestart     bool      // Whether to auto-restart on unexpected exit
+	restartCount    int       // Consecutive restart attempts
+	lastStartTime   time.Time // When the process was last started
+	stopRequested   bool      // Set to true when Stop() is called to prevent restart
+	onStatusChange  func(status string) // Callback for status changes (e.g. "degraded-no-streamer")
 }
 
 // NewManager creates a new streamer Manager with the given configuration.
 func NewManager(cfg *config.Config) *Manager {
 	pipeName := defaultPipeName
 	return &Manager{
-		config:    cfg,
-		pipeName:  pipeName,
-		ipcClient: NewIpcClient(pipeName),
+		config:      cfg,
+		pipeName:    pipeName,
+		ipcClient:   NewIpcClient(pipeName),
+		autoRestart: true,
+	}
+}
+
+// SetStatusCallback registers a callback invoked when the streamer status
+// changes (e.g., "online", "degraded-no-streamer", "restarting").
+func (m *Manager) SetStatusCallback(cb func(status string)) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.onStatusChange = cb
+}
+
+func (m *Manager) notifyStatus(status string) {
+	if m.onStatusChange != nil {
+		m.onStatusChange(status)
 	}
 }
 
@@ -208,21 +240,73 @@ func (m *Manager) Start() error {
 
 	m.cmd = cmd
 	m.process = cmd.Process
+	m.lastStartTime = time.Now()
+	m.stopRequested = false
 
 	slog.Info("nvremote-host process started", "pid", m.process.Pid)
 
-	// Wait in a goroutine to collect the exit status and avoid zombie processes.
+	// Wait in a goroutine to collect the exit status and handle auto-restart.
 	go func() {
 		err := cmd.Wait()
 		m.mu.Lock()
-		defer m.mu.Unlock()
-		if err != nil {
-			slog.Warn("nvremote-host process exited", "error", err)
-		} else {
-			slog.Info("nvremote-host process exited cleanly")
-		}
+
+		exitedProcess := m.process
 		m.process = nil
 		m.cmd = nil
+
+		// Check if this was a requested stop or an unexpected crash
+		if m.stopRequested {
+			m.mu.Unlock()
+			if err != nil {
+				slog.Info("nvremote-host process stopped (requested)", "error", err)
+			} else {
+				slog.Info("nvremote-host process stopped cleanly (requested)")
+			}
+			return
+		}
+
+		// Unexpected exit — attempt auto-restart
+		if err != nil {
+			slog.Warn("nvremote-host process crashed", "error", err, "pid", exitedProcess.Pid)
+		} else {
+			slog.Warn("nvremote-host process exited unexpectedly (exit code 0)")
+		}
+
+		// Reset restart counter if the process was stable for long enough
+		if time.Since(m.lastStartTime) > restartCounterReset {
+			m.restartCount = 0
+		}
+
+		if !m.autoRestart || m.restartCount >= maxRestartAttempts {
+			slog.Error("nvremote-host auto-restart disabled or max attempts reached",
+				"restartCount", m.restartCount,
+				"maxAttempts", maxRestartAttempts)
+			m.notifyStatus("degraded-no-streamer")
+			m.mu.Unlock()
+			return
+		}
+
+		m.restartCount++
+		backoff := restartBackoffBase * time.Duration(1<<(m.restartCount-1))
+		if backoff > restartBackoffMax {
+			backoff = restartBackoffMax
+		}
+
+		slog.Info("scheduling nvremote-host auto-restart",
+			"attempt", m.restartCount,
+			"maxAttempts", maxRestartAttempts,
+			"backoff", backoff)
+		m.notifyStatus("restarting")
+		m.mu.Unlock()
+
+		time.Sleep(backoff)
+
+		if err := m.Start(); err != nil {
+			slog.Error("nvremote-host auto-restart failed", "error", err)
+			m.mu.Lock()
+			m.notifyStatus("degraded-no-streamer")
+			m.mu.Unlock()
+		}
 	}()
 
 	// Wait for the IPC pipe to become available, then connect.
@@ -248,6 +332,9 @@ func (m *Manager) Stop() error {
 	if m.process == nil {
 		return nil
 	}
+
+	m.stopRequested = true
+	m.restartCount = 0
 
 	slog.Info("stopping nvremote-host", "pid", m.process.Pid)
 
@@ -299,16 +386,56 @@ func (m *Manager) IsRunning() bool {
 	return m.process != nil && m.isProcessAlive()
 }
 
-// GetCapabilities queries the streamer for its encoding capabilities via IPC.
-func (m *Manager) GetCapabilities() (*StreamerCapabilities, error) {
+// sendCommandWithRetry wraps IPC SendCommand with automatic reconnect on
+// transient pipe failures. If the first attempt fails with a pipe error,
+// it reconnects and retries up to ipcRetryAttempts times.
+//
+// Must NOT be called with m.mu held — it acquires the lock internally.
+func (m *Manager) sendCommandWithRetry(command string, params map[string]interface{}) (interface{}, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	if !m.ipcClient.IsConnected() {
-		return nil, fmt.Errorf("IPC not connected")
+		// Attempt one reconnect before failing
+		slog.Debug("IPC not connected, attempting reconnect", "command", command)
+		if err := m.ipcClient.Connect(); err != nil {
+			return nil, fmt.Errorf("IPC not connected and reconnect failed: %w", err)
+		}
+		slog.Info("IPC reconnected successfully")
 	}
 
-	data, err := m.ipcClient.SendCommand("get_capabilities", nil)
+	var lastErr error
+	for attempt := 1; attempt <= ipcRetryAttempts; attempt++ {
+		data, err := m.ipcClient.SendCommand(command, params)
+		if err == nil {
+			return data, nil
+		}
+		lastErr = err
+
+		slog.Warn("IPC command failed, retrying",
+			"command", command,
+			"attempt", attempt,
+			"maxAttempts", ipcRetryAttempts,
+			"error", err)
+
+		if attempt < ipcRetryAttempts {
+			// Close and reconnect the pipe
+			_ = m.ipcClient.Close()
+			time.Sleep(ipcRetryDelay * time.Duration(attempt))
+			if reconnErr := m.ipcClient.Connect(); reconnErr != nil {
+				slog.Warn("IPC reconnect failed during retry", "error", reconnErr)
+				continue
+			}
+			slog.Info("IPC reconnected on retry", "attempt", attempt)
+		}
+	}
+
+	return nil, fmt.Errorf("%s failed after %d attempts: %w", command, ipcRetryAttempts, lastErr)
+}
+
+// GetCapabilities queries the streamer for its encoding capabilities via IPC.
+func (m *Manager) GetCapabilities() (*StreamerCapabilities, error) {
+	data, err := m.sendCommandWithRetry("get_capabilities", nil)
 	if err != nil {
 		return nil, fmt.Errorf("querying capabilities: %w", err)
 	}
@@ -330,13 +457,6 @@ func (m *Manager) GetCapabilities() (*StreamerCapabilities, error) {
 // PrepareSession sends a prepare_session command to the streamer via IPC.
 // This configures the encoder and allocates resources without starting the stream.
 func (m *Manager) PrepareSession(sc SessionConfig) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if !m.ipcClient.IsConnected() {
-		return fmt.Errorf("IPC not connected")
-	}
-
 	params := map[string]interface{}{
 		"session_id":   sc.SessionID,
 		"codec":        sc.Codec,
@@ -348,7 +468,7 @@ func (m *Manager) PrepareSession(sc SessionConfig) error {
 		"stun_servers": sc.StunServers,
 	}
 
-	_, err := m.ipcClient.SendCommand("prepare_session", params)
+	_, err := m.sendCommandWithRetry("prepare_session", params)
 	if err != nil {
 		return fmt.Errorf("prepare_session failed: %w", err)
 	}
@@ -359,20 +479,13 @@ func (m *Manager) PrepareSession(sc SessionConfig) error {
 
 // StartSession sends a start_session command to begin streaming to the given peer.
 func (m *Manager) StartSession(peer PeerInfo) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if !m.ipcClient.IsConnected() {
-		return fmt.Errorf("IPC not connected")
-	}
-
 	params := map[string]interface{}{
 		"ip":               peer.IP,
 		"port":             peer.Port,
 		"dtls_fingerprint": peer.DTLSFingerprint,
 	}
 
-	_, err := m.ipcClient.SendCommand("start_session", params)
+	_, err := m.sendCommandWithRetry("start_session", params)
 	if err != nil {
 		return fmt.Errorf("start_session failed: %w", err)
 	}
@@ -383,18 +496,11 @@ func (m *Manager) StartSession(peer PeerInfo) error {
 
 // StopSession sends a stop_session command to end the active streaming session.
 func (m *Manager) StopSession(sessionID string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if !m.ipcClient.IsConnected() {
-		return fmt.Errorf("IPC not connected")
-	}
-
 	params := map[string]interface{}{
 		"session_id": sessionID,
 	}
 
-	_, err := m.ipcClient.SendCommand("stop_session", params)
+	_, err := m.sendCommandWithRetry("stop_session", params)
 	if err != nil {
 		return fmt.Errorf("stop_session failed: %w", err)
 	}
@@ -405,14 +511,7 @@ func (m *Manager) StopSession(sessionID string) error {
 
 // GetStats queries the streamer for current session statistics.
 func (m *Manager) GetStats() (*SessionStats, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if !m.ipcClient.IsConnected() {
-		return nil, fmt.Errorf("IPC not connected")
-	}
-
-	data, err := m.ipcClient.SendCommand("get_stats", nil)
+	data, err := m.sendCommandWithRetry("get_stats", nil)
 	if err != nil {
 		return nil, fmt.Errorf("querying stats: %w", err)
 	}
@@ -433,14 +532,7 @@ func (m *Manager) GetStats() (*SessionStats, error) {
 // ForceIDR sends a force_idr command to the streamer, requesting an immediate
 // keyframe. This is useful when a new peer connects or packet loss is detected.
 func (m *Manager) ForceIDR() error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if !m.ipcClient.IsConnected() {
-		return fmt.Errorf("IPC not connected")
-	}
-
-	_, err := m.ipcClient.SendCommand("force_idr", nil)
+	_, err := m.sendCommandWithRetry("force_idr", nil)
 	if err != nil {
 		return fmt.Errorf("force_idr failed: %w", err)
 	}
@@ -451,18 +543,11 @@ func (m *Manager) ForceIDR() error {
 // SetGamingMode sends a set_gaming_mode command to change the encoding profile
 // (e.g., "balanced", "performance", "quality").
 func (m *Manager) SetGamingMode(mode string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if !m.ipcClient.IsConnected() {
-		return fmt.Errorf("IPC not connected")
-	}
-
 	params := map[string]interface{}{
 		"mode": mode,
 	}
 
-	_, err := m.ipcClient.SendCommand("set_gaming_mode", params)
+	_, err := m.sendCommandWithRetry("set_gaming_mode", params)
 	if err != nil {
 		return fmt.Errorf("set_gaming_mode failed: %w", err)
 	}

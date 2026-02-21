@@ -51,6 +51,7 @@ model User {
   auditLogs      AuditLog[]
   refreshTokens  RefreshToken[]
 
+  @@index([createdAt]) // Admin user listing queries
   @@map("users")
 }
 
@@ -142,6 +143,7 @@ model Session {
 
   @@index([userId])
   @@index([hostId])
+  @@index([status, startedAt]) // Session timeout cleanup queries filter by status + startedAt
   @@map("sessions")
 }
 
@@ -212,5 +214,6 @@ model RefreshToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([token])
+  @@index([expiresAt]) // Expired token cleanup queries
   @@map("refresh_tokens")
 }

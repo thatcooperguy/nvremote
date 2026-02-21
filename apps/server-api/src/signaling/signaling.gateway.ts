@@ -8,7 +8,7 @@ import {
   ConnectedSocket,
   WsException,
 } from '@nestjs/websockets';
-import { Logger } from '@nestjs/common';
+import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../common/prisma.service';
@@ -172,7 +172,7 @@ export interface SessionOfferData {
   maxHttpBufferSize: 65536, // 64KB cap — prevents DoS via oversized payloads
 })
 export class SignalingGatewayWs
-  implements OnGatewayConnection, OnGatewayDisconnect
+  implements OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy
 {
   @WebSocketServer()
   server!: Server;
@@ -206,6 +206,51 @@ export class SignalingGatewayWs
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
   ) {}
+
+  /**
+   * Graceful shutdown — notify all connected clients and hosts before the
+   * server stops. This gives clients a chance to show a "server restarting"
+   * message instead of an unexplained disconnection.
+   */
+  async onModuleDestroy(): Promise<void> {
+    if (!this.server) return;
+
+    this.logger.log('Graceful shutdown: notifying connected clients...');
+
+    // Notify all connected sockets that the server is shutting down
+    this.server.emit('server:shutdown', {
+      reason: 'Server is restarting for maintenance',
+      reconnectAfterMs: 5000,
+    });
+
+    // Mark all host sockets as offline in the database
+    const hostIds = Array.from(this.hostSockets.keys());
+    if (hostIds.length > 0) {
+      await this.prisma.host
+        .updateMany({
+          where: { id: { in: hostIds } },
+          data: { status: HostStatus.OFFLINE },
+        })
+        .catch((err) => {
+          this.logger.warn(`Failed to mark hosts offline during shutdown: ${err}`);
+        });
+    }
+
+    // Give clients 500ms to receive the notification before closing
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Disconnect all sockets
+    const sockets = await this.server.fetchSockets();
+    for (const socket of sockets) {
+      socket.disconnect(true);
+    }
+
+    this.hostSockets.clear();
+    this.logger.log(
+      `Graceful shutdown complete: disconnected ${sockets.length} socket(s), ` +
+        `marked ${hostIds.length} host(s) offline`,
+    );
+  }
 
   /**
    * Register callbacks for web client WebRTC relay.
@@ -411,9 +456,31 @@ export class SignalingGatewayWs
 
     const codecs = payload.codecs ?? ['h264', 'h265'];
     const gamingMode = payload.gamingMode ?? 'balanced';
-    const maxBitrate = payload.maxBitrate ?? 20000;
-    const targetFps = payload.targetFps ?? 60;
     const resolution = payload.resolution ?? '1920x1080';
+
+    // Validate and clamp streaming parameters to safe bounds
+    const maxBitrate = Math.min(
+      Math.max(payload.maxBitrate ?? 20000, 1000),   // min 1 Mbps
+      150000,                                         // max 150 Mbps
+    );
+    const targetFps = Math.min(
+      Math.max(payload.targetFps ?? 60, 1),           // min 1 fps
+      240,                                            // max 240 fps
+    );
+
+    // Validate resolution format (WIDTHxHEIGHT)
+    if (resolution && !/^\d{1,5}x\d{1,5}$/.test(resolution)) {
+      throw new WsException('Invalid resolution format (expected WIDTHxHEIGHT, e.g. 1920x1080)');
+    }
+
+    // Validate codec names — only allow known codecs
+    const allowedCodecs = ['h264', 'h265', 'hevc', 'av1', 'vp9'];
+    const validCodecs = codecs.filter((c: string) =>
+      allowedCodecs.includes(c.toLowerCase()),
+    );
+    if (validCodecs.length === 0) {
+      throw new WsException(`No supported codecs provided. Allowed: ${allowedCodecs.join(', ')}`);
+    }
 
     const session = await this.prisma.session.create({
       data: {
@@ -422,7 +489,7 @@ export class SignalingGatewayWs
         status: SessionStatus.PENDING,
         metadata: {
           ...((payload.metadata as Record<string, unknown>) ?? {}),
-          codecs,
+          codecs: validCodecs,
           gamingMode,
           maxBitrate,
           targetFps,
@@ -437,7 +504,7 @@ export class SignalingGatewayWs
     const offerData: SessionOfferData = {
       sessionId: session.id,
       stunServers: defaultStunServers,
-      codecs,
+      codecs: validCodecs,
       gamingMode: gamingMode === 'true' || gamingMode === 'competitive',
       maxBitrate,
       targetFps,
@@ -448,7 +515,7 @@ export class SignalingGatewayWs
 
     this.logger.log(
       `Session ${session.id} requested by ${userId} on host ${host.id} — ` +
-        `session:offer sent (codecs: ${codecs.join(',')})`,
+        `session:offer sent (codecs: ${validCodecs.join(',')}, ${maxBitrate}kbps, ${targetFps}fps, ${resolution})`,
     );
 
     return { sessionId: session.id };

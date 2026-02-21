@@ -5,7 +5,9 @@ const nextConfig = {
   output: 'standalone',
   trailingSlash: true,
   images: {
-    unoptimized: true,
+    // Enable Next.js Image Optimization for production (WebP/AVIF conversion,
+    // responsive sizing, lazy loading). Previously disabled during early dev.
+    formats: ['image/avif', 'image/webp'],
   },
   // Prevent stale content — short cache for HTML, long cache for hashed assets
   async headers() {

@@ -92,6 +92,10 @@ async function bootstrap(): Promise<void> {
     logger.log(`Swagger docs available at http://localhost:${port}/api/docs`);
   }
 
+  // Enable graceful shutdown hooks so OnModuleDestroy lifecycle events fire
+  // on SIGTERM/SIGINT. Required for Cloud Run (sends SIGTERM) and Docker.
+  app.enableShutdownHooks();
+
   await app.listen(port, '0.0.0.0');
   logger.log(`Application listening on 0.0.0.0:${port}`);
   logger.log(`Environment: ${isProduction ? 'production' : 'development'}`);

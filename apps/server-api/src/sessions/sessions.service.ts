@@ -239,6 +239,55 @@ export class SessionsService {
   }
 
   // -----------------------------------------------------------------------
+  // Client stats
+  // -----------------------------------------------------------------------
+
+  /**
+   * Store client-side streaming stats on the session metadata.
+   *
+   * Stats are merged under a `clientStats` key so they coexist with host
+   * QoS stats written by the signaling gateway's qos:stats handler.
+   */
+  async updateClientStats(
+    sessionId: string,
+    userId: string,
+    stats: Record<string, unknown>,
+  ): Promise<{ success: boolean }> {
+    const session = await this.prisma.session.findUnique({
+      where: { id: sessionId },
+    });
+
+    if (!session) {
+      throw new NotFoundException('Session not found');
+    }
+
+    if (session.userId !== userId) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    if (session.status !== SessionStatus.ACTIVE) {
+      throw new BadRequestException('Session is not active');
+    }
+
+    const existingMeta = (session.metadata as Record<string, unknown>) ?? {};
+
+    await this.prisma.session.update({
+      where: { id: sessionId },
+      data: {
+        metadata: {
+          ...existingMeta,
+          clientStats: {
+            ...stats,
+            reportedAt: new Date().toISOString(),
+          },
+        },
+      },
+    });
+
+    return { success: true };
+  }
+
+  // -----------------------------------------------------------------------
   // Helpers
   // -----------------------------------------------------------------------
 

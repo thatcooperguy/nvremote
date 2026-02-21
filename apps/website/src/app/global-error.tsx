@@ -1,5 +1,7 @@
 'use client';
 
+import * as Sentry from '@sentry/nextjs';
+
 export default function GlobalError({
   error,
   reset,
@@ -7,6 +9,17 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // Report to Sentry on mount — can't use useEffect in global-error
+  // because it renders outside the React tree, but Sentry's client SDK
+  // will pick up the error through its global handlers. We explicitly
+  // capture here as a safety net.
+  if (typeof window !== 'undefined') {
+    Sentry.captureException(error, {
+      tags: { boundary: 'global-error.tsx' },
+      extra: { digest: error.digest },
+    });
+  }
+
   return (
     <html>
       <body style={{ margin: 0, fontFamily: 'system-ui, sans-serif', backgroundColor: '#fff' }}>

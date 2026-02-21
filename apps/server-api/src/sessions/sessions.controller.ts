@@ -93,6 +93,28 @@ export class SessionsController {
     return this.sessionsService.endSession(id, user.sub);
   }
 
+  /**
+   * Report client-side streaming stats for an active session.
+   *
+   * The Electron/web client periodically POST stats (decode time, display
+   * latency, jitter, etc.) so the server can store them on the session
+   * metadata alongside the host-reported QoS stats. This provides a
+   * complete picture of end-to-end streaming quality for diagnostics.
+   *
+   * Rate limited to 30 per minute (~1 report every 2 seconds).
+   */
+  @Post(':id/stats')
+  @Throttle({ default: { ttl: 60000, limit: 30 } })
+  @ApiOperation({ summary: 'Report client-side streaming stats' })
+  @ApiOkResponse({ description: 'Stats accepted' })
+  async reportStats(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() stats: Record<string, unknown>,
+  ): Promise<{ success: boolean }> {
+    return this.sessionsService.updateClientStats(id, user.sub, stats);
+  }
+
   // -----------------------------------------------------------------------
   // WebRTC signaling relay (REST-based, for web client)
   // -----------------------------------------------------------------------

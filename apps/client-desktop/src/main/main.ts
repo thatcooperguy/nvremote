@@ -40,6 +40,29 @@ Sentry.init({
         }
       }
     }
+
+    // Enrich with session context — helps debug streaming-related crashes.
+    // These imports are dynamic to avoid circular dependency at init time.
+    try {
+      const sessionId = getCurrentSessionId?.();
+      const sigConnected = isSignalingConnected?.();
+      event.tags = {
+        ...event.tags,
+        ...(sessionId ? { sessionId } : {}),
+        signalingConnected: String(sigConnected ?? 'unknown'),
+        platform: process.platform,
+        arch: process.arch,
+      };
+      event.extra = {
+        ...event.extra,
+        nodeVersion: process.version,
+        electronVersion: process.versions.electron,
+        chromeVersion: process.versions.chrome,
+      };
+    } catch {
+      // Session context enrichment is best-effort
+    }
+
     return event;
   },
 });
@@ -60,6 +83,28 @@ import {
 import type { SessionOptions } from './p2p';
 import { HostAgent } from './host';
 import type { HostAgentConfig } from './host';
+
+// ---------------------------------------------------------------------------
+// Unhandled promise rejection handler (main process)
+// ---------------------------------------------------------------------------
+// Node.js doesn't crash on unhandled rejections by default, but they indicate
+// bugs. Capture them in Sentry and log them so they're visible during debugging.
+
+process.on('unhandledRejection', (reason: unknown) => {
+  const err = reason instanceof Error ? reason : new Error(String(reason));
+  console.error('[main] Unhandled promise rejection:', err);
+  Sentry.captureException(err, {
+    tags: { handler: 'unhandledRejection' },
+  });
+});
+
+process.on('uncaughtException', (err: Error) => {
+  console.error('[main] Uncaught exception:', err);
+  Sentry.captureException(err, {
+    tags: { handler: 'uncaughtException' },
+  });
+  // Don't exit — Electron typically handles this, and we've reported it.
+});
 
 // ---------------------------------------------------------------------------
 // Encrypted token storage using electron-store

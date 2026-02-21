@@ -17,4 +17,20 @@ Sentry.init({
   tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
   replaysSessionSampleRate: 0,
   replaysOnErrorSampleRate: process.env.NODE_ENV === 'production' ? 1.0 : 0,
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.replayIntegration({
+      // Mask all user input to protect PII
+      maskAllText: false,
+      maskAllInputs: true,
+      blockAllMedia: false,
+    }),
+  ],
+  // Ignore common noisy browser errors
+  ignoreErrors: [
+    'ResizeObserver loop',
+    'Non-Error promise rejection',
+    /Loading chunk \d+ failed/,
+    'Network request failed',
+  ],
 });

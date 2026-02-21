@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
 
 export default function Error({
   error,
@@ -11,6 +12,10 @@ export default function Error({
 }) {
   useEffect(() => {
     console.error('[NVRemote] Unhandled error:', error);
+    Sentry.captureException(error, {
+      tags: { boundary: 'error.tsx' },
+      extra: { digest: error.digest },
+    });
   }, [error]);
 
   return (

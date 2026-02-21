@@ -81,6 +81,52 @@ export class HealthController {
       .count({ where: { lastSeenAt: { gte: fiveMinAgo } } })
       .catch(() => 0);
 
+    // Streaming metrics — session outcomes (last 24 hours)
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const [sessionsLast24h, failedSessionsLast24h, avgSessionDurationMs] =
+      await Promise.all([
+        this.prisma.session
+          .count({ where: { startedAt: { gte: oneDayAgo } } })
+          .catch(() => 0),
+        this.prisma.session
+          .count({ where: { startedAt: { gte: oneDayAgo }, status: 'FAILED' } })
+          .catch(() => 0),
+        this.prisma.session
+          .findMany({
+            where: { startedAt: { gte: oneDayAgo }, endedAt: { not: null } },
+            select: { startedAt: true, endedAt: true },
+          })
+          .then((sessions) => {
+            if (sessions.length === 0) return 0;
+            const total = sessions.reduce(
+              (sum, s) => sum + (s.endedAt!.getTime() - s.startedAt.getTime()),
+              0,
+            );
+            return Math.floor(total / sessions.length);
+          })
+          .catch(() => 0),
+      ]);
+
+    // Connection type breakdown (P2P vs relay) from active sessions
+    const [p2pCount, relayCount] = await Promise.all([
+      this.prisma.session
+        .count({
+          where: {
+            status: 'ACTIVE',
+            metadata: { path: ['connectionType'], equals: 'p2p' },
+          },
+        })
+        .catch(() => 0),
+      this.prisma.session
+        .count({
+          where: {
+            status: 'ACTIVE',
+            metadata: { path: ['connectionType'], equals: 'relay' },
+          },
+        })
+        .catch(() => 0),
+    ]);
+
     // Database health
     let dbUp = 1;
     try {
@@ -117,6 +163,26 @@ export class HealthController {
       '# HELP nvremote_sessions_active Currently active streaming sessions',
       '# TYPE nvremote_sessions_active gauge',
       `nvremote_sessions_active ${activeSessionCount}`,
+      '',
+      '# HELP nvremote_sessions_last_24h Sessions created in the last 24 hours',
+      '# TYPE nvremote_sessions_last_24h gauge',
+      `nvremote_sessions_last_24h ${sessionsLast24h}`,
+      '',
+      '# HELP nvremote_sessions_failed_last_24h Failed sessions in the last 24 hours',
+      '# TYPE nvremote_sessions_failed_last_24h gauge',
+      `nvremote_sessions_failed_last_24h ${failedSessionsLast24h}`,
+      '',
+      '# HELP nvremote_sessions_avg_duration_ms Average session duration in ms (last 24h)',
+      '# TYPE nvremote_sessions_avg_duration_ms gauge',
+      `nvremote_sessions_avg_duration_ms ${avgSessionDurationMs}`,
+      '',
+      '# HELP nvremote_sessions_p2p Active sessions using P2P connection',
+      '# TYPE nvremote_sessions_p2p gauge',
+      `nvremote_sessions_p2p ${p2pCount}`,
+      '',
+      '# HELP nvremote_sessions_relay Active sessions using TURN relay',
+      '# TYPE nvremote_sessions_relay gauge',
+      `nvremote_sessions_relay ${relayCount}`,
       '',
       '# HELP nvremote_vpn_peers_total Registered VPN peers',
       '# TYPE nvremote_vpn_peers_total gauge',

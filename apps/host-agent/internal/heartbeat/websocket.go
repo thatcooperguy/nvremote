@@ -254,6 +254,9 @@ func runSignalingSession(ctx context.Context, url string, hostID string, token s
 	}
 	slog.Info("sent host:register", "hostId", hostID)
 
+	// Initialize rate limiter for inbound signaling messages
+	limiter := NewEventRateLimiter(DefaultEventLimits())
+
 	// Read messages until an error occurs or context is cancelled.
 	for {
 		select {
@@ -296,7 +299,7 @@ func runSignalingSession(ctx context.Context, url string, hostID string, token s
 				eventData = eventData[len("/signaling,"):]
 			}
 
-			if err := handleSocketIOEvent(ctx, conn, []byte(eventData), sigHandler); err != nil {
+			if err := handleSocketIOEvent(ctx, conn, []byte(eventData), sigHandler, limiter); err != nil {
 				slog.Error("error handling Socket.IO event", "error", err)
 				// Non-fatal; continue reading.
 			}
@@ -332,7 +335,13 @@ func sendSocketIOEvent(conn *websocket.Conn, event string, payload interface{}) 
 
 // handleSocketIOEvent processes a Socket.IO EVENT array: ["event_name", payload]
 // The raw input has the "42" prefix already stripped and is a JSON array.
-func handleSocketIOEvent(ctx context.Context, conn *websocket.Conn, raw []byte, sigHandler *p2p.SignalingHandler) error {
+//
+// Rate limiting: each event type is checked against the EventRateLimiter before
+// dispatch. If the rate limit is exceeded, the event is silently dropped.
+//
+// Payload validation: basic size checks are applied before unmarshalling to
+// reject oversized or malformed payloads early.
+func handleSocketIOEvent(ctx context.Context, conn *websocket.Conn, raw []byte, sigHandler *p2p.SignalingHandler, limiter *EventRateLimiter) error {
 	// Parse the JSON array: ["event_name", {...payload...}]
 	var arr []json.RawMessage
 	if err := json.Unmarshal(raw, &arr); err != nil {
@@ -355,10 +364,27 @@ func handleSocketIOEvent(ctx context.Context, conn *websocket.Conn, raw []byte, 
 		payload = json.RawMessage(`{}`)
 	}
 
+	msgType := MessageType(eventName)
+
+	// Rate limit check — drop excessive messages
+	if limiter != nil && !limiter.Allow(msgType) {
+		return nil // silently dropped
+	}
+
+	// Payload size validation
+	if err := ValidateGenericPayload(msgType, payload); err != nil {
+		slog.Warn("payload validation failed", "event", eventName, "error", err)
+		return nil // drop invalid payloads
+	}
+
 	slog.Debug("received Socket.IO event", "event", eventName)
 
-	switch MessageType(eventName) {
+	switch msgType {
 	case MsgSessionOffer:
+		if err := ValidateSessionOffer(payload); err != nil {
+			slog.Warn("session offer validation failed", "error", err)
+			return nil
+		}
 		return handleSessionOffer(ctx, conn, payload, sigHandler)
 
 	case MsgSessionRequest:
@@ -366,6 +392,10 @@ func handleSocketIOEvent(ctx context.Context, conn *websocket.Conn, raw []byte, 
 		return handleSessionRequest(ctx, conn, payload)
 
 	case MsgIceCandidate:
+		if err := ValidateIceCandidate(payload); err != nil {
+			slog.Warn("ICE candidate validation failed", "error", err)
+			return nil
+		}
 		return handleIceCandidateMessage(payload, sigHandler)
 
 	case MsgIceComplete:

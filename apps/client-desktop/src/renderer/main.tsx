@@ -23,7 +23,44 @@ Sentry.init({
   integrations: [
     Sentry.browserTracingIntegration(),
   ],
+  // Ignore common noisy errors from Electron renderer
+  ignoreErrors: [
+    'ResizeObserver loop',
+    'Non-Error promise rejection',
+    /Loading chunk \d+ failed/,
+  ],
 });
+
+// ---------------------------------------------------------------------------
+// Sentry Error Boundary fallback UI
+// ---------------------------------------------------------------------------
+function SentryFallback({ error, resetError }: { error: Error; resetError: () => void }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      height: '100vh', background: '#1A1A1A', color: '#fff', fontFamily: 'system-ui',
+    }}>
+      <div style={{ textAlign: 'center', maxWidth: 400, padding: 24 }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: 8 }}>
+          Something went wrong
+        </h2>
+        <p style={{ color: '#999', fontSize: '0.875rem', marginBottom: 24, lineHeight: 1.6 }}>
+          An unexpected error occurred. This has been reported automatically.
+        </p>
+        <button
+          onClick={resetError}
+          style={{
+            padding: '10px 20px', fontSize: '0.875rem', fontWeight: 600,
+            borderRadius: 8, border: 'none', backgroundColor: '#76B900',
+            color: '#fff', cursor: 'pointer',
+          }}
+        >
+          Try Again
+        </button>
+      </div>
+    </div>
+  );
+}
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -35,8 +72,12 @@ if (!rootElement) {
 // doesn't work with the file:// protocol.
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <HashRouter>
-      <App />
-    </HashRouter>
+    <Sentry.ErrorBoundary fallback={({ error, resetError }) =>
+      <SentryFallback error={error} resetError={resetError} />
+    }>
+      <HashRouter>
+        <App />
+      </HashRouter>
+    </Sentry.ErrorBoundary>
   </React.StrictMode>
 );

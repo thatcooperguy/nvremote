@@ -13,7 +13,7 @@ import {
 @Injectable()
 export class BillingService {
   private readonly logger = new Logger(BillingService.name);
-  private readonly stripe: Stripe;
+  private readonly stripe: Stripe | null;
   private readonly egressCostPerGbCents: number;
   private readonly marginPercent: number;
 
@@ -21,10 +21,15 @@ export class BillingService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
   ) {
-    this.stripe = new Stripe(
-      this.configService.getOrThrow<string>('STRIPE_SECRET_KEY'),
-      { apiVersion: '2025-01-27.acacia' as Stripe.LatestApiVersion },
-    );
+    const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+    if (stripeKey) {
+      this.stripe = new Stripe(stripeKey, {
+        apiVersion: '2025-01-27.acacia' as Stripe.LatestApiVersion,
+      });
+    } else {
+      this.stripe = null;
+      this.logger.warn('STRIPE_SECRET_KEY not set — billing features disabled');
+    }
     this.egressCostPerGbCents = parseInt(
       this.configService.get<string>('GCP_EGRESS_COST_PER_GB_CENTS', '12'),
       10,
@@ -50,6 +55,8 @@ export class BillingService {
 
     const org = await this.prisma.org.findUnique({ where: { id: orgId } });
     if (!org) throw new NotFoundException('Organization not found');
+
+    if (!this.stripe) throw new BadRequestException('Billing is not configured');
 
     const customer = await this.stripe.customers.create({
       email: billingEmail,
@@ -193,6 +200,8 @@ export class BillingService {
   // -----------------------------------------------------------------------
 
   async createPortalSession(orgId: string, returnUrl: string): Promise<string> {
+    if (!this.stripe) throw new BadRequestException('Billing is not configured');
+
     const account = await this.prisma.billingAccount.findUnique({
       where: { orgId },
     });
@@ -227,6 +236,7 @@ export class BillingService {
   }
 
   constructWebhookEvent(payload: Buffer, signature: string): Stripe.Event {
+    if (!this.stripe) throw new BadRequestException('Billing is not configured');
     const secret = this.configService.getOrThrow<string>('STRIPE_WEBHOOK_SECRET');
     return this.stripe.webhooks.constructEvent(payload, signature, secret);
   }
@@ -309,6 +319,11 @@ export class BillingService {
         where: { id: periodId },
         data: { costCentsRaw: 0, costCentsCharged: 0, status: BillingPeriodStatus.PAID },
       });
+      return;
+    }
+
+    if (!this.stripe) {
+      this.logger.warn(`Stripe not configured — skipping invoice for period ${periodId}`);
       return;
     }
 

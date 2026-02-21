@@ -20,6 +20,7 @@ import { VpnModule } from './vpn/vpn.module';
 import { TunnelModule } from './tunnel/tunnel.module';
 import { HealthModule } from './health/health.module';
 import { WaitlistModule } from './waitlist/waitlist.module';
+import { BillingModule } from './billing/billing.module';
 
 @Module({
   imports: [
@@ -79,6 +80,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     TunnelModule,
     HealthModule,
     WaitlistModule,
+    BillingModule,
   ],
   providers: [
     // Sentry global exception filter — captures all unhandled exceptions

@@ -41,11 +41,15 @@
     "compression": "^1.7.4",
     "helmet": "^7.1.0",
     "passport": "^0.7.0",
+    "passport-apple": "^2.0.2",
+    "passport-discord": "^0.1.4",
     "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.1",
+    "passport-microsoft": "^2.1.0",
     "reflect-metadata": "^0.2.1",
     "rxjs": "^7.8.1",
     "socket.io": "^4.7.4",
+    "stripe": "^20.3.1",
     "uuid": "^9.0.0"
   },
   "devDependencies": {

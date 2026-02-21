@@ -194,6 +194,18 @@ export function getGoogleLoginUrl(): string {
   return `${API_BASE}/api/v1/auth/google`;
 }
 
+export function getMicrosoftLoginUrl(): string {
+  return `${API_BASE}/api/v1/auth/microsoft`;
+}
+
+export function getAppleLoginUrl(): string {
+  return `${API_BASE}/api/v1/auth/apple`;
+}
+
+export function getDiscordLoginUrl(): string {
+  return `${API_BASE}/api/v1/auth/discord`;
+}
+
 // ---------------------------------------------------------------------------
 // Logout
 // ---------------------------------------------------------------------------

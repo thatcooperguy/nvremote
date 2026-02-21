@@ -13,6 +13,9 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { GoogleAuthGuard } from '../common/guards/google-auth.guard';
+import { MicrosoftAuthGuard } from '../common/guards/microsoft-auth.guard';
+import { AppleAuthGuard } from '../common/guards/apple-auth.guard';
+import { DiscordAuthGuard } from '../common/guards/discord-auth.guard';
 import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
@@ -28,6 +31,7 @@ import {
   UserProfileDto,
   AuthCallbackResultDto,
   GoogleProfile,
+  OAuthProfile,
   UpdatePreferencesDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -110,6 +114,115 @@ export class AuthController {
     const tokenPayload = Buffer.from(JSON.stringify(result)).toString('base64url');
     const redirectUrl = `${this.frontendUrl}/auth/callback#data=${tokenPayload}`;
     res.redirect(302, redirectUrl);
+  }
+
+  // ── Microsoft OAuth ──────────────────────────────────────────────────
+
+  @Get('microsoft')
+  @Public()
+  @Throttle({ default: { ttl: 60000, limit: 20 } })
+  @UseGuards(MicrosoftAuthGuard)
+  @ApiOperation({ summary: 'Initiate Microsoft OAuth login' })
+  microsoftAuth(): void {
+    // Passport redirects to Microsoft
+  }
+
+  @Get('microsoft/callback')
+  @Public()
+  @UseGuards(AuthGuard('microsoft'))
+  @ApiOperation({ summary: 'Microsoft OAuth callback' })
+  async microsoftCallback(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthCallbackResultDto | void> {
+    const profile = req.user as OAuthProfile;
+    const result = await this.authService.validateOAuthUser(profile);
+    return this.handleOAuthCallback(req, res, result);
+  }
+
+  // ── Apple Sign-In ─────────────────────────────────────────────────
+
+  @Get('apple')
+  @Public()
+  @Throttle({ default: { ttl: 60000, limit: 20 } })
+  @UseGuards(AppleAuthGuard)
+  @ApiOperation({ summary: 'Initiate Apple Sign-In' })
+  appleAuth(): void {
+    // Passport redirects to Apple
+  }
+
+  @Post('apple/callback')
+  @Public()
+  @UseGuards(AuthGuard('apple'))
+  @ApiOperation({ summary: 'Apple Sign-In callback (POST)' })
+  async appleCallback(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthCallbackResultDto | void> {
+    const profile = req.user as OAuthProfile;
+    const result = await this.authService.validateOAuthUser(profile);
+    // Apple sends state in the POST body, not query params
+    const state = (req.body?.state as string) || (req.query.state as string) || '';
+    return this.handleOAuthCallbackWithState(req, res, result, state);
+  }
+
+  // ── Discord OAuth ─────────────────────────────────────────────────
+
+  @Get('discord')
+  @Public()
+  @Throttle({ default: { ttl: 60000, limit: 20 } })
+  @UseGuards(DiscordAuthGuard)
+  @ApiOperation({ summary: 'Initiate Discord OAuth login' })
+  discordAuth(): void {
+    // Passport redirects to Discord
+  }
+
+  @Get('discord/callback')
+  @Public()
+  @UseGuards(AuthGuard('discord'))
+  @ApiOperation({ summary: 'Discord OAuth callback' })
+  async discordCallback(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthCallbackResultDto | void> {
+    const profile = req.user as OAuthProfile;
+    const result = await this.authService.validateOAuthUser(profile);
+    return this.handleOAuthCallback(req, res, result);
+  }
+
+  // ── Shared OAuth redirect logic ───────────────────────────────────
+
+  private handleOAuthCallback(
+    req: Request,
+    res: Response,
+    result: AuthCallbackResultDto,
+  ): AuthCallbackResultDto | void {
+    const state = (req.query.state as string) || '';
+    return this.handleOAuthCallbackWithState(req, res, result, state);
+  }
+
+  private handleOAuthCallbackWithState(
+    req: Request,
+    res: Response,
+    result: AuthCallbackResultDto,
+    state: string,
+  ): AuthCallbackResultDto | void {
+    const acceptHeader = req.headers.accept || '';
+    if (acceptHeader.includes('application/json')) {
+      return result;
+    }
+
+    if (state === 'desktop') {
+      const params = new URLSearchParams({
+        token: result.accessToken,
+        refresh: result.refreshToken,
+      });
+      res.redirect(302, `nvremote://auth?${params.toString()}`);
+      return;
+    }
+
+    const tokenPayload = Buffer.from(JSON.stringify(result)).toString('base64url');
+    res.redirect(302, `${this.frontendUrl}/auth/callback#data=${tokenPayload}`);
   }
 
   /**

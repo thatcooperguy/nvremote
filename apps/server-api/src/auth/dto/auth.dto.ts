@@ -74,3 +74,13 @@ export interface GoogleProfile {
   name: string;
   avatarUrl?: string;
 }
+
+export type OAuthProvider = 'google' | 'microsoft' | 'apple' | 'discord';
+
+export interface OAuthProfile {
+  provider: OAuthProvider;
+  providerId: string;
+  email: string;
+  name?: string;
+  avatarUrl?: string;
+}

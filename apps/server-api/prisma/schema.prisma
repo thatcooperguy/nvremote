@@ -31,6 +31,13 @@ enum SessionStatus {
   FAILED
 }
 
+enum BillingPeriodStatus {
+  OPEN       // Current accumulating period
+  INVOICED   // Stripe invoice generated
+  PAID       // Payment received
+  FAILED     // Payment failed
+}
+
 // ---------------------------------------------------------------------------
 // User
 // ---------------------------------------------------------------------------
@@ -41,6 +48,9 @@ model User {
   name         String?
   avatarUrl    String?
   googleId     String?  @unique
+  microsoftId  String?  @unique  // Microsoft Entra ID (Azure AD) object ID
+  appleId      String?  @unique  // Apple Sign-In subject identifier
+  discordId    String?  @unique  // Discord user ID
   isSuperAdmin Boolean  @default(false) // Platform owner — only set via DB migration or seed
   preferences  Json?    // User streaming preferences: qualityPreset, transport, notifications
   createdAt    DateTime @default(now())
@@ -72,9 +82,10 @@ model Org {
   samlCert       String? // SAML IdP X.509 certificate (PEM)
   allowedDomains String? // Comma-separated email domains that auto-join this org (e.g. "acme.com,acme.org")
 
-  members   OrgMember[]
-  hosts     Host[]
-  auditLogs AuditLog[]
+  members        OrgMember[]
+  hosts          Host[]
+  auditLogs      AuditLog[]
+  billingAccount BillingAccount?
 
   @@map("orgs")
 }
@@ -135,8 +146,9 @@ model Session {
   status    SessionStatus @default(PENDING)
   startedAt DateTime      @default(now())
   endedAt   DateTime?
-  clientIp  String?
-  metadata  Json?     // Now stores P2P connection details: codec, codecs[], gamingMode, maxBitrate, targetFps, resolution, connectionType (p2p|relay), p2pEstablishedAt. Previously stored WireGuard clientPublicKey/clientTunnelIp/hostTunnelIp.
+  clientIp         String?
+  metadata         Json?     // P2P connection details: codec, codecs[], gamingMode, maxBitrate, targetFps, resolution, connectionType (p2p|relay), p2pEstablishedAt
+  bytesTransferred BigInt    @default(0) // Cumulative bandwidth for billing
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   host Host @relation(fields: [hostId], references: [id], onDelete: Cascade)
@@ -198,6 +210,59 @@ model WaitlistEntry {
   createdAt DateTime @default(now())
 
   @@map("waitlist_entries")
+}
+
+// ---------------------------------------------------------------------------
+// Billing
+// ---------------------------------------------------------------------------
+
+model BillingAccount {
+  id               String   @id @default(uuid()) @db.Uuid
+  orgId            String   @unique @db.Uuid
+  stripeCustomerId String   @unique            // Stripe Customer ID (cus_xxx)
+  billingEmail     String
+  currency         String   @default("usd")
+  createdAt        DateTime @default(now())
+
+  org     Org              @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  periods BillingPeriod[]
+
+  @@map("billing_accounts")
+}
+
+model BillingPeriod {
+  id               String              @id @default(uuid()) @db.Uuid
+  billingAccountId String              @db.Uuid
+  startDate        DateTime
+  endDate          DateTime
+  totalBytesRelay  BigInt              @default(0) // Relay bandwidth in bytes
+  totalBytesVpn    BigInt              @default(0) // VPN bandwidth in bytes
+  costCentsRaw     Int                 @default(0) // GCP cost in cents (before margin)
+  costCentsCharged Int                 @default(0) // Customer charge in cents (cost * 1.30)
+  stripeInvoiceId  String?                         // Stripe Invoice ID (in_xxx)
+  status           BillingPeriodStatus @default(OPEN)
+  createdAt        DateTime            @default(now())
+
+  billingAccount BillingAccount @relation(fields: [billingAccountId], references: [id], onDelete: Cascade)
+  usageRecords   UsageRecord[]
+
+  @@index([billingAccountId, status])
+  @@map("billing_periods")
+}
+
+model UsageRecord {
+  id               String   @id @default(uuid()) @db.Uuid
+  billingPeriodId  String   @db.Uuid
+  sessionId        String   @db.Uuid
+  bytesTransferred BigInt   @default(0) // Bytes transferred in this record
+  connectionType   String               // "relay" | "vpn" | "p2p"
+  recordedAt       DateTime @default(now())
+
+  billingPeriod BillingPeriod @relation(fields: [billingPeriodId], references: [id], onDelete: Cascade)
+
+  @@index([billingPeriodId])
+  @@index([sessionId])
+  @@map("usage_records")
 }
 
 // ---------------------------------------------------------------------------

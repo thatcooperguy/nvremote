@@ -18,6 +18,7 @@ import {
   Smartphone,
   AlertOctagon,
   Gauge,
+  CreditCard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +27,7 @@ const sidebarLinks = [
   { href: '/dashboard/devices', label: 'Devices', icon: Monitor },
   { href: '/dashboard/sessions', label: 'Sessions', icon: Activity },
   { href: '/dashboard/network', label: 'Network', icon: Wifi },
+  { href: '/dashboard/billing', label: 'Billing', icon: CreditCard },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 

@@ -9,6 +9,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../common/prisma.service';
 import {
   GoogleProfile,
+  OAuthProfile,
+  OAuthProvider,
   TokenResponseDto,
   AuthCallbackResultDto,
   UserProfileDto,
@@ -87,6 +89,76 @@ export class AuthService {
         preferences: user.preferences as Record<string, unknown> | null,
       },
     };
+  }
+
+  /**
+   * Generic OAuth validation — works for Microsoft, Apple, Discord (and Google
+   * if migrated in future). Maps each provider to its unique ID column on User.
+   */
+  async validateOAuthUser(
+    profile: OAuthProfile,
+  ): Promise<AuthCallbackResultDto> {
+    const idField = this.providerIdField(profile.provider);
+
+    // 1. Find by provider ID
+    let user = await this.prisma.user.findUnique({
+      where: { [idField]: profile.providerId } as unknown as Prisma.UserWhereUniqueInput,
+    });
+
+    if (!user) {
+      // 2. Check if email already exists (account linking)
+      user = await this.prisma.user.findUnique({
+        where: { email: profile.email },
+      });
+
+      if (user) {
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            [idField]: profile.providerId,
+            avatarUrl: user.avatarUrl ?? profile.avatarUrl,
+            name: user.name ?? profile.name,
+          },
+        });
+        this.logger.log(`Linked ${profile.provider} to existing user ${user.id}`);
+      } else {
+        // 3. Create new user
+        user = await this.prisma.user.create({
+          data: {
+            email: profile.email,
+            name: profile.name,
+            avatarUrl: profile.avatarUrl,
+            [idField]: profile.providerId,
+          },
+        });
+        this.logger.log(`Created new user ${user.id} via ${profile.provider} for ${profile.email}`);
+      }
+    }
+
+    const tokens = await this.generateTokens(user.id, user.email);
+
+    return {
+      ...tokens,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatarUrl: user.avatarUrl,
+        createdAt: user.createdAt,
+        isSuperAdmin: user.isSuperAdmin ?? false,
+        preferences: user.preferences as Record<string, unknown> | null,
+      },
+    };
+  }
+
+  private providerIdField(provider: OAuthProvider): string {
+    const map: Record<OAuthProvider, string> = {
+      google: 'googleId',
+      microsoft: 'microsoftId',
+      apple: 'appleId',
+      discord: 'discordId',
+    };
+    return map[provider];
   }
 
   /**

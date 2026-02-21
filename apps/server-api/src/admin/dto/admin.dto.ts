@@ -310,3 +310,193 @@ export class ErrorSummaryDto {
   @ApiProperty({ description: 'Recent errors' })
   recentErrors!: ErrorEntryDto[];
 }
+
+// ---------------------------------------------------------------------------
+// Infrastructure Health
+// ---------------------------------------------------------------------------
+
+export class ServiceHealthDto {
+  @ApiProperty({ enum: ['ok', 'degraded', 'down'] })
+  status!: 'ok' | 'degraded' | 'down';
+
+  @ApiProperty({ description: 'Response time in milliseconds' })
+  responseTimeMs!: number;
+}
+
+export class InfraHealthDto {
+  @ApiProperty({ description: 'API server health' })
+  api!: ServiceHealthDto & {
+    uptimeSeconds: number;
+    version: string;
+  };
+
+  @ApiProperty({ description: 'Database health' })
+  database!: ServiceHealthDto & {
+    activeConnections: number;
+    databaseSizeMb: number;
+  };
+
+  @ApiProperty({ description: 'Website health' })
+  website!: ServiceHealthDto & {
+    url: string;
+  };
+
+  @ApiProperty({ description: 'TURN server status' })
+  turn!: {
+    enabled: boolean;
+    serverCount: number;
+    hasCredentials: boolean;
+  };
+
+  @ApiProperty({ description: 'STUN server status' })
+  stun!: {
+    serverCount: number;
+    servers: string[];
+  };
+
+  @ApiProperty({ description: 'Timestamp of the check' })
+  checkedAt!: string;
+}
+
+// ---------------------------------------------------------------------------
+// Platform Billing Overview (Admin)
+// ---------------------------------------------------------------------------
+
+export class OrgRevenueDto {
+  @ApiProperty()
+  orgId!: string;
+
+  @ApiProperty()
+  orgName!: string;
+
+  @ApiProperty()
+  totalCents!: number;
+
+  @ApiProperty()
+  currentMonthCents!: number;
+
+  @ApiProperty()
+  totalBandwidthBytes!: string;
+}
+
+export class MonthlyTrendDto {
+  @ApiProperty({ description: 'Month in YYYY-MM format' })
+  month!: string;
+
+  @ApiProperty()
+  revenueCents!: number;
+
+  @ApiProperty()
+  bandwidthBytes!: string;
+}
+
+export class PlatformBillingDto {
+  @ApiProperty({ description: 'All-time revenue from PAID periods (cents)' })
+  totalRevenueCents!: number;
+
+  @ApiProperty({ description: 'Current month projected revenue (cents)' })
+  currentMonthCents!: number;
+
+  @ApiProperty({ description: 'Monthly recurring revenue — avg of last 3 months (cents)' })
+  mrrCents!: number;
+
+  @ApiProperty({ description: 'Total billing accounts' })
+  totalBillingAccounts!: number;
+
+  @ApiProperty({ description: 'All-time bandwidth in bytes' })
+  totalBandwidthBytes!: string;
+
+  @ApiProperty({ description: 'Revenue breakdown by organization' })
+  revenueByOrg!: OrgRevenueDto[];
+
+  @ApiProperty({ description: 'Monthly revenue trend (last 6 months)' })
+  monthlyTrend!: MonthlyTrendDto[];
+
+  @ApiProperty({ description: 'Period count by status' })
+  periodsByStatus!: Record<string, number>;
+}
+
+// ---------------------------------------------------------------------------
+// User Management (Admin)
+// ---------------------------------------------------------------------------
+
+export class AdminUserQueryDto {
+  @ApiPropertyOptional({ description: 'Search by name or email' })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiPropertyOptional({ description: 'Page number (1-based)', default: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @ApiPropertyOptional({ description: 'Page size', default: 50 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number;
+}
+
+export class AdminUserOrgDto {
+  @ApiProperty()
+  orgId!: string;
+
+  @ApiProperty()
+  orgName!: string;
+
+  @ApiProperty()
+  orgSlug!: string;
+
+  @ApiProperty()
+  role!: string;
+
+  @ApiProperty()
+  joinedAt!: Date;
+}
+
+export class AdminUserDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  email!: string;
+
+  @ApiPropertyOptional()
+  name?: string | null;
+
+  @ApiPropertyOptional()
+  avatarUrl?: string | null;
+
+  @ApiProperty()
+  isSuperAdmin!: boolean;
+
+  @ApiProperty()
+  createdAt!: Date;
+
+  @ApiProperty()
+  totalSessions!: number;
+
+  @ApiProperty({ description: 'Org memberships' })
+  orgs!: AdminUserOrgDto[];
+
+  @ApiProperty({ description: 'Auth providers (google, microsoft, apple, discord)' })
+  authProviders!: string[];
+}
+
+export class AdminUserListDto {
+  @ApiProperty({ type: [AdminUserDto] })
+  data!: AdminUserDto[];
+
+  @ApiProperty()
+  total!: number;
+
+  @ApiProperty()
+  page!: number;
+
+  @ApiProperty()
+  limit!: number;
+}

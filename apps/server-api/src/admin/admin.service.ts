@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { SessionStatus, HostStatus } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
+import { SessionStatus, HostStatus, BillingPeriodStatus } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service';
+import { IceConfigService } from '../common/gateway.service';
 import {
   PlatformStatsDto,
   AdminSessionDto,
@@ -12,13 +14,25 @@ import {
   ClientInsightsDto,
   ErrorSummaryDto,
   ErrorEntryDto,
+  InfraHealthDto,
+  PlatformBillingDto,
+  OrgRevenueDto,
+  MonthlyTrendDto,
+  AdminUserDto,
+  AdminUserListDto,
+  AdminUserQueryDto,
 } from './dto/admin.dto';
 
 @Injectable()
 export class AdminService {
   private readonly logger = new Logger(AdminService.name);
+  private readonly startTime = Date.now();
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+    private readonly iceConfig: IceConfigService,
+  ) {}
 
   // -----------------------------------------------------------------------
   // Platform Statistics
@@ -463,6 +477,259 @@ export class AdminService {
       errorsByGpu,
       recentErrors,
     };
+  }
+
+  // -----------------------------------------------------------------------
+  // Infrastructure Health
+  // -----------------------------------------------------------------------
+
+  async getInfraHealth(): Promise<InfraHealthDto> {
+    const uptimeSeconds = Math.floor((Date.now() - this.startTime) / 1000);
+
+    // Database health check with timing
+    let dbStatus: 'ok' | 'degraded' | 'down' = 'down';
+    let dbResponseMs = 0;
+    let activeConnections = 0;
+    let databaseSizeMb = 0;
+
+    try {
+      const dbStart = Date.now();
+      await this.prisma.$queryRaw`SELECT 1`;
+      dbResponseMs = Date.now() - dbStart;
+      dbStatus = dbResponseMs > 1000 ? 'degraded' : 'ok';
+
+      // Connection pool info
+      const connResult = await this.prisma.$queryRaw<Array<{ count: bigint }>>`
+        SELECT count(*) FROM pg_stat_activity WHERE datname = current_database()
+      `;
+      activeConnections = Number(connResult[0]?.count ?? 0);
+
+      // Database size
+      const sizeResult = await this.prisma.$queryRaw<Array<{ size: bigint }>>`
+        SELECT pg_database_size(current_database()) as size
+      `;
+      databaseSizeMb = Math.round(Number(sizeResult[0]?.size ?? 0) / (1024 * 1024));
+    } catch (err) {
+      this.logger.warn(`DB health check failed: ${err instanceof Error ? err.message : err}`);
+    }
+
+    // Website health check
+    const websiteUrl = this.configService.get<string>('WEBSITE_URL', 'https://nvremote.com');
+    let websiteStatus: 'ok' | 'degraded' | 'down' = 'down';
+    let websiteResponseMs = 0;
+
+    try {
+      const wsStart = Date.now();
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(websiteUrl, {
+        method: 'HEAD',
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      websiteResponseMs = Date.now() - wsStart;
+      websiteStatus = res.ok ? (websiteResponseMs > 2000 ? 'degraded' : 'ok') : 'degraded';
+    } catch {
+      websiteStatus = 'down';
+    }
+
+    // TURN/STUN
+    const turnEnabled = this.iceConfig.isTurnEnabled();
+    const turnServers = turnEnabled ? this.iceConfig.getTurnServers('health-check') : [];
+    const stunServers = this.iceConfig.getStunServers();
+
+    return {
+      api: {
+        status: dbStatus === 'ok' ? 'ok' : 'degraded',
+        responseTimeMs: dbResponseMs,
+        uptimeSeconds,
+        version: '0.5.2-beta',
+      },
+      database: {
+        status: dbStatus,
+        responseTimeMs: dbResponseMs,
+        activeConnections,
+        databaseSizeMb,
+      },
+      website: {
+        status: websiteStatus,
+        responseTimeMs: websiteResponseMs,
+        url: websiteUrl,
+      },
+      turn: {
+        enabled: turnEnabled,
+        serverCount: turnServers.length,
+        hasCredentials: turnServers.some((t) => !!t.username && !!t.credential),
+      },
+      stun: {
+        serverCount: stunServers.length,
+        servers: stunServers,
+      },
+      checkedAt: new Date().toISOString(),
+    };
+  }
+
+  // -----------------------------------------------------------------------
+  // Platform Billing Overview
+  // -----------------------------------------------------------------------
+
+  async getPlatformBilling(): Promise<PlatformBillingDto> {
+    const totalBillingAccounts = await this.prisma.billingAccount.count();
+
+    const allPeriods = await this.prisma.billingPeriod.findMany({
+      include: {
+        billingAccount: {
+          include: { org: { select: { id: true, name: true } } },
+        },
+      },
+      orderBy: { startDate: 'desc' },
+    });
+
+    // Total revenue (PAID periods only)
+    const paidPeriods = allPeriods.filter((p) => p.status === BillingPeriodStatus.PAID);
+    const totalRevenueCents = paidPeriods.reduce((sum, p) => sum + p.costCentsCharged, 0);
+
+    // Current month (OPEN periods)
+    const openPeriods = allPeriods.filter((p) => p.status === BillingPeriodStatus.OPEN);
+    const currentMonthCents = openPeriods.reduce((sum, p) => sum + p.costCentsCharged, 0);
+
+    // MRR — average of last 3 calendar months of PAID periods
+    const now = new Date();
+    const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+    const recentPaid = paidPeriods.filter((p) => p.startDate >= threeMonthsAgo);
+    const mrrCents = recentPaid.length > 0
+      ? Math.round(recentPaid.reduce((sum, p) => sum + p.costCentsCharged, 0) / 3)
+      : 0;
+
+    // Total bandwidth
+    const totalBandwidthBytes = allPeriods.reduce(
+      (sum, p) => sum + p.totalBytesRelay + p.totalBytesVpn,
+      BigInt(0),
+    );
+
+    // Revenue by org
+    const orgMap = new Map<string, OrgRevenueDto>();
+    for (const p of allPeriods) {
+      const orgId = p.billingAccount.org.id;
+      const orgName = p.billingAccount.org.name;
+      const existing = orgMap.get(orgId) ?? {
+        orgId,
+        orgName,
+        totalCents: 0,
+        currentMonthCents: 0,
+        totalBandwidthBytes: '0',
+      };
+
+      if (p.status === BillingPeriodStatus.PAID) {
+        existing.totalCents += p.costCentsCharged;
+      }
+      if (p.status === BillingPeriodStatus.OPEN) {
+        existing.currentMonthCents += p.costCentsCharged;
+      }
+      const bw = BigInt(existing.totalBandwidthBytes) + p.totalBytesRelay + p.totalBytesVpn;
+      existing.totalBandwidthBytes = bw.toString();
+      orgMap.set(orgId, existing);
+    }
+    const revenueByOrg = Array.from(orgMap.values()).sort((a, b) => b.totalCents - a.totalCents);
+
+    // Monthly trend (last 6 months)
+    const monthlyMap = new Map<string, MonthlyTrendDto>();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      monthlyMap.set(key, { month: key, revenueCents: 0, bandwidthBytes: '0' });
+    }
+    for (const p of allPeriods) {
+      const key = `${p.startDate.getFullYear()}-${String(p.startDate.getMonth() + 1).padStart(2, '0')}`;
+      const entry = monthlyMap.get(key);
+      if (entry) {
+        entry.revenueCents += p.costCentsCharged;
+        const bw = BigInt(entry.bandwidthBytes) + p.totalBytesRelay + p.totalBytesVpn;
+        entry.bandwidthBytes = bw.toString();
+      }
+    }
+    const monthlyTrend = Array.from(monthlyMap.values());
+
+    // Period count by status
+    const periodsByStatus: Record<string, number> = {};
+    for (const p of allPeriods) {
+      periodsByStatus[p.status] = (periodsByStatus[p.status] || 0) + 1;
+    }
+
+    return {
+      totalRevenueCents,
+      currentMonthCents,
+      mrrCents,
+      totalBillingAccounts,
+      totalBandwidthBytes: totalBandwidthBytes.toString(),
+      revenueByOrg,
+      monthlyTrend,
+      periodsByStatus,
+    };
+  }
+
+  // -----------------------------------------------------------------------
+  // User Management
+  // -----------------------------------------------------------------------
+
+  async getAdminUsers(query: AdminUserQueryDto): Promise<AdminUserListDto> {
+    const page = query.page ?? 1;
+    const limit = Math.min(query.limit ?? 50, 200);
+    const skip = (page - 1) * limit;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {};
+    if (query.search) {
+      where.OR = [
+        { name: { contains: query.search, mode: 'insensitive' } },
+        { email: { contains: query.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        include: {
+          orgMemberships: {
+            include: { org: { select: { id: true, name: true, slug: true } } },
+          },
+          _count: { select: { sessions: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    const data: AdminUserDto[] = users.map((u) => {
+      // Detect auth providers from non-null provider ID fields
+      const authProviders: string[] = [];
+      if (u.googleId) authProviders.push('google');
+      if (u.microsoftId) authProviders.push('microsoft');
+      if (u.appleId) authProviders.push('apple');
+      if (u.discordId) authProviders.push('discord');
+
+      return {
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        avatarUrl: u.avatarUrl,
+        isSuperAdmin: u.isSuperAdmin,
+        createdAt: u.createdAt,
+        totalSessions: u._count.sessions,
+        orgs: u.orgMemberships.map((m) => ({
+          orgId: m.org.id,
+          orgName: m.org.name,
+          orgSlug: m.org.slug,
+          role: m.role,
+          joinedAt: m.joinedAt,
+        })),
+        authProviders,
+      };
+    });
+
+    return { data, total, page, limit };
   }
 
   // -----------------------------------------------------------------------

@@ -22,6 +22,10 @@ import {
   QosAnalyticsDto,
   ClientInsightsDto,
   ErrorSummaryDto,
+  InfraHealthDto,
+  PlatformBillingDto,
+  AdminUserListDto,
+  AdminUserQueryDto,
 } from './dto/admin.dto';
 
 /**
@@ -117,6 +121,41 @@ export class AdminController {
   @ApiOkResponse({ type: ErrorSummaryDto })
   async getErrorSummary(): Promise<ErrorSummaryDto> {
     return this.adminService.getErrorSummary();
+  }
+
+  /**
+   * Get infrastructure health (API, database, website, TURN/STUN).
+   * Only visible to super-admins (platform owner).
+   */
+  @Get('health')
+  @ApiOperation({ summary: 'Get infrastructure health (super-admin only)' })
+  @ApiOkResponse({ type: InfraHealthDto })
+  async getInfraHealth(): Promise<InfraHealthDto> {
+    return this.adminService.getInfraHealth();
+  }
+
+  /**
+   * Get platform-wide billing overview (all orgs, revenue, MRR).
+   * Only visible to super-admins (platform owner).
+   */
+  @Get('billing')
+  @ApiOperation({ summary: 'Get platform billing overview (super-admin only)' })
+  @ApiOkResponse({ type: PlatformBillingDto })
+  async getPlatformBilling(): Promise<PlatformBillingDto> {
+    return this.adminService.getPlatformBilling();
+  }
+
+  /**
+   * List all users with org memberships and auth providers.
+   * Only visible to super-admins (platform owner).
+   */
+  @Get('users')
+  @ApiOperation({ summary: 'List all users (super-admin only)' })
+  @ApiOkResponse({ type: AdminUserListDto })
+  async getAdminUsers(
+    @Query() query: AdminUserQueryDto,
+  ): Promise<AdminUserListDto> {
+    return this.adminService.getAdminUsers(query);
   }
 
   /**

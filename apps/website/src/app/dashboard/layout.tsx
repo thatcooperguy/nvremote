@@ -19,6 +19,9 @@ import {
   AlertOctagon,
   Gauge,
   CreditCard,
+  HardDrive,
+  DollarSign,
+  Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -38,6 +41,9 @@ const adminLinks = [
   { href: '/dashboard/admin/qos', label: 'QoS Analytics', icon: Gauge },
   { href: '/dashboard/admin/clients', label: 'Client Insights', icon: Smartphone },
   { href: '/dashboard/admin/errors', label: 'Error Dashboard', icon: AlertOctagon },
+  { href: '/dashboard/admin/infrastructure', label: 'Infrastructure', icon: HardDrive },
+  { href: '/dashboard/admin/billing', label: 'Platform Billing', icon: DollarSign },
+  { href: '/dashboard/admin/users', label: 'User Management', icon: Users },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

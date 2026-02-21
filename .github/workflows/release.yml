@@ -17,8 +17,9 @@
 #  10.  build-client-linux-arm64      -- Electron desktop client (Linux ARM64: AppImage + deb + tar.gz)
 #  11.  build-client-macos            -- Electron desktop client (macOS DMG)
 #  12.  build-android                 -- Android APK (Kotlin/Compose)
-#  13.  create-release                -- Publish GitHub Release with all artifacts
-#  14.  validate-release              -- Verify all expected assets exist and are downloadable
+#  13.  build-mac-native              -- Native Swift macOS client (SwiftUI + Metal + VideoToolbox)
+#  14.  create-release                -- Publish GitHub Release with all artifacts
+#  15.  validate-release              -- Verify all expected assets exist and are downloadable
 ###############################################################################
 
 name: Release
@@ -1172,7 +1173,110 @@ jobs:
           retention-days: 5
 
   ###########################################################################
-  # Job 10: Create GitHub Release with all artifacts
+  # Job 13: Build native Swift macOS client (SwiftUI + Metal + VideoToolbox)
+  #   Produces: NVRemote-<tag>-macOS-native.zip (ad-hoc signed .app bundle)
+  #   Zero third-party deps — uses only Apple system frameworks.
+  ###########################################################################
+  build-mac-native:
+    name: Build Native macOS Client (Swift)
+    runs-on: macos-14  # Apple Silicon runner
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show Swift version
+        run: swift --version
+
+      - name: Resolve Swift packages
+        working-directory: apps/mac-client
+        run: swift package resolve
+
+      - name: Build release binary
+        working-directory: apps/mac-client
+        run: |
+          swift build -c release 2>&1
+          echo ""
+          echo "=== Build output ==="
+          ls -lh .build/release/NVRemote
+
+      - name: Create .app bundle
+        run: |
+          TAG="${{ github.ref_name }}"
+          APP_NAME="NVRemote.app"
+          APP_DIR="${APP_NAME}/Contents"
+
+          # Create macOS .app bundle structure
+          mkdir -p "${APP_DIR}/MacOS"
+          mkdir -p "${APP_DIR}/Resources"
+
+          # Copy the built executable
+          cp apps/mac-client/.build/release/NVRemote "${APP_DIR}/MacOS/NVRemote"
+
+          # Create Info.plist
+          V_BARE="${TAG#v}"
+          cat > "${APP_DIR}/Info.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleName</key>
+            <string>NVRemote</string>
+            <key>CFBundleDisplayName</key>
+            <string>NVRemote</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.nvremote.mac-client</string>
+            <key>CFBundleVersion</key>
+            <string>${V_BARE}</string>
+            <key>CFBundleShortVersionString</key>
+            <string>${V_BARE}</string>
+            <key>CFBundleExecutable</key>
+            <string>NVRemote</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>CFBundleSignature</key>
+            <string>????</string>
+            <key>LSMinimumSystemVersion</key>
+            <string>13.0</string>
+            <key>NSHighResolutionCapable</key>
+            <true/>
+            <key>NSMicrophoneUsageDescription</key>
+            <string>NVRemote needs microphone access for audio passthrough during streaming.</string>
+            <key>NSCameraUsageDescription</key>
+            <string>NVRemote needs camera access for webcam passthrough during streaming.</string>
+          </dict>
+          </plist>
+          EOF
+
+          # Copy Resources if they exist
+          if [ -d "apps/mac-client/Resources" ]; then
+            cp -R apps/mac-client/Resources/* "${APP_DIR}/Resources/" 2>/dev/null || true
+          fi
+
+          # Ad-hoc sign the .app bundle (free, no Apple Developer account needed)
+          codesign --force --deep -s - "${APP_NAME}"
+          echo "Ad-hoc signed ${APP_NAME}"
+
+          # Verify signature
+          codesign --verify --verbose "${APP_NAME}" && echo "Signature valid" || echo "Signature verification warning (ad-hoc is expected)"
+
+          # Package as zip
+          ZIP_NAME="NVRemote-${TAG}-macOS-native.zip"
+          ditto -c -k --keepParent "${APP_NAME}" "${ZIP_NAME}"
+          echo ""
+          echo "=== Package created ==="
+          ls -lh "${ZIP_NAME}"
+
+      - name: Upload native macOS client
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-native
+          path: NVRemote-${{ github.ref_name }}-macOS-native.zip
+          if-no-files-found: error
+          retention-days: 5
+
+  ###########################################################################
+  # Job 14: Create GitHub Release with all artifacts
   ###########################################################################
   create-release:
     name: Create GitHub Release
@@ -1187,6 +1291,7 @@ jobs:
       - build-client-linux-arm64
       - build-client-macos
       - build-android
+      - build-mac-native
 
     steps:
       - name: Checkout repository
@@ -1259,9 +1364,13 @@ jobs:
           cp release-artifacts/client-linux-arm64/*.tar.gz release-files/ 2>/dev/null && \
             echo "Collected Linux ARM64 client tar.gz" || echo "Warning: Linux ARM64 client tar.gz not found"
 
-          # macOS client DMG
+          # macOS client DMG (Electron)
           cp release-artifacts/client-macos/*.dmg release-files/ 2>/dev/null && \
-            echo "Collected macOS client DMG" || echo "Warning: macOS client DMG not found"
+            echo "Collected macOS client DMG (Electron)" || echo "Warning: macOS client DMG not found"
+
+          # macOS native client (Swift/Metal)
+          cp release-artifacts/mac-native/*.zip release-files/ 2>/dev/null && \
+            echo "Collected macOS native client zip" || echo "Warning: macOS native client zip not found"
 
           # Android APK
           cp release-artifacts/android-apk/*.apk release-files/ 2>/dev/null && \
@@ -1317,7 +1426,8 @@ jobs:
             #### Other Client Platforms
             | Platform | Artifact | Description |
             |----------|----------|-------------|
-            | macOS | `NVRemote-*-universal.dmg` | Universal binary (Intel + Apple Silicon) |
+            | macOS (native) | `NVRemote-${{ github.ref_name }}-macOS-native.zip` | **Native Swift client** — Metal renderer, VideoToolbox decoder, Apple Silicon optimized |
+            | macOS (Electron) | `NVRemote-*-universal.dmg` | Electron-based client (Intel + Apple Silicon) |
             | Linux x86_64 | `nvremote_*_amd64.deb` | **Recommended** — Debian/Ubuntu package, `sudo dpkg -i` |
             | Linux x86_64 | `NVRemote-*-x86_64.AppImage` | Portable AppImage — chmod +x and run |
             | Linux x86_64 | `NVRemote-*-x86_64.tar.gz` | Manual install tarball |
@@ -1340,7 +1450,7 @@ jobs:
 
             ### Requirements
             - **Windows**: Windows 10/11 x64 with NVIDIA GPU (for host mode: NVENC support required)
-            - **macOS**: macOS 13+ (client only)
+            - **macOS**: macOS 13+ (native Swift client or Electron client)
             - **Linux**: x86_64 or ARM64 (client: deb/AppImage/tar.gz; host: standalone Go agent)
             - **Android**: Android 7.0+ (API 24)
             - **Jetson/DGX**: JetPack 5.0+ with NVIDIA GPU (host agent)
@@ -1356,7 +1466,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   ###########################################################################
-  # Job 11: Validate release assets — ensure all expected files are present
+  # Job 15: Validate release assets — ensure all expected files are present
   #         and downloadable. Fails the workflow if any required asset is
   #         missing so we catch 404s before users do.
   ###########################################################################
@@ -1394,7 +1504,7 @@ jobs:
             "NVRemote-${V_BARE}-arm64.AppImage"
             "nvremote_${V_BARE}_arm64.deb"
             "NVRemote-${V_BARE}-universal.dmg"
-            "NVRemote-${V}-apk"
+            "NVRemote-${V}.apk"
             "NVRemoteHost-${V}-linux-amd64.tar.gz"
             "NVRemoteHost-${V}-linux-arm64.tar.gz"
             "SHA256SUMS.txt"
@@ -1402,6 +1512,7 @@ jobs:
 
           # Define optional assets (warn if missing but don't fail)
           OPTIONAL_ASSETS=(
+            "NVRemote-${V}-macOS-native.zip"
             "NVRemoteHost-${V}-win64.zip"
             "NVRemoteHost-${V}-linux-amd64.tar.gz.asc"
             "NVRemoteHost-${V}-linux-arm64.tar.gz.asc"

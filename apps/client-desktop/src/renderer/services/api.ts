@@ -195,6 +195,8 @@ export const api = {
       apiClient.post('/sessions', payload),
     end: (id: string) =>
       apiClient.patch(`/sessions/${id}`, { status: 'completed' }),
+    reportStats: (id: string, stats: Record<string, unknown>) =>
+      apiClient.post(`/sessions/${id}/stats`, stats),
   },
 
   orgs: {

@@ -4,6 +4,7 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useHostAgentStore } from '../store/hostAgentStore';
 import { useConnectionStore } from '../store/connectionStore';
+import type { StreamStats } from '../store/connectionStore';
 import { useDiagnosticsStore } from '../store/diagnosticsStore';
 import { toast } from '../components/Toast';
 
@@ -46,6 +47,12 @@ export function DiagnosticsPage(): React.ReactElement {
 
   const hostStatus = useHostAgentStore((s) => s.status);
   const connectionStatus = useConnectionStore((s) => s.status);
+  const streamStats = useConnectionStore((s) => s.stats);
+  const sessionId = useConnectionStore((s) => s.sessionId);
+  const connectionType = useConnectionStore((s) => s.connectionType);
+  const connectedHost = useConnectionStore((s) => s.connectedHost);
+  const gamingMode = useConnectionStore((s) => s.gamingMode);
+  const reconnectAttempts = useConnectionStore((s) => s.reconnectAttempts);
 
   // Auto-scroll logs
   useEffect(() => {
@@ -177,6 +184,10 @@ export function DiagnosticsPage(): React.ReactElement {
         signalingConnected: hostStatus.signalingConnected,
       },
       connectionStatus,
+      sessionId,
+      connectionType,
+      gamingMode,
+      streamStats,
       logs: logs.slice(-50),
     };
     try {
@@ -275,7 +286,58 @@ export function DiagnosticsPage(): React.ReactElement {
         </div>
       </div>
 
-      {/* Section 3: System Info */}
+      {/* Section 3: Live Connection Stats */}
+      <div style={styles.section}>
+        <h2 style={styles.sectionTitle}>Live Connection</h2>
+        {connectionStatus === 'streaming' && streamStats ? (
+          <Card>
+            <div style={styles.statsHeader}>
+              <div style={styles.statsLive}>
+                <span style={styles.liveIndicator} />
+                <span style={styles.liveText}>LIVE</span>
+              </div>
+              <span style={styles.statsSessionId}>
+                {connectedHost?.name ?? 'Unknown Host'} &middot; {sessionId?.slice(0, 8)}
+              </span>
+            </div>
+            <div style={styles.statsGrid}>
+              <StatTile label="Bitrate" value={formatBitrate(streamStats.bitrate)} warn={streamStats.bitrate < 2000} />
+              <StatTile label="FPS" value={`${streamStats.fps}`} warn={streamStats.fps < 30} />
+              <StatTile label="Latency" value={`${streamStats.rtt.toFixed(1)} ms`} warn={streamStats.rtt > 50} />
+              <StatTile label="Packet Loss" value={`${streamStats.packetLoss.toFixed(2)}%`} warn={streamStats.packetLoss > 1} />
+              <StatTile label="Jitter" value={`${streamStats.jitter.toFixed(1)} ms`} warn={streamStats.jitter > 10} />
+              <StatTile label="Decode" value={`${streamStats.decodeTimeMs.toFixed(1)} ms`} warn={streamStats.decodeTimeMs > 8} />
+              <StatTile label="Resolution" value={`${streamStats.resolution.width}x${streamStats.resolution.height}`} />
+              <StatTile label="Codec" value={streamStats.codec} />
+              <StatTile label="Connection" value={connectionType === 'relay' ? '📡 TURN Relay' : '🔗 P2P Direct'} warn={connectionType === 'relay'} />
+              <StatTile label="Profile" value={gamingMode.charAt(0).toUpperCase() + gamingMode.slice(1)} />
+              <StatTile label="Render" value={`${streamStats.renderTimeMs.toFixed(1)} ms`} warn={streamStats.renderTimeMs > 16} />
+              <StatTile label="Reconnects" value={`${reconnectAttempts}`} warn={reconnectAttempts > 0} />
+            </div>
+          </Card>
+        ) : connectionStatus === 'reconnecting' ? (
+          <Card>
+            <div style={styles.statsEmpty}>
+              <span style={{ ...styles.liveIndicator, backgroundColor: '#F59E0B' }} />
+              <span style={styles.logEmptyText}>
+                Reconnecting... (attempt {reconnectAttempts}/3)
+              </span>
+            </div>
+          </Card>
+        ) : (
+          <Card>
+            <div style={styles.statsEmpty}>
+              <span style={styles.logEmptyText}>
+                {connectionStatus === 'disconnected'
+                  ? 'Not streaming — connect to a host to see live stats'
+                  : `Connecting... (${connectionStatus})`}
+              </span>
+            </div>
+          </Card>
+        )}
+      </div>
+
+      {/* Section 4: System Info */}
       <div style={styles.section}>
         <h2 style={styles.sectionTitle}>System Info</h2>
         <Card>
@@ -371,6 +433,20 @@ function InfoRow({ label, value }: { label: string; value: string }): React.Reac
       <span style={styles.infoValue}>{value}</span>
     </div>
   );
+}
+
+function StatTile({ label, value, warn }: { label: string; value: string; warn?: boolean }): React.ReactElement {
+  return (
+    <div style={styles.statTile}>
+      <span style={styles.statLabel}>{label}</span>
+      <span style={{ ...styles.statValue, color: warn ? '#F59E0B' : colors.text.primary }}>{value}</span>
+    </div>
+  );
+}
+
+function formatBitrate(kbps: number): string {
+  if (kbps >= 1000) return `${(kbps / 1000).toFixed(1)} Mbps`;
+  return `${kbps} Kbps`;
 }
 
 /* ---------- Styles ---------- */
@@ -491,6 +567,72 @@ const styles: Record<string, React.CSSProperties> = {
   logMessage: {
     color: colors.text.secondary,
     wordBreak: 'break-word',
+  },
+  // Live stats
+  statsHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+    paddingBottom: spacing.sm,
+    borderBottom: `1px solid ${colors.border.default}`,
+  },
+  statsLive: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  liveIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: '50%',
+    backgroundColor: '#76B900',
+    display: 'inline-block',
+    animation: 'pulse 2s ease-in-out infinite',
+  },
+  liveText: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.bold,
+    color: '#76B900',
+    letterSpacing: 1,
+  },
+  statsSessionId: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.disabled,
+    fontFamily: typography.fontMono,
+  },
+  statsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: spacing.sm,
+  },
+  statsEmpty: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    padding: `${spacing.xl}px`,
+  },
+  statTile: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: 2,
+    padding: spacing.sm,
+    backgroundColor: colors.bg.primary,
+    borderRadius: radius.sm,
+    border: `1px solid ${colors.border.default}`,
+  },
+  statLabel: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.disabled,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.5,
+  },
+  statValue: {
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
+    fontFamily: typography.fontMono,
   },
   // System info
   infoGrid: {

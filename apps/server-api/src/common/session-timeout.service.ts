@@ -42,23 +42,56 @@ export class SessionTimeoutService {
     const maxDurationCutoff = new Date(now.getTime() - this.maxDurationMs);
 
     try {
-      // End sessions that have been idle too long
-      // We use startedAt as a proxy for "last activity" — sessions without
-      // a heartbeat mechanism are timed out based on when they started.
-      const idleResult = await this.prisma.session.updateMany({
-        where: {
-          status: SessionStatus.ACTIVE,
-          startedAt: { lt: idleCutoff },
-        },
-        data: {
-          status: SessionStatus.ENDED,
-          endedAt: now,
-        },
+      // End sessions that have been idle too long.
+      //
+      // We check two things to determine "last activity":
+      //   1. metadata.qosStats.updatedAt — set every ~2s by the host agent
+      //   2. metadata.clientStats.reportedAt — set every ~5s by the client
+      //
+      // If neither timestamp exists (pre-streaming or broken pipeline), we
+      // fall back to startedAt. This prevents zombie sessions from lingering
+      // when the host agent crashes mid-stream.
+      const activeSessions = await this.prisma.session.findMany({
+        where: { status: SessionStatus.ACTIVE },
+        select: { id: true, startedAt: true, metadata: true },
       });
 
-      if (idleResult.count > 0) {
+      const sessionsToEnd: string[] = [];
+      for (const session of activeSessions) {
+        const meta = session.metadata as Record<string, unknown> | null;
+        let lastActivity = session.startedAt.getTime();
+
+        // Check QoS stats timestamp from host agent
+        const qos = meta?.qosStats as Record<string, unknown> | undefined;
+        if (qos?.updatedAt) {
+          const qosTime = new Date(qos.updatedAt as string).getTime();
+          if (!isNaN(qosTime) && qosTime > lastActivity) lastActivity = qosTime;
+        }
+
+        // Check client stats timestamp
+        const client = meta?.clientStats as Record<string, unknown> | undefined;
+        if (client?.reportedAt) {
+          const clientTime = new Date(client.reportedAt as string).getTime();
+          if (!isNaN(clientTime) && clientTime > lastActivity) lastActivity = clientTime;
+        }
+
+        if (lastActivity < idleCutoff.getTime()) {
+          sessionsToEnd.push(session.id);
+        }
+      }
+
+      let idleCount = 0;
+      if (sessionsToEnd.length > 0) {
+        const idleResult = await this.prisma.session.updateMany({
+          where: { id: { in: sessionsToEnd } },
+          data: { status: SessionStatus.ENDED, endedAt: now },
+        });
+        idleCount = idleResult.count;
+      }
+
+      if (idleCount > 0) {
         this.logger.warn(
-          `Auto-ended ${idleResult.count} idle session(s) (idle > ${this.idleTimeoutMs / 60000}min)`,
+          `Auto-ended ${idleCount} idle session(s) (no activity > ${this.idleTimeoutMs / 60000}min)`,
         );
       }
 

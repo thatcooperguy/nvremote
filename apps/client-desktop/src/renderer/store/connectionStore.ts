@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { useSessionStore } from './sessionStore';
 import { useAuthStore } from './authStore';
+import { apiClient } from '../services/api';
 import type { Host } from '../components/HostCard';
 
 // ---------------------------------------------------------------------------
@@ -106,6 +107,49 @@ function stopStatsPolling(): void {
   if (statsInterval !== null) {
     clearInterval(statsInterval);
     statsInterval = null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Client telemetry — report stats to server for diagnostics & QoS analysis
+// ---------------------------------------------------------------------------
+
+let telemetryInterval: ReturnType<typeof setInterval> | null = null;
+
+function startTelemetryReporting(): void {
+  stopTelemetryReporting();
+
+  // Report every 5 seconds (server rate limit: 30/min = 1 every 2s, so 5s is safe)
+  telemetryInterval = setInterval(async () => {
+    const { status, sessionId, stats } = useConnectionStore.getState();
+    if (status !== 'streaming' || !sessionId || !stats) {
+      return;
+    }
+
+    try {
+      await apiClient.post(`/sessions/${sessionId}/stats`, {
+        bitrate: stats.bitrate,
+        fps: stats.fps,
+        packetLoss: stats.packetLoss,
+        jitter: stats.jitter,
+        rtt: stats.rtt,
+        codec: stats.codec,
+        resolution: stats.resolution,
+        connectionType: stats.connectionType,
+        decodeTimeMs: stats.decodeTimeMs,
+        renderTimeMs: stats.renderTimeMs,
+        gamingMode: stats.gamingMode,
+      });
+    } catch {
+      // Best-effort telemetry — don't spam console on failure
+    }
+  }, 5000);
+}
+
+function stopTelemetryReporting(): void {
+  if (telemetryInterval !== null) {
+    clearInterval(telemetryInterval);
+    telemetryInterval = null;
   }
 }
 
@@ -339,13 +383,14 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
         throw new Error(viewerResult.error || 'Failed to start streaming viewer.');
       }
 
-      // 6. Fully streaming. Wire up monitoring.
+      // 6. Fully streaming. Wire up monitoring + telemetry.
       reconnectAttempt = 0;
       set({ status: 'streaming', reconnectAttempts: 0 });
       window.nvrs.tray.updateDisconnect(true);
 
       attachP2PListeners();
       startStatsPolling();
+      startTelemetryReporting();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Connection failed';
       console.error('[ConnectionStore] Connection error:', message);
@@ -362,6 +407,7 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
       try { await window.nvrs.p2p.disconnectSignaling(); } catch { /* ignore */ }
 
       stopStatsPolling();
+      stopTelemetryReporting();
       detachP2PListeners();
 
       // Notify the server that the session failed
@@ -395,6 +441,7 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
     });
 
     stopStatsPolling();
+    stopTelemetryReporting();
     detachP2PListeners();
 
     const errors: string[] = [];

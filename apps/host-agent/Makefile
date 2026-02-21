@@ -65,6 +65,15 @@ uninstall:
 	@echo Binary removed. Run the uninstall script for full cleanup:
 	@echo   powershell -ExecutionPolicy Bypass -File scripts/uninstall.ps1
 
+## installer: Build NSIS Windows installer (requires makensis in PATH).
+installer: build
+	@echo Building NSIS installer...
+	cp $(BUILD_DIR)/$(BINARY_NAME) installer/nvremote-agent.exe
+	cd installer && makensis nvremote-agent.nsi
+	mv installer/NVRemote-Agent-*-Setup.exe $(BUILD_DIR)/
+	rm -f installer/nvremote-agent.exe
+	@echo Installer built: $(BUILD_DIR)/NVRemote-Agent-*-Setup.exe
+
 ## clean: Remove build artifacts.
 clean:
 	@echo Cleaning build artifacts...

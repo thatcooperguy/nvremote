@@ -685,14 +685,33 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle('p2p:reconnect', async () => {
     try {
-      // Attempt ICE restart by re-establishing the P2P connection
+      console.log('[main] ICE restart: disconnecting existing P2P...');
       disconnectP2P();
-      // Brief cooldown before reconnecting
-      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Cooldown to let sockets close cleanly
+      await new Promise((resolve) => setTimeout(resolve, 750));
+
+      // Re-gather ICE candidates for fresh connectivity check.
+      // This handles network changes (WiFi → Ethernet, IP change, etc.)
+      // by discovering new host/srflx candidates.
+      const defaultStunServers = [
+        'stun:stun.l.google.com:19302',
+        'stun:stun1.l.google.com:19302',
+      ];
+
+      console.log('[main] ICE restart: re-gathering candidates...');
+      const candidates = await gatherAndSendCandidates(defaultStunServers);
+      console.log(`[main] ICE restart: gathered ${candidates?.length ?? 0} candidates`);
+
+      // Re-establish with fresh candidates
+      console.log('[main] ICE restart: establishing P2P connection...');
       const result = await establishP2PConnection('');
+      console.log(`[main] ICE restart: success (${result.connectionType})`);
+
       return { success: true, connectionType: result.connectionType };
     } catch (err) {
       const message = err instanceof Error ? err.message : 'P2P reconnect failed';
+      console.error('[main] ICE restart failed:', message);
       return { success: false, error: message };
     }
   });

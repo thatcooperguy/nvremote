@@ -10,6 +10,7 @@ import { PrismaService } from '../common/prisma.service';
 import { IceConfigService } from '../common/gateway.service';
 import { SignalingGatewayWs } from '../signaling/signaling.gateway';
 import { AuditService } from '../audit/audit.service';
+import { BillingService } from '../billing/billing.service';
 import {
   CreateSessionDto,
   SessionResponseDto,
@@ -25,6 +26,7 @@ export class SessionsService {
     private readonly iceConfig: IceConfigService,
     private readonly signaling: SignalingGatewayWs,
     private readonly audit: AuditService,
+    private readonly billing: BillingService,
   ) {}
 
   // -----------------------------------------------------------------------
@@ -200,6 +202,26 @@ export class SessionsService {
       },
     });
 
+    // -- Record usage for billing --------------------------------------------
+    const connectionType = (meta.connectionType as string) ?? 'relay';
+    const bytesTransferred = updated.bytesTransferred ?? BigInt(0);
+
+    if (bytesTransferred > 0) {
+      try {
+        await this.billing.recordUsage(
+          sessionId,
+          session.host.orgId,
+          bytesTransferred,
+          connectionType,
+        );
+      } catch (err) {
+        // Billing failures must not break session teardown
+        this.logger.warn(
+          `Billing recordUsage failed for session ${sessionId}: ${err instanceof Error ? err.message : err}`,
+        );
+      }
+    }
+
     // -- Notify host agent --------------------------------------------------
     this.signaling.notifyHostSessionEnded(session.hostId, sessionId);
 
@@ -271,6 +293,11 @@ export class SessionsService {
 
     const existingMeta = (session.metadata as Record<string, unknown>) ?? {};
 
+    // Accumulate bytes transferred for billing (if reported by client)
+    const bytesReceived = typeof stats.bytesReceived === 'number'
+      ? BigInt(stats.bytesReceived)
+      : undefined;
+
     await this.prisma.session.update({
       where: { id: sessionId },
       data: {
@@ -281,6 +308,7 @@ export class SessionsService {
             reportedAt: new Date().toISOString(),
           },
         },
+        ...(bytesReceived !== undefined ? { bytesTransferred: bytesReceived } : {}),
       },
     });
 

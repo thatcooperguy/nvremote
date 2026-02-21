@@ -24,7 +24,7 @@
 ; ---------------------------------------------------------------------------
 
 !define PRODUCT_NAME    "NVRemote Host Agent"
-!define PRODUCT_VERSION "0.5.1"
+!define PRODUCT_VERSION "0.5.2-beta"
 !define PRODUCT_PUBLISHER "NVRemote"
 !define PRODUCT_WEB_SITE  "https://nvremote.com"
 !define INSTALL_DIR     "$PROGRAMFILES\NVRemote"

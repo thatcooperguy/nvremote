@@ -16,6 +16,8 @@ export interface ViewerConfig {
   gamingMode: 'competitive' | 'balanced' | 'cinematic';
   maxBitrate?: number;
   targetFps?: number;
+  /** When false, forces software decode even if GPU acceleration is available. Defaults to true. */
+  hardwareDecode?: boolean;
 }
 
 export interface StreamStats {

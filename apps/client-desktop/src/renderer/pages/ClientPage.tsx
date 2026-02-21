@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { colors, spacing, typography, radius, transitions, statusColors } from '../styles/theme';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
@@ -20,10 +20,26 @@ export function ClientPage(): React.ReactElement {
   const [connectingId, setConnectingId] = useState<string | null>(null);
   const [showPrefs, setShowPrefs] = useState(false);
 
-  // Client preferences (local state for now)
+  // Client preferences — synced with electron-store via IPC
   const [hardwareDecode, setHardwareDecode] = useState(true);
-  const [vsync, setVsync] = useState(true);
+  const [vsync, setVsync] = useState(false);
   const [autoReconnect, setAutoReconnect] = useState(true);
+
+  // Load persisted preferences on mount
+  useEffect(() => {
+    window.nvrs?.settings?.get().then((s) => {
+      setHardwareDecode(s.hardwareDecode);
+      setVsync(s.vsync);
+      setAutoReconnect(s.autoReconnect);
+    }).catch(() => {});
+  }, []);
+
+  const savePref = useCallback((key: string, setter: (v: boolean) => void) => (value: boolean) => {
+    setter(value);
+    window.nvrs?.settings?.set(key as never, value).catch(() => {
+      toast.error('Failed to save preference');
+    });
+  }, []);
 
   const isConnecting = connectionStatus === 'requesting' ||
     connectionStatus === 'signaling' ||
@@ -218,21 +234,21 @@ export function ClientPage(): React.ReactElement {
                 label="Hardware Decoding"
                 description="Use GPU-accelerated video decoding for better performance"
                 checked={hardwareDecode}
-                onChange={setHardwareDecode}
+                onChange={savePref('hardwareDecode', setHardwareDecode)}
               />
               <div style={styles.divider} />
               <ToggleRow
                 label="VSync"
                 description="Synchronize frame rendering to prevent tearing"
                 checked={vsync}
-                onChange={setVsync}
+                onChange={savePref('vsync', setVsync)}
               />
               <div style={styles.divider} />
               <ToggleRow
                 label="Auto-Reconnect"
                 description="Automatically reconnect when the connection is interrupted"
                 checked={autoReconnect}
-                onChange={setAutoReconnect}
+                onChange={savePref('autoReconnect', setAutoReconnect)}
               />
             </div>
           </Card>

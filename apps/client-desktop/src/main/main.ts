@@ -552,6 +552,12 @@ function setupIpcHandlers(): void {
         config.windowHandle = mainWindow.getNativeWindowHandle();
       }
 
+      // Default hardwareDecode to true if not specified.
+      if (config.hardwareDecode === undefined) {
+        config.hardwareDecode = true;
+      }
+      console.log(`[main] Starting viewer: codec=${config.codec}, hwDecode=${config.hardwareDecode}, mode=${config.gamingMode}`);
+
       viewer.start(config);
       return { success: true };
     } catch (err) {

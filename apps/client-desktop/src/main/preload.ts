@@ -67,6 +67,7 @@ interface ViewerStartConfig {
   gamingMode: 'competitive' | 'balanced' | 'cinematic';
   maxBitrate?: number;
   targetFps?: number;
+  hardwareDecode?: boolean;
 }
 
 const viewerApi = {

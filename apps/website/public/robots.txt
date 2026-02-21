@@ -1,0 +1,13 @@
+# NVRemote — https://nvremote.com
+# Allow search engines to index the public-facing pages.
+# Dashboard and API routes are behind auth so they're excluded.
+
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /auth/
+Disallow: /api/
+Disallow: /stream/
+
+# Sitemaps
+Sitemap: https://nvremote.com/sitemap.xml

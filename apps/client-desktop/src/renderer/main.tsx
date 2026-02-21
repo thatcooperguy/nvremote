@@ -34,7 +34,7 @@ Sentry.init({
 // ---------------------------------------------------------------------------
 // Sentry Error Boundary fallback UI
 // ---------------------------------------------------------------------------
-function SentryFallback({ error, resetError }: { error: Error; resetError: () => void }) {
+function SentryFallback({ error, resetError }: { error: unknown; resetError: () => void }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'center',

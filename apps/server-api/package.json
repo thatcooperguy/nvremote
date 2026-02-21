@@ -1,6 +1,6 @@
 {
   "name": "@nvremote/server-api",
-  "version": "0.1.0",
+  "version": "0.5.2-beta",
   "description": "NVIDIA Remote Stream control-plane backend",
   "private": true,
   "license": "UNLICENSED",

@@ -368,6 +368,18 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
       set({ connectionType: connectResult.connectionType || 'p2p' });
 
       // 5. Start the native viewer
+      //    Read the hardware decode preference from persistent settings.
+      //    Defaults to true (GPU-accelerated) if the setting is unavailable.
+      let useHardwareDecode = true;
+      try {
+        const appSettings = await window.nvrs?.settings?.get();
+        if (appSettings && typeof appSettings.hardwareDecode === 'boolean') {
+          useHardwareDecode = appSettings.hardwareDecode;
+        }
+      } catch {
+        // Settings IPC not ready — default to hardware decode.
+      }
+
       const viewerResult = await window.nvrs.viewer.start({
         sessionId: sessionInfo.sessionId,
         codec: sessionInfo.codec,
@@ -375,6 +387,7 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
         gamingMode,
         maxBitrate: preset.maxBitrate,
         targetFps: preset.targetFps,
+        hardwareDecode: useHardwareDecode,
       });
 
       if (!viewerResult.success) {
